@@ -2,8 +2,8 @@
 import:
   - ~/.config/alacritty/gruvbox_dark.yaml
 
-window:
-  opacity: 0.8
+# window:
+#   opacity: 0.8
 
 font:
   size: 10
