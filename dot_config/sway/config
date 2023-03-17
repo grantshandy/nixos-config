@@ -4,26 +4,21 @@
 include /etc/sway/config.d/*
 include gruvbox-dark
 
-set $mod Mod4
-set $left h
-set $down j
-set $up k
-set $right l
-set $term alacritty
-set $menu tofi-run | xargs swaymsg exec --
-
-output * bg ~/pics/wallpaper.jpg fill
+# Functionality
 seat * hide_cursor 5000
 exec swayidle -w \
     timeout 300 'swaylock -f -c 000000' \
     timeout 600 'swaymsg "output * power off"' resume 'swaymsg "output * power on"' \
     before-sleep 'swaylock -f -c 000000'
 
+# Style
+output * bg ~/pics/wallpaper.jpg fill
+
 gaps outer 15
 gaps inner 10
 smart_gaps on
 
-# Property Name         Border  BG      Text    Indicator Child Border
+## Property Name        Border  BG      Text   Indicator Child Border
 client.focused          $base05 $base0D $base00 $base0D $base0D
 client.focused_inactive $base01 $base01 $base05 $base03 $base01
 client.unfocused        $base01 $base00 $base05 $base01 $base01
@@ -36,6 +31,19 @@ default_floating_border pixel 3
 
 font pango:Source Code Pro 10
 
+# Keybindings
+set $mod Mod4
+set $left h
+set $down j
+set $up k
+set $right l
+set $term alacritty
+set $menu tofi-run | xargs swaymsg exec --
+
+bindsym XF86AudioMute exec pactl set-sink-mute @DEFAULT_SINK@ toggle
+bindsym XF86AudioRaiseVolume exec pactl set-sink-volume @DEFAULT_SINK@ +5%
+bindsym XF86AudioLowerVolume exec pactl set-sink-volume @DEFAULT_SINK@ -5%
+
 bindsym $mod+d exec $menu
 bindsym $mod+Return exec $term
 
@@ -44,6 +52,7 @@ floating_modifier $mod normal
 
 bindsym $mod+Shift+c reload
 bindsym $mod+Shift+e exec swaynag -t warning -m 'You pressed the exit shortcut. Do you really want to exit sway? This will end your Wayland session.' -B 'Yes, exit sway' 'swaymsg exit'
+bindsym $mod+Shift+o exec swaylock -f -c 000000
 
 bindsym $mod+$left focus left
 bindsym $mod+$down focus down
@@ -110,10 +119,14 @@ mode "resize" {
 }
 bindsym $mod+r mode "resize"
 
+# Status bar
 bar {
     position top
+    height 20
+    status_edge_padding 10
+    status_padding 10
 
-    status_command while bash ~/.config/sway/status.sh; do sleep 1; done
+    status_command i3status-rs ~/.config/i3rs/config.toml
 
     colors {
         background $base00
