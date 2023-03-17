@@ -1,0 +1,8 @@
+theme = "base16_transparent"
+
+[editor]
+bufferline = "multiple"
+auto-format = false
+
+[editor.indent-guides]
+render = true
