@@ -3,6 +3,7 @@
 
 include /etc/sway/config.d/*
 include gruvbox-dark
+include floating
 
 # Functionality
 seat * hide_cursor 5000
