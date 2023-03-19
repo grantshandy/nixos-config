@@ -8,6 +8,13 @@ interval = 2
 format = "cpu: $utilization.eng(w:4)"
 
 [[block]]
+block = "temperature"
+interval = 5
+format = "cpu temp: $average"
+chip = "k10temp-pci-00c3"
+inputs = ["Tctl"]
+
+[[block]]
 block = "memory"
 interval = 2
 format = "mem: $mem_total_used_percents.eng(w:4)"
@@ -17,13 +24,6 @@ format_alt = "swap: $swap_used_percents.eng(w:4)"
 block = "amd_gpu"
 interval = 2
 format = "gpu: $utilization.eng(w:4)"
-
-[[block]]
-block = "temperature"
-interval = 5
-format = "cpu temp: $average"
-chip = "k10temp-pci-00c3"
-inputs = ["Tctl"]
 
 [[block]]
 block = "temperature"
@@ -39,6 +39,11 @@ format = "vol: {$volume.eng(w:2)|muted}"
 [[block.click]]
 button = "left"
 cmd = "pavucontrol"
+
+[[block]]
+block = "net"
+format = "down: $speed_down.eng(w:4)/S"
+device = "wlan0"
 
 [[block]]
 block = "time"

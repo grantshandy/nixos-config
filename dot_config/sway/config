@@ -17,7 +17,7 @@ output * bg ~/pics/wallpaper.jpg fill
 
 gaps outer 15
 gaps inner 10
-smart_gaps on
+smart_gaps off
 
 ## Property Name        Border  BG      Text   Indicator Child Border
 client.focused          $base05 $base0D $base00 $base0D $base0D
