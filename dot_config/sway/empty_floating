@@ -2,3 +2,8 @@ for_window [class="wasmstation"] floating enable
 for_window [title="WASM-4"] floating enable
 for_window [title="forcegraph"] floating enable
 for_window [app_id="pavucontrol"] floating enable
+for_window [title="Picture in picture"] floating enable
+for_window [app_id="org.libretro.RetroArch"] floating enable
+
+for_window [app_id="egui-themer"] floating enable
+for_window [title="Egui Themer"] floating enable

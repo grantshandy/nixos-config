@@ -3,7 +3,7 @@ import:
   - ~/.config/alacritty/gruvbox_dark.yaml
 
 window:
-  opacity: 0.9
+  # opacity: 0.8
   padding:
     x: 15
     y: 15

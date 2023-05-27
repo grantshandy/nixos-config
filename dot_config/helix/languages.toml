@@ -2,8 +2,8 @@
 name = "rust"
 
 [language.language-server]
-command = "rustup"
-args = ["run", "stable", "rust-analyzer"]
+command = "rust-analyzer"
+display-inline-hints = true
 
 [[language]]
 name = "zig"

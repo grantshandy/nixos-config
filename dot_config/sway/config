@@ -8,9 +8,9 @@ include floating
 # Functionality
 seat * hide_cursor 5000
 exec swayidle -w \
-    timeout 300 'swaylock -f -c 000000' \
+    timeout 300 'swaylock -f -i ~/pics/wallpaper.jpg' \
     timeout 600 'swaymsg "output * power off"' resume 'swaymsg "output * power on"' \
-    before-sleep 'swaylock -f -c 000000'
+    before-sleep 'swaylock -f -i ~/pics/wallpaper.jpg'
 
 # Style
 output * bg ~/pics/wallpaper.jpg fill
@@ -38,12 +38,16 @@ set $left h
 set $down j
 set $up k
 set $right l
-set $term alacritty
+set $term kitty
 set $menu tofi-run | xargs swaymsg exec --
 
 bindsym XF86AudioMute exec pactl set-sink-mute @DEFAULT_SINK@ toggle
 bindsym XF86AudioRaiseVolume exec pactl set-sink-volume @DEFAULT_SINK@ +5%
 bindsym XF86AudioLowerVolume exec pactl set-sink-volume @DEFAULT_SINK@ -5%
+
+bindsym XF86AudioPlay exec playerctl play-pause
+bindsym XF86AudioNext exec playerctl next
+bindsym XF86AudioPrev exec playerctl previous
 
 bindsym $mod+d exec $menu
 bindsym $mod+Return exec $term
@@ -54,6 +58,9 @@ floating_modifier $mod normal
 bindsym $mod+Shift+c reload
 bindsym $mod+Shift+e exec swaynag -t warning -m 'You pressed the exit shortcut. Do you really want to exit sway? This will end your Wayland session.' -B 'Yes, exit sway' 'swaymsg exit'
 bindsym $mod+Shift+o exec swaylock -f -c 000000
+
+bindsym $mod+p       exec grimshot save active
+bindsym $mod+Shift+p exec grimshot save area
 
 bindsym $mod+$left focus left
 bindsym $mod+$down focus down
@@ -106,9 +113,9 @@ bindsym $mod+Shift+space floating toggle
 
 mode "resize" {
     bindsym $left resize shrink width 10px
-    bindsym $down resize grow height 10px
-    bindsym $up resize shrink height 10px
     bindsym $right resize grow width 10px
+    bindsym $up resize grow height 10px
+    bindsym $down resize shrink height 10px
 
     bindsym Left resize shrink width 10px
     bindsym Down resize grow height 10px
