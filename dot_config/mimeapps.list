@@ -1,7 +1,0 @@
-
-[Default Applications]
-image/jpeg=feh.desktop
-image/png=feh.desktop
-image/tiff=feh.desktop
-image/bmp=feh.desktop
-video/mp4=mpv.desktop
