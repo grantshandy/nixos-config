@@ -1,28 +1,63 @@
 { config, pkgs, ... }:
 let
-  version = "23.05";
-  home-manager = builtins.fetchTarball
-    "https://github.com/nix-community/home-manager/archive/release-${version}.tar.gz";
-  background = ./background.jpg;
+  version = "23.11";
+  background = pkgs.fetchurl {
+    url =
+      "https://github.com/grantshandy/dotfiles/blob/main/background.jpg?raw=true";
+    hash = "sha256-aT3VWvMshR7ZsSqWACRSlWLEaggu5dfYDaMgyhbuBy4=";
+  };
+  dark-theme = true;
+  morewaita-icon-theme = (with pkgs;
+    stdenvNoCC.mkDerivation rec {
+      pname = "morewaita-icon-theme";
+      version = "43.2";
+
+      src = fetchFromGitHub {
+        owner = "somepaulo";
+        repo = "MoreWaita";
+        rev = "v${version}";
+        sha256 = "sha256-efeZEysuWdE1+ws3njFlhWjAjavRlMuIuSL2VT25lUk=";
+      };
+
+      nativeBuildInputs = [ gtk3 xdg-utils ];
+
+      installPhase = ''
+        install -d $out/share/icons/MoreWaita
+        cp -r . $out/share/icons/MoreWaita
+        gtk-update-icon-cache -f -t $out/share/icons/MoreWaita && xdg-desktop-menu forceupdate
+      '';
+    });
 in {
-  imports = [ (import "${home-manager}/nixos") ];
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nixpkgs.config.allowUnfree = true;
+  documentation.nixos.enable = false;
+
+  networking.networkmanager.enable = true;
 
   # Enable the X11 windowing system.
   services.xserver.enable = true;
   services.xserver.excludePackages = [ pkgs.xterm ];
-
-  # Enable the GNOME Desktop Environment.
-  services.xserver.displayManager.gdm.enable = true;
-  services.xserver.desktopManager.gnome.enable = true;
-  environment.gnome.excludePackages =
-    (with pkgs; [ gnome-photos gnome-tour epiphany ])
-    ++ (with pkgs.gnome; [ cheese gnome-music geary gnome-contacts ]);
 
   # Configure keymap in X11
   services.xserver = {
     layout = "us";
     xkbVariant = "";
   };
+
+  # Enable the GNOME Desktop Environment.
+  services.xserver.displayManager.gdm.enable = true;
+  services.xserver.desktopManager.gnome.enable = true;
+  environment.gnome.excludePackages =
+    (with pkgs; [ gnome-photos gnome-tour epiphany gnome-connections ])
+    ++ (with pkgs.gnome; [
+      gnome-music
+      geary
+      gnome-contacts
+      gnome-calendar
+      gnome-maps
+    ]);
+
+  fonts.packages = with pkgs; [ noto-fonts noto-fonts-cjk ];
 
   # Enable CUPS to print documents.
   services.printing.enable = true;
@@ -38,37 +73,42 @@ in {
     pulse.enable = true;
   };
 
+  programs.gnupg.agent.enable = true;
+
   users.users.grant = {
     isNormalUser = true;
     description = "Grant Handy";
     extraGroups = [ "networkmanager" "wheel" ];
-    packages = with pkgs; [ ];
   };
 
+  home-manager.useGlobalPkgs = true;
   home-manager.users.grant = { pkgs, ... }: {
     home = {
       username = "grant";
       homeDirectory = "/home/grant";
       stateVersion = version;
       sessionVariables = { EDITOR = "hx"; };
-      packages = (with pkgs; [
+      packages = with pkgs; [
         gnomeExtensions.blur-my-shell
-        papirus-icon-theme
+        gnomeExtensions.rounded-window-corners
 
+        hyperfine
         htop
         wget
         translate-shell
         typst
 
+        firefox
+        monero-gui
         brave
-        logseq
 
-        # Rust
+        # Nix
         nixfmt
-        rustup
-        crate2nix
+        nil
 
-      ]) ++ (with pkgs.eclipses; [ eclipse-java ]);
+        eclipses.eclipse-java
+        morewaita-icon-theme
+      ];
     };
 
     fonts.fontconfig.enable = true;
@@ -76,18 +116,18 @@ in {
     gtk = {
       enable = true;
       theme = {
-        name = "adw-gtk3-dark";
+        name = "adw-gtk3${ if dark-theme then "-dark" else "" }";
         package = pkgs.adw-gtk3;
       };
-      gtk3.extraConfig.Settings = "gtk-application-prefer-dark-theme=1";
-      gtk4.extraConfig.Settings = "gtk-application-prefer-dark-theme=1";
+      gtk3.extraConfig.Settings = "gtk-application-prefer-dark-theme=${ if dark-theme then "1" else "0" }";
+      gtk4.extraConfig.Settings = "gtk-application-prefer-dark-theme=${ if dark-theme then "1" else "0" }";
     };
 
     dconf.settings = {
       "org/gnome/desktop/interface" = {
-        color-scheme = "prefer-dark";
+        color-scheme = if dark-theme then "prefer-dark" else "default";
         enable-hot-corners = true;
-        icon-theme = "Papirus";
+        icon-theme = "MoreWaita";
       };
       "org/gnome/shell" = {
         favorite-apps = [
@@ -95,6 +135,7 @@ in {
           "brave-browser.desktop"
           "org.gnome.Evince.desktop"
           "org.gnome.Console.desktop"
+          "code.desktop"
         ];
         disable-user-extensions = false;
         enabled-extensions = [ "blur-my-shell@aunetx" ];
@@ -103,8 +144,8 @@ in {
         override-background-dynamically = true;
       };
       "org/gnome/desktop/background" = {
-        picture-uri = "${background}";
-        picture-uri-dark = "${background}";
+        picture-uri = "${background.outPath}";
+        picture-uri-dark = "${background.outPath}";
       };
     };
 
@@ -152,10 +193,6 @@ in {
           };
         };
       };
-      languages.language = [{
-        name = "rust";
-        auto-format = false;
-      }];
     };
 
     programs.tmux = {
@@ -172,10 +209,57 @@ in {
     programs.bash = {
       enable = true;
       enableCompletion = true;
-      initExtra =
-        ''[ -z "$TMUX"  ] && { tmux attach || exec tmux new-session && exit;}'';
+    };
+
+    programs.direnv = {
+      enable = true;
+      nix-direnv.enable = true;
+      config = {
+        global.load_dotenv = true;
+      };
+    };
+
+    programs.vscode = {
+      enable = true;
+      extensions = with pkgs.vscode-extensions; [
+        rust-lang.rust-analyzer
+        serayuzgur.crates
+        tamasfe.even-better-toml
+        jnoortheen.nix-ide
+        mkhl.direnv
+        usernamehw.errorlens
+        bradlc.vscode-tailwindcss
+        vscodevim.vim
+        piousdeer.adwaita-theme
+      ];
+      userSettings = {
+        window = {
+          titleBarStyle = "custom";
+          commandCenter = true;
+          autoDetectColorScheme = true;
+        };
+        workbench = {
+          preferredDarkColorTheme = "Adwaita Dark";
+          preferredLightColorTheme = "Adwaita Light";
+          productIconTheme = "adwaita";
+          iconTheme = null;
+          tree.indent = 12;
+          colorTheme = "Adwaita ${ if dark-theme then "Dark" else "Light" }";
+          startupEditor = "none";
+        };
+        editor = {
+          quickSuggesions = {
+            other = "on";
+            comments = "on";
+            strings = "on";
+          };
+          renderLineHighlight = "none";
+        };
+      };
     };
 
     programs.home-manager.enable = true;
   };
+
+  services.flatpak.enable = true;
 }
