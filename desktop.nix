@@ -1,12 +1,8 @@
 { config, pkgs, ... }:
 let
   version = "23.11";
-  background = pkgs.fetchurl {
-    url =
-      "https://github.com/grantshandy/dotfiles/blob/main/background.jpg?raw=true";
-    hash = "sha256-aT3VWvMshR7ZsSqWACRSlWLEaggu5dfYDaMgyhbuBy4=";
-  };
   dark-theme = true;
+  background = "/home/grant/Shared/background.jpg";
   morewaita-icon-theme = (with pkgs;
     stdenvNoCC.mkDerivation rec {
       pname = "morewaita-icon-theme";
@@ -75,6 +71,33 @@ in {
 
   programs.gnupg.agent.enable = true;
 
+  systemd.timers."rclone-protondrive" = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnBootSec = "5m";
+      OnUnitActiveSec = "5m";
+      Unit = "rclone-protondrive.service";
+    };
+  };
+
+  systemd.services."rclone-protondrive" = {
+    script = ''
+      mkdir -p /home/grant/Documents/Notes
+      ${pkgs.rclone}/bin/rclone --verbose --config /home/grant/.config/rclone/rclone.conf bisync /home/grant/Documents/Notes/ proton:/Shared/Notes/ --resync
+      find /home/grant/Documents/Notes -type f -exec chmod 777 {} \;
+    '';
+    serviceConfig = {
+      Type = "oneshot";
+      User = "root";
+    };
+  };
+
+  # services.syncthing = {
+  #   enable = true;
+  #   user = "grant";
+  #   dataDir = "/home/grant/Sync";
+  # };
+
   users.users.grant = {
     isNormalUser = true;
     description = "Grant Handy";
@@ -101,10 +124,14 @@ in {
         firefox
         monero-gui
         brave
+        rmfuse
+        obsidian
 
         # Nix
         nixfmt
         nil
+
+        apostrophe
 
         eclipses.eclipse-java
         morewaita-icon-theme
@@ -144,8 +171,8 @@ in {
         override-background-dynamically = true;
       };
       "org/gnome/desktop/background" = {
-        picture-uri = "${background.outPath}";
-        picture-uri-dark = "${background.outPath}";
+        picture-uri = "${background}";
+        picture-uri-dark = "${background}";
       };
     };
 
@@ -221,6 +248,7 @@ in {
 
     programs.vscode = {
       enable = true;
+      package = pkgs.vscode-fhs;
       extensions = with pkgs.vscode-extensions; [
         rust-lang.rust-analyzer
         serayuzgur.crates
