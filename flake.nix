@@ -19,59 +19,101 @@
     let system = "x86_64-linux"; in
     let username = "grant"; in
     let
-      baseModule = { ... }: {
-        documentation.nixos.enable = false;
-        nix.extraOptions = ''
-          	  experimental-features = nix-command flakes
-          	'';
-        system.stateVersion = "unstable";
-      };
-    in
-    let
-      homeModule = { ... }: {
+      baseModule = { pkgs, ... }: {
         imports = [ home-manager.nixosModules.home-manager ];
+
+        nixpkgs.config.allowUnfree = true;
+        documentation.nixos.enable = false;
+        nix.settings.experimental-features = [ "nix-command" "flakes" ];
+        environment.systemPackages = with pkgs; [ git ];
+        system.stateVersion = "24.05";
+
+        users.users."${username}" = {
+          isNormalUser = true;
+          description = "Grant Handy";
+          extraGroups = [ "networkmanager" "wheel" ];
+        };
 
         home-manager.useGlobalPkgs = true;
         home-manager.useUserPackages = true;
-
-        home-manager.users.grant = import ./home.nix;
         home-manager.extraSpecialArgs = { inherit username; };
       };
     in
     {
-      nixosConfigurations.wsl = nixpkgs.lib.nixosSystem {
-        inherit system;
-        modules = [
-          baseModule
-          nixos-wsl.nixosModules.wsl
-          vscode-server.nixosModules.default
-          ({ lib, pkgs, config, ... }: {
-            services.vscode-server.enable = true;
-            programs.nix-ld.enable = true;
+      nixosConfigurations = {
+        # laptop
+        lenovo = nixpkgs.lib.nixosSystem {
+          inherit system;
+          modules = [
+            baseModule
+            ./hardware-configuration.nix
 
-            wsl = {
-              enable = true;
-              wslConf.automount.root = "/mnt";
-              defaultUser = "${username}";
-              startMenuLaunchers = true;
-              useWindowsDriver = true;
-              # patches for vscode server
-              extraBin = with pkgs; [
-                { src = "${coreutils}/bin/uname"; }
-                { src = "${coreutils}/bin/dirname"; }
-                { src = "${coreutils}/bin/readlink"; }
-                { src = "${coreutils}/bin/cat"; }
-                { src = "${gnused}/bin/sed"; }
-              ];
-            };
+            ./gnome-desktop.nix
+            ({ ... }: {
+              home-manager.users."${username}" = import ./home-desktop.nix;
+            })
+            ({ config, pkgs, ... }: {
+              # Bootloader.
+              boot.loader.systemd-boot.enable = true;
+              boot.loader.efi.canTouchEfiVariables = true;
 
-            hardware.opengl.setLdLibraryPath = true;
+              networking.hostName = "lenovo";
 
-            networking.hostName = "wsl";
-            environment.systemPackages = [ pkgs.wget ];
-          })
-          homeModule
-        ];
+              # time zone and internationalization properties.
+              time.timeZone = "America/Denver";
+              i18n.defaultLocale = "en_US.UTF-8";
+              i18n.extraLocaleSettings = {
+                LC_ADDRESS = "en_US.UTF-8";
+                LC_IDENTIFICATION = "en_US.UTF-8";
+                LC_MEASUREMENT = "en_US.UTF-8";
+                LC_MONETARY = "en_US.UTF-8";
+                LC_NAME = "en_US.UTF-8";
+                LC_NUMERIC = "en_US.UTF-8";
+                LC_PAPER = "en_US.UTF-8";
+                LC_TELEPHONE = "en_US.UTF-8";
+                LC_TIME = "en_US.UTF-8";
+              };
+            })
+          ];
+        };
+
+        # windows subsystem for linux configuration
+        wsl = nixpkgs.lib.nixosSystem {
+          inherit system;
+          modules = [
+            baseModule
+            ({ ... }: {
+              home-manager.users."${username}" = import ./home-base.nix;
+            })
+            nixos-wsl.nixosModules.wsl
+            vscode-server.nixosModules.default
+            ({ lib, pkgs, config, ... }: {
+              services.vscode-server.enable = true;
+              programs.nix-ld.enable = true;
+
+              wsl = {
+                enable = true;
+                wslConf.automount.root = "/mnt";
+                defaultUser = "${username}";
+                startMenuLaunchers = true;
+                useWindowsDriver = true;
+                # patches for vscode server
+                extraBin = with pkgs; [
+                  { src = "${coreutils}/bin/uname"; }
+                  { src = "${coreutils}/bin/dirname"; }
+                  { src = "${coreutils}/bin/readlink"; }
+                  { src = "${coreutils}/bin/cat"; }
+                  { src = "${gnused}/bin/sed"; }
+                ];
+              };
+
+              hardware.opengl.setLdLibraryPath = true;
+
+              networking.hostName = "wsl";
+              environment.systemPackages = [ pkgs.wget ];
+            })
+          ];
+        };
       };
 
       formatter."${system}" = nixpkgs.legacyPackages."${system}".nixpkgs-fmt;
