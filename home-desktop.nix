@@ -11,7 +11,7 @@
     gtk4.extraConfig.Settings = "gtk-application-prefer-dark-theme=1";
   };
 
-  home.packages = with pkgs; with gnomeExtensions; [ morewaita-icon-theme blur-my-shell ];
+  home.packages = with pkgs; with gnomeExtensions; [ morewaita-icon-theme blur-my-shell iosevka brave ];
   dconf.settings = {
     "org/gnome/desktop/interface" = {
       color-scheme = "prefer-dark";
@@ -28,6 +28,7 @@
       favorite-apps = [
         "org.gnome.Nautilus.desktop"
         "org.gnome.Console.desktop"
+        "brave-browser.desktop"
         "code.desktop"
       ];
       disable-user-extensions = false;
@@ -36,11 +37,14 @@
     "org/gnome/shell/extensions/blur-my-shell/panel" = {
       override-background-dynamically = true;
     };
+    "org/gnome/Console" = {
+      custom-font = "Iosevka 12";
+    };
   };
 
   programs.vscode = {
     enable = true;
-    package = pkgs.vscode;
+    package = pkgs.vscode-fhs;
     extensions = with pkgs.vscode-extensions; [
       rust-lang.rust-analyzer
       serayuzgur.crates
