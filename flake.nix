@@ -24,7 +24,10 @@
 
         nixpkgs.config.allowUnfree = true;
         documentation.nixos.enable = false;
-        nix.settings.experimental-features = [ "nix-command" "flakes" ];
+        nix.settings = {
+          experimental-features = [ "nix-command" "flakes" ];
+          auto-optimise-store = true;
+        };
         environment.systemPackages = with pkgs; [ git ];
         system.stateVersion = "24.05";
 
@@ -47,7 +50,6 @@
           modules = [
             baseModule
             ./hardware-configuration.nix
-
             ./gnome-desktop.nix
             ({ ... }: {
               home-manager.users."${username}" = import ./home-desktop.nix;

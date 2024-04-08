@@ -3,6 +3,9 @@
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.	
   networking.networkmanager.enable = true;
 
+  # Avoid touchpad click to tap (clickpad) bug. For more detail see:
+  boot.kernelParams = [ "psmouse.synaptics_intertouch=0" ];
+
   # Enable the X11 windowing system.
   services.xserver.enable = true;
   services.xserver.excludePackages = [ pkgs.xterm ];
@@ -12,7 +15,7 @@
   services.xserver.displayManager.gdm.enable = true;
   services.xserver.desktopManager.gnome.enable = true;
   environment.gnome.excludePackages =
-    (with pkgs; [ gnome-photos gnome-tour gnome-connections ])
+    (with pkgs; [ gnome-photos gnome-tour gnome-connections epiphany ])
     ++ (with pkgs.gnome; [
       gnome-music
       geary
@@ -24,7 +27,7 @@
     ]);
 
   environment.systemPackages = [ pkgs.clapper ];
-  fonts.packages = with pkgs; [ noto-fonts noto-fonts-cjk ];
+  fonts.packages = with pkgs; [ noto-fonts noto-fonts-cjk fira-code iosevka ];
 
   # Configure keymap in X11
   services.xserver.xkb = {

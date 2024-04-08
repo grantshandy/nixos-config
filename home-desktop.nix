@@ -1,4 +1,4 @@
-{ pkgs, username, ... }: {
+{ pkgs, ... }: {
   imports = [ ./home-base.nix ];
 
   gtk = {
@@ -9,21 +9,20 @@
     };
     gtk3.extraConfig.Settings = "gtk-application-prefer-dark-theme=1";
     gtk4.extraConfig.Settings = "gtk-application-prefer-dark-theme=1";
+    iconTheme = {
+      name = "MoreWaita";
+      package = pkgs.morewaita-icon-theme;
+    };
   };
 
-  home.packages = with pkgs; with gnomeExtensions; [ morewaita-icon-theme blur-my-shell iosevka brave ];
+  home.packages = with pkgs; [ gnomeExtensions.blur-my-shell brave obsidian gnome.ghex libreoffice ];
   dconf.settings = {
     "org/gnome/desktop/interface" = {
       color-scheme = "prefer-dark";
       enable-hot-corners = true;
-      icon-theme = "MoreWaita";
     };
-    "org/gnome/desktop/wm/preferences" = {
-      num-workspaces = 2;
-    };
-    "org/gtk/settings/file-chooser" = {
-      clock-format = "12h";
-    };
+    "org/gnome/desktop/wm/preferences".num-workspaces = 3;
+    "org/gtk/settings/file-chooser".clock-format = "12h";
     "org/gnome/shell" = {
       favorite-apps = [
         "org.gnome.Nautilus.desktop"
@@ -34,12 +33,8 @@
       disable-user-extensions = false;
       enabled-extensions = [ "blur-my-shell@aunetx" ];
     };
-    "org/gnome/shell/extensions/blur-my-shell/panel" = {
-      override-background-dynamically = true;
-    };
-    "org/gnome/Console" = {
-      custom-font = "Iosevka 12";
-    };
+    "org/gnome/shell/extensions/blur-my-shell/panel".override-background-dynamically = true;
+    "org/gnome/Console".custom-font = "Iosevka 12";
   };
 
   programs.vscode = {
@@ -54,6 +49,7 @@
       usernamehw.errorlens
       bradlc.vscode-tailwindcss
       piousdeer.adwaita-theme
+      wakatime.vscode-wakatime
     ];
     userSettings = {
       window = {
@@ -69,6 +65,7 @@
         tree.indent = 12;
         colorTheme = "Adwaita Dark";
         startupEditor = "none";
+        activityBar.location = "top";
       };
       editor = {
         quickSuggesions = {
@@ -77,8 +74,8 @@
           strings = "on";
         };
         renderLineHighlight = "none";
+        inlayHints.enabled = "offUnlessPressed";
       };
     };
   };
-
 }
