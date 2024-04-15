@@ -76,6 +76,7 @@
         renderLineHighlight = "none";
         inlayHints.enabled = "offUnlessPressed";
       };
+      files.simpleDialog.enable = true;
     };
   };
 }
