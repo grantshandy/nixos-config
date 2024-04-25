@@ -22,6 +22,24 @@
       baseModule = { pkgs, ... }: {
         imports = [ home-manager.nixosModules.home-manager ];
 
+        # time zone and internationalization properties.
+        time.timeZone = "America/Denver";
+        i18n = {
+          defaultLocale = "en_US.UTF-8";
+          extraLocaleSettings = {
+            LC_ADDRESS = "en_US.UTF-8";
+            LC_IDENTIFICATION = "en_US.UTF-8";
+            LC_MEASUREMENT = "en_US.UTF-8";
+            LC_MONETARY = "en_US.UTF-8";
+            LC_NAME = "en_US.UTF-8";
+            LC_NUMERIC = "en_US.UTF-8";
+            LC_PAPER = "en_US.UTF-8";
+            LC_TELEPHONE = "en_US.UTF-8";
+            LC_TIME = "en_US.UTF-8";
+          };
+        };
+
+        # nix settings
         nixpkgs.config.allowUnfree = true;
         documentation.nixos.enable = false;
         nix.settings = {
@@ -29,7 +47,6 @@
           auto-optimise-store = true;
         };
         environment.systemPackages = with pkgs; [ git ];
-        programs.fuse.userAllowOther = true;
         system.stateVersion = "24.05";
 
         users.users."${username}" = {
@@ -54,29 +71,13 @@
             ./gnome-desktop.nix
             (import ./syncthing.nix { inherit username; })
             ({ ... }: {
-              home-manager.users."${username}" = import ./home-desktop.nix;
-            })
-            ({ config, pkgs, ... }: {
               # Bootloader.
               boot.loader.systemd-boot.enable = true;
               boot.loader.efi.canTouchEfiVariables = true;
 
               networking.hostName = "lenovo";
-
-              # time zone and internationalization properties.
-              time.timeZone = "America/Denver";
-              i18n.defaultLocale = "en_US.UTF-8";
-              i18n.extraLocaleSettings = {
-                LC_ADDRESS = "en_US.UTF-8";
-                LC_IDENTIFICATION = "en_US.UTF-8";
-                LC_MEASUREMENT = "en_US.UTF-8";
-                LC_MONETARY = "en_US.UTF-8";
-                LC_NAME = "en_US.UTF-8";
-                LC_NUMERIC = "en_US.UTF-8";
-                LC_PAPER = "en_US.UTF-8";
-                LC_TELEPHONE = "en_US.UTF-8";
-                LC_TIME = "en_US.UTF-8";
-              };
+              programs.fuse.userAllowOther = true;
+              home-manager.users."${username}" = import ./home-desktop.nix;
             })
           ];
         };
@@ -86,12 +87,11 @@
           inherit system;
           modules = [
             baseModule
-            ({ ... }: {
-              home-manager.users."${username}" = import ./home-base.nix;
-            })
             nixos-wsl.nixosModules.wsl
             vscode-server.nixosModules.default
             ({ lib, pkgs, config, ... }: {
+              home-manager.users."${username}" = import ./home-base.nix;
+
               services.vscode-server.enable = true;
               programs.nix-ld.enable = true;
 
