@@ -29,6 +29,7 @@
           auto-optimise-store = true;
         };
         environment.systemPackages = with pkgs; [ git ];
+        programs.fuse.userAllowOther = true;
         system.stateVersion = "24.05";
 
         users.users."${username}" = {
@@ -51,6 +52,7 @@
             baseModule
             ./hardware-configuration.nix
             ./gnome-desktop.nix
+            (import ./syncthing.nix { inherit username; })
             ({ ... }: {
               home-manager.users."${username}" = import ./home-desktop.nix;
             })

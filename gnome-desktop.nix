@@ -15,7 +15,7 @@
   services.xserver.displayManager.gdm.enable = true;
   services.xserver.desktopManager.gnome.enable = true;
   environment.gnome.excludePackages =
-    (with pkgs; [ gnome-photos gnome-tour gnome-connections epiphany ])
+    (with pkgs; [ gnome-tour gnome-connections epiphany ])
     ++ (with pkgs.gnome; [
       gnome-music
       geary
@@ -27,7 +27,7 @@
     ]);
 
   environment.systemPackages = [ pkgs.clapper ];
-  fonts.packages = with pkgs; [ noto-fonts noto-fonts-cjk fira-code iosevka ];
+  fonts.packages = with pkgs; [ noto-fonts noto-fonts-cjk fira-code iosevka times-newer-roman ];
 
   # Configure keymap in X11
   services.xserver.xkb = {

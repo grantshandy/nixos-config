@@ -1,5 +1,16 @@
-{ pkgs, ... }: {
+{ pkgs, username, ... }: {
   imports = [ ./home-base.nix ];
+
+  home.packages = with pkgs; [
+    gnomeExtensions.blur-my-shell
+    brave
+    obsidian
+    protonvpn-gui
+    cozy
+    drawing
+    beeper
+    apostrophe
+  ];
 
   gtk = {
     enable = true;
@@ -13,10 +24,13 @@
       name = "MoreWaita";
       package = pkgs.morewaita-icon-theme;
     };
+    gtk3.bookmarks = [
+      "file:///home/${username}/Notes"
+    ];
   };
 
-  home.packages = with pkgs; [ gnomeExtensions.blur-my-shell brave obsidian gnome.ghex libreoffice ];
   dconf.settings = {
+    ## GNOME Shell Settings
     "org/gnome/desktop/interface" = {
       color-scheme = "prefer-dark";
       enable-hot-corners = true;
@@ -33,6 +47,18 @@
       disable-user-extensions = false;
       enabled-extensions = [ "blur-my-shell@aunetx" ];
     };
+
+    # make alt-tab switch between windows and not applications.
+    # this is useful for switching between windows of a web browser.
+    "org/gnome/desktop/wm/keybindings" = {
+      switch-applications = [ ];
+      switch-applications-backward = [ ];
+      switch-windows = [ "<Alt>Tab" ];
+      switch-windows-backward = [ "<Shift><Alt>Tab" ];
+    };
+    "org/gnome/shell/window-switcher".current-workspace-only = false;
+
+    ## Extensions and Applications
     "org/gnome/shell/extensions/blur-my-shell/panel".override-background-dynamically = true;
     "org/gnome/Console".custom-font = "Iosevka 12";
   };
