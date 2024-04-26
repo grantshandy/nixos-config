@@ -1,6 +1,6 @@
 # A simplified GNOME desktop with nice things
 
-{ pkgs, username, ... }: {
+{ pkgs, ... }: {
   # Enable networking
   networking.networkmanager.enable = true;
 
@@ -43,7 +43,7 @@
     pulse.enable = true;
   };
 
-  home-manager.users."${username}" = { pkgs, username, ... }: {
+  home-manager.sharedModules = [{
     gtk = {
       enable = true;
       theme = {
@@ -80,7 +80,7 @@
       "org/gnome/shell/window-switcher".current-workspace-only = false;
     };
 
-    # blur-my-shell extension
+    # blur-my-shell and rounded corners extensions
     home.packages = [ pkgs.gnomeExtensions.blur-my-shell ];
     dconf.settings = {
       "org/gnome/shell/extensions/blur-my-shell/panel".override-background-dynamically = true;
@@ -89,5 +89,5 @@
         enabled-extensions = [ "blur-my-shell@aunetx" ];
       };
     };
-  };
+  }];
 }

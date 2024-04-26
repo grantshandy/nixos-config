@@ -1,8 +1,8 @@
-{ pkgs, username, ... }: {
+{ pkgs, ... }: {
   environment.gnome.excludePackages = [ pkgs.epiphany ];
   fonts.packages = [ pkgs.iosevka ];
 
-  home-manager.users."${username}" = { pkgs, username, ... }: {
+  home-manager.sharedModules = [{
     home.packages = with pkgs; [
       brave
       obsidian
@@ -67,8 +67,8 @@
         files.simpleDialog.enable = true;
 
         "nix.enableLanguageServer" = true;
-        "nix.serverPath" =  "${pkgs.nixd}/bin/nixd";
+        "nix.serverPath" = "${pkgs.nixd}/bin/nixd";
       };
     };
-  };
+  }];
 }

@@ -1,5 +1,5 @@
-{ pkgs, username, ... }: {
-  home-manager.users."${username}" = { pkgs, username, ... }: {
+{ pkgs, ... }: {
+  home-manager.sharedModules = [{
     programs.helix = {
       enable = true;
       settings = {
@@ -65,5 +65,5 @@
         editor = "hx";
       };
     };
-  };
+  }];
 }

@@ -31,10 +31,10 @@
     };
   };
 
-  home-manager.users."${username}" = { username, ... }: {
+  home-manager.sharedModules = [{
     gtk.gtk3.bookmarks = [
       "file:///home/${username}/Notes"
       "file:///home/${username}/Pictures/Camera"
     ];
-  };
+  }];
 }

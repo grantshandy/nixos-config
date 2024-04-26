@@ -18,7 +18,7 @@
   outputs = { nixpkgs, nixos-wsl, home-manager, vscode-server, ... }:
     let system = "x86_64-linux"; in
     let username = "grant"; in
-    let name-description = "Grant Handy"; in 
+    let nameDescription = "Grant Handy"; in
     let stateVersion = "24.05"; in
     let
       baseModule = { pkgs, ... }: {
@@ -53,14 +53,13 @@
 
         users.users."${username}" = {
           isNormalUser = true;
-          description = name-description;
+          description = nameDescription;
           extraGroups = [ "networkmanager" "wheel" ];
         };
 
         home-manager.useGlobalPkgs = true;
         home-manager.useUserPackages = true;
-        home-manager.extraSpecialArgs = { inherit username; };
-        home-manager.users."${username}" = { pkgs, username, ... }: {
+        home-manager.users."${username}" = { ... }: {
           home.username = "${username}";
           home.homeDirectory = "/home/${username}";
           home.stateVersion = stateVersion;
@@ -75,9 +74,9 @@
           modules = [
             baseModule
             ./hardware-configuration.nix
-            ({ pkgs, ... }: import ./home.nix { inherit username pkgs; })
-            ({ pkgs, ... }: import ./gnome.nix { inherit pkgs username; })
-            ({ pkgs, ... }: import ./desktop.nix { inherit username pkgs; })
+            ./home.nix
+            ./gnome.nix
+            ./desktop.nix
             (import ./syncthing.nix { inherit username; })
             ({ ... }: {
               # Bootloader.
