@@ -18,6 +18,8 @@
   outputs = { nixpkgs, nixos-wsl, home-manager, vscode-server, ... }:
     let system = "x86_64-linux"; in
     let username = "grant"; in
+    let name-description = "Grant Handy"; in 
+    let stateVersion = "24.05"; in
     let
       baseModule = { pkgs, ... }: {
         imports = [ home-manager.nixosModules.home-manager ];
@@ -41,23 +43,28 @@
 
         # nix settings
         nixpkgs.config.allowUnfree = true;
-        documentation.nixos.enable = false;
         nix.settings = {
           experimental-features = [ "nix-command" "flakes" ];
           auto-optimise-store = true;
         };
-        environment.systemPackages = with pkgs; [ git ];
-        system.stateVersion = "24.05";
+        environment.systemPackages = with pkgs; [ git vim ];
+        documentation.nixos.enable = false;
+        system.stateVersion = stateVersion;
 
         users.users."${username}" = {
           isNormalUser = true;
-          description = "Grant Handy";
+          description = name-description;
           extraGroups = [ "networkmanager" "wheel" ];
         };
 
         home-manager.useGlobalPkgs = true;
         home-manager.useUserPackages = true;
         home-manager.extraSpecialArgs = { inherit username; };
+        home-manager.users."${username}" = { pkgs, username, ... }: {
+          home.username = "${username}";
+          home.homeDirectory = "/home/${username}";
+          home.stateVersion = stateVersion;
+        };
       };
     in
     {
@@ -68,16 +75,19 @@
           modules = [
             baseModule
             ./hardware-configuration.nix
-            ./gnome-desktop.nix
+            ({ pkgs, ... }: import ./home.nix { inherit username pkgs; })
+            ({ pkgs, ... }: import ./gnome-desktop.nix { inherit pkgs username; })
+            ({ pkgs, ... }: import ./desktop.nix { inherit username pkgs; })
             (import ./syncthing.nix { inherit username; })
             ({ ... }: {
               # Bootloader.
               boot.loader.systemd-boot.enable = true;
               boot.loader.efi.canTouchEfiVariables = true;
+              # Avoid touchpad click to tap (clickpad) bug on lenovo laptops.
+              boot.kernelParams = [ "psmouse.synaptics_intertouch=0" ];
 
               networking.hostName = "lenovo";
               programs.fuse.userAllowOther = true;
-              home-manager.users."${username}" = import ./home-desktop.nix;
             })
           ];
         };
@@ -87,11 +97,10 @@
           inherit system;
           modules = [
             baseModule
+            ({ pkgs, ... }: import ./home.nix { inherit username pkgs; })
             nixos-wsl.nixosModules.wsl
             vscode-server.nixosModules.default
             ({ lib, pkgs, config, ... }: {
-              home-manager.users."${username}" = import ./home-base.nix;
-
               services.vscode-server.enable = true;
               programs.nix-ld.enable = true;
 

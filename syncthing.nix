@@ -13,12 +13,28 @@
     };
 
     overrideFolders = true;
-    settings.folders."notes" = {
-      enable = true;
-      id = "gsnotes";
-      label = "Notes";
-      path = "/home/${username}/Notes";
-      devices = [ "phone" ];
+    settings.folders = {
+      notes = {
+        enable = true;
+        id = "gsnotes";
+        label = "Notes";
+        path = "/home/${username}/Notes";
+        devices = [ "phone" ];
+      };
+      photos = {
+        enable = true;
+        id = "gsphotos";
+        label = "Camera";
+        path = "/home/${username}/Pictures/Camera";
+        devices = [ "phone" ];
+      };
     };
+  };
+
+  home-manager.users."${username}" = { username, ... }: {
+    gtk.gtk3.bookmarks = [
+      "file:///home/${username}/Notes"
+      "file:///home/${username}/Pictures/Camera"
+    ];
   };
 }
