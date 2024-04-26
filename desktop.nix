@@ -11,6 +11,7 @@
       drawing
       beeper
       apostrophe
+      shotwell
     ];
 
     dconf.settings = {

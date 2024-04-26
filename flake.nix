@@ -76,7 +76,7 @@
             baseModule
             ./hardware-configuration.nix
             ({ pkgs, ... }: import ./home.nix { inherit username pkgs; })
-            ({ pkgs, ... }: import ./gnome-desktop.nix { inherit pkgs username; })
+            ({ pkgs, ... }: import ./gnome.nix { inherit pkgs username; })
             ({ pkgs, ... }: import ./desktop.nix { inherit username pkgs; })
             (import ./syncthing.nix { inherit username; })
             ({ ... }: {

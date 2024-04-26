@@ -1,4 +1,5 @@
 # A simplified GNOME desktop with nice things
+
 { pkgs, username, ... }: {
   # Enable networking
   networking.networkmanager.enable = true;
@@ -59,12 +60,17 @@
 
     # GNOME Shell Settings
     dconf.settings = {
+      # dark theme
       "org/gnome/desktop/interface" = {
         color-scheme = "prefer-dark";
         enable-hot-corners = true;
       };
-      "org/gnome/desktop/wm/preferences".num-workspaces = 3;
+
+      # fewer workspaces (simpler), and American 12hr clock
+      "org/gnome/desktop/wm/preferences".num-workspaces = 2;
       "org/gtk/settings/file-chooser".clock-format = "12h";
+
+      # simplified alt-tabbing
       "org/gnome/desktop/wm/keybindings" = {
         switch-applications = [ ];
         switch-applications-backward = [ ];
@@ -74,6 +80,7 @@
       "org/gnome/shell/window-switcher".current-workspace-only = false;
     };
 
+    # blur-my-shell extension
     home.packages = [ pkgs.gnomeExtensions.blur-my-shell ];
     dconf.settings = {
       "org/gnome/shell/extensions/blur-my-shell/panel".override-background-dynamically = true;
@@ -82,7 +89,5 @@
         enabled-extensions = [ "blur-my-shell@aunetx" ];
       };
     };
-
-    home.stateVersion = "24.05";
   };
 }
