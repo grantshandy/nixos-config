@@ -67,7 +67,7 @@
       };
 
       # fewer workspaces (simpler), and American 12hr clock
-      "org/gnome/desktop/wm/preferences".num-workspaces = 2;
+      "org/gnome/mutter".dynamic-workspaces = true;
       "org/gtk/settings/file-chooser".clock-format = "12h";
 
       # simplified alt-tabbing
