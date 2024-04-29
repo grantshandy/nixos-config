@@ -1,10 +1,13 @@
-{ username, ... }: {
+{ homeDirectory, username, ... }:
+let cameraDir = "${homeDirectory}/Pictures/Camera"; in
+let notesDir = "${homeDirectory}/Notes"; in
+{
   services.syncthing = {
     enable = true;
-    dataDir = "/home/${username}";
     openDefaultPorts = true;
+
+    dataDir = "${homeDirectory}";
     user = "${username}";
-    group = "users";
 
     overrideDevices = true;
     settings.devices."phone" = {
@@ -18,23 +21,20 @@
         enable = true;
         id = "gsnotes";
         label = "Notes";
-        path = "/home/${username}/Notes";
+        path = notesDir;
         devices = [ "phone" ];
       };
       photos = {
         enable = true;
         id = "gsphotos";
         label = "Camera";
-        path = "/home/${username}/Pictures/Camera";
+        path = cameraDir;
         devices = [ "phone" ];
       };
     };
   };
 
   home-manager.sharedModules = [{
-    gtk.gtk3.bookmarks = [
-      "file:///home/${username}/Notes"
-      "file:///home/${username}/Pictures/Camera"
-    ];
+    gtk.gtk3.bookmarks = [ "file://${notesDir}" "file://${cameraDir}" ];
   }];
 }

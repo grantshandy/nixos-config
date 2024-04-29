@@ -1,6 +1,13 @@
 # A simplified GNOME desktop with nice things
 
-{ pkgs, ... }: {
+{ pkgs, ... }:
+let
+  extensions = [
+    pkgs.gnomeExtensions.blur-my-shell
+    (pkgs.callPackage ./rounded-window-corners.nix { })
+  ];
+in
+{
   # Enable networking
   networking.networkmanager.enable = true;
 
@@ -21,16 +28,18 @@
 
   # remove unnecessary applications from GNOME and add nicer ones
   environment.gnome.excludePackages =
-    (with pkgs; [ gnome-tour gnome-connections ])
-    ++ (with pkgs.gnome; [ gnome-music geary gnome-contacts gnome-calendar gnome-maps yelp totem ]);
+    with pkgs; [ gnome-tour gnome-connections ]
+      ++ (with gnome; [ gnome-music geary gnome-contacts gnome-calendar gnome-maps yelp totem ]);
   environment.systemPackages = [ pkgs.clapper ];
 
   # add nice fonts for compatibility
   fonts.packages = with pkgs; [ noto-fonts noto-fonts-cjk ];
 
   # Enable CUPS to print documents, and disable ugly web interface.
-  services.printing.enable = true;
-  services.printing.webInterface = false;
+  services.printing = {
+    enable = true;
+    # webInterface = false;
+  };
 
   # Enable sound with pipewire and pulseaudio.
   sound.enable = true;
@@ -80,14 +89,13 @@
       "org/gnome/shell/window-switcher".current-workspace-only = false;
     };
 
-    # blur-my-shell and rounded corners extensions
-    home.packages = [ pkgs.gnomeExtensions.blur-my-shell ];
-    dconf.settings = {
-      "org/gnome/shell/extensions/blur-my-shell/panel".override-background-dynamically = true;
-      "org/gnome/shell" = {
-        disable-user-extensions = false;
-        enabled-extensions = [ "blur-my-shell@aunetx" ];
-      };
+    # automatically enable all `extensions`
+    home.packages = extensions;
+    dconf.settings."org/gnome/shell" = {
+      disable-user-extensions = false;
+      enabled-extensions = pkgs.lib.lists.forEach extensions (ext: ext.passthru.extensionUuid); # (soy face)
     };
+
+    dconf.settings."org/gnome/shell/extensions/blur-my-shell/panel".override-background-dynamically = true;
   }];
 }

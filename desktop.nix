@@ -4,7 +4,6 @@
 
   home-manager.sharedModules = [{
     home.packages = with pkgs; [
-      brave
       obsidian
       protonvpn-gui
       cozy
@@ -41,7 +40,7 @@
       ];
       userSettings = {
         window = {
-          titleBarStyle = "custom";
+          # titleBarStyle = "custom";
           commandCenter = true;
           autoDetectColorScheme = true;
         };
@@ -69,6 +68,16 @@
         "nix.enableLanguageServer" = true;
         "nix.serverPath" = "${pkgs.nixd}/bin/nixd";
       };
+    };
+
+    programs.brave = {
+      enable = true;
+      dictionaries = [ pkgs.hunspellDictsChromium.en-us ];
+      extensions = [
+        { id = "eimadpbcbfnmbkopoojfekhnkhdbieeh"; } # Dark Reader
+        { id = "jehmdpemhgfgjblpkilmeoafmkhbckhi"; } # Scroll Anywhere
+        { id = "bfhkfdnddlhfippjbflipboognpdpoeh"; } # Read on reMarkable
+      ];
     };
   }];
 }

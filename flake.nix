@@ -13,16 +13,24 @@
       url = "github:nix-community/nixos-vscode-server";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nix-index-database = {
+      url = "github:nix-community/nix-index-database";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { nixpkgs, nixos-wsl, home-manager, vscode-server, ... }:
+  outputs = { nixpkgs, nixos-wsl, home-manager, vscode-server, nix-index-database, ... }:
     let system = "x86_64-linux"; in
     let username = "grant"; in
     let nameDescription = "Grant Handy"; in
+    let homeDirectory = "/home/${username}"; in
     let stateVersion = "24.05"; in
     let
       baseModule = { pkgs, ... }: {
-        imports = [ home-manager.nixosModules.home-manager ];
+        imports = [
+          home-manager.nixosModules.home-manager
+          nix-index-database.nixosModules.nix-index
+        ];
 
         # time zone and internationalization properties.
         time.timeZone = "America/Denver";
@@ -49,6 +57,7 @@
         };
         environment.systemPackages = with pkgs; [ git vim ];
         documentation.nixos.enable = false;
+        programs.command-not-found.enable = false;
         system.stateVersion = stateVersion;
 
         users.users."${username}" = {
@@ -61,7 +70,7 @@
         home-manager.useUserPackages = true;
         home-manager.users."${username}" = { ... }: {
           home.username = "${username}";
-          home.homeDirectory = "/home/${username}";
+          home.homeDirectory = "${homeDirectory}";
           home.stateVersion = stateVersion;
         };
       };
@@ -77,7 +86,7 @@
             ./home.nix
             ./gnome.nix
             ./desktop.nix
-            (import ./syncthing.nix { inherit username; })
+            (import ./syncthing.nix { inherit homeDirectory username; })
             ({ ... }: {
               # Bootloader.
               boot.loader.systemd-boot.enable = true;
@@ -96,10 +105,10 @@
           inherit system;
           modules = [
             baseModule
-            ({ pkgs, ... }: import ./home.nix { inherit username pkgs; })
+            ./home.nix
             nixos-wsl.nixosModules.wsl
             vscode-server.nixosModules.default
-            ({ lib, pkgs, config, ... }: {
+            ({ pkgs, ... }: {
               services.vscode-server.enable = true;
               programs.nix-ld.enable = true;
 
