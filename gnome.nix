@@ -2,8 +2,8 @@
 
 { pkgs, ... }:
 let
-  extensions = [
-    pkgs.gnomeExtensions.blur-my-shell
+  extensions = with pkgs.gnomeExtensions; [
+    blur-my-shell
     (pkgs.callPackage ./rounded-window-corners.nix { })
   ];
 in

@@ -17,6 +17,7 @@
       url = "github:nix-community/nix-index-database";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nix-flatpak.url = "github:gmodena/nix-flatpak";
   };
 
   outputs = { nixpkgs, nixos-wsl, home-manager, vscode-server, nix-index-database, ... }:
@@ -82,11 +83,13 @@
           inherit system;
           modules = [
             baseModule
+
             ./hardware-configuration.nix
-            ./home.nix
             ./gnome.nix
-            ./desktop.nix
-            (import ./syncthing.nix { inherit homeDirectory username; })
+
+            ./home.nix
+            ({ pkgs, ... }: pkgs.callPackage ./desktop.nix { inherit homeDirectory username; })
+
             ({ ... }: {
               # Bootloader.
               boot.loader.systemd-boot.enable = true;
