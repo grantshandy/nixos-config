@@ -1,7 +1,7 @@
 { pkgs, ... }:
 {
   environment.gnome.excludePackages = [ pkgs.epiphany ];
-  fonts.packages = with pkgs; [ iosevka noto-fonts noto-fonts-cjk-sans ];
+  fonts.packages = with pkgs; [ iosevka ];
 
   home-manager.sharedModules = [{
     home.packages = with pkgs; [

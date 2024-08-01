@@ -1,14 +1,6 @@
-# Edit this configuration file to define what should be installed on
-# your system.  Help is available in the configuration.nix(5) man page
-# and in the NixOS manual (accessible by running ‘nixos-help’).
+# Good minimal GNOME configuration with the core programs
 
-{ config, pkgs, ... }:
-
-{
-
-  # Enable networking
-  networking.networkmanager.enable = true;
-
+{ pkgs, lib, ... }: {
   # Enable the X11 windowing system.
   services.xserver = {
     enable = true;
@@ -27,6 +19,24 @@
       ++ (with gnome; [ gnome-music gnome-contacts gnome-maps ]);
   environment.systemPackages = [ pkgs.clapper ];
 
+  fonts.packages = with pkgs; [ noto-fonts noto-fonts-cjk-sans ];
+
+  # Various services
+  networking.networkmanager.enable = true;
+  services.printing.enable = true;
+
+  hardware.pulseaudio.enable = false;
+  security.rtkit.enable = true;
+  services.pipewire = {
+    enable = true;
+    alsa.enable = true;
+    alsa.support32Bit = true;
+    pulse.enable = true;
+  };
+
+  # use automatic timezone
+  time.timeZone = lib.mkForce null;
+
   home-manager.sharedModules =
     let
       extensions = with pkgs.gnomeExtensions; [
@@ -41,8 +51,6 @@
           name = "adw-gtk3-dark";
           package = pkgs.adw-gtk3;
         };
-        # gtk3.extraConfig.Settings = "gtk-application-prefer-dark-theme=1";
-        # gtk4.extraConfig.Settings = "gtk-application-prefer-dark-theme=1";
         iconTheme = {
           name = "MoreWaita";
           package = pkgs.morewaita-icon-theme;
@@ -58,6 +66,10 @@
         };
 
         "org/gnome/mutter".dynamic-workspaces = true;
+
+        # automatic timezone
+        "org/gnome/desktop/datetime".automatic-timezone = true;
+        "org/gnome/system/location".enabled = true;
 
         # simplified alt-tabbing
         "org/gnome/desktop/wm/keybindings" = {
@@ -78,17 +90,4 @@
 
       dconf.settings."org/gnome/shell/extensions/blur-my-shell/panel".override-background-dynamically = true;
     }];
-
-  # Enable CUPS to print documents.
-  services.printing.enable = true;
-
-  # Enable sound with pipewire.
-  hardware.pulseaudio.enable = false;
-  security.rtkit.enable = true;
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-  };
 }

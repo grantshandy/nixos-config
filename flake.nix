@@ -10,9 +10,10 @@
   outputs = { nixpkgs, home-manager, ... }:
     let username = "grant"; in
     let nameDescription = "Grant Handy"; in
-    let stateVersion = "24.05"; in
+    let stateVersion = "24.11"; in
+    let hostName = "lenovo"; in
     {
-      nixosConfigurations.lenovo = nixpkgs.lib.nixosSystem {
+      nixosConfigurations."${hostName}" = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
           home-manager.nixosModules.home-manager
@@ -28,25 +29,24 @@
               efi.canTouchEfiVariables = true;
             };
 
-            # Set your time zone.
-            time.timeZone = "America/Denver";
-
-            # Select internationalisation properties.
-            i18n = {
-              defaultLocale = "en_US.UTF-8";
-              supportedLocales = [ "en_US.UTF-8/UTF-8" "ko_KR.UTF-8/UTF-8" ];
-              extraLocaleSettings = {
-                LC_ADDRESS = "en_US.UTF-8";
-                LC_IDENTIFICATION = "en_US.UTF-8";
-                LC_MEASUREMENT = "en_US.UTF-8";
-                LC_MONETARY = "en_US.UTF-8";
-                LC_NAME = "en_US.UTF-8";
-                LC_NUMERIC = "en_US.UTF-8";
-                LC_PAPER = "en_US.UTF-8";
-                LC_TELEPHONE = "en_US.UTF-8";
-                LC_TIME = "en_US.UTF-8";
+            # time.timeZone = "America/Denver"; # <-- use auto timezone from GNOME
+            i18n =
+              let mainLocale = "en_US.UTF-8"; in
+              {
+                defaultLocale = mainLocale;
+                supportedLocales = [ "${mainLocale}/UTF-8" "ko_KR.UTF-8/UTF-8" ];
+                extraLocaleSettings = {
+                  LC_ADDRESS = mainLocale;
+                  LC_IDENTIFICATION = mainLocale;
+                  LC_MEASUREMENT = mainLocale;
+                  LC_MONETARY = mainLocale;
+                  LC_NAME = mainLocale;
+                  LC_NUMERIC = mainLocale;
+                  LC_PAPER = mainLocale;
+                  LC_TELEPHONE = mainLocale;
+                  LC_TIME = mainLocale;
+                };
               };
-            };
 
             nixpkgs.config.allowUnfree = true;
             nix.settings = {
@@ -72,7 +72,7 @@
               };
             };
 
-            networking.hostName = "lenovo";
+            networking.hostName = hostName;
             system.stateVersion = stateVersion;
           })
           ./home.nix
