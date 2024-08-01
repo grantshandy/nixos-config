@@ -1,17 +1,14 @@
 { pkgs, ... }:
 {
   environment.gnome.excludePackages = [ pkgs.epiphany ];
-  fonts.packages = [ pkgs.iosevka ];
+  fonts.packages = with pkgs; [ iosevka noto-fonts noto-fonts-cjk-sans ];
 
   home-manager.sharedModules = [{
     home.packages = with pkgs; [
       obsidian
       protonvpn-gui
-      cozy
-      drawing
       beeper
-      apostrophe
-      shotwell
+      dialect
     ];
 
     dconf.settings = {
@@ -30,7 +27,7 @@
       package = pkgs.vscode-fhs;
       extensions = with pkgs.vscode-extensions; [
         rust-lang.rust-analyzer
-        serayuzgur.crates
+        fill-labs.dependi
         tamasfe.even-better-toml
         jnoortheen.nix-ide
         mkhl.direnv
@@ -77,7 +74,6 @@
       extensions = [
         { id = "eimadpbcbfnmbkopoojfekhnkhdbieeh"; } # Dark Reader
         { id = "jehmdpemhgfgjblpkilmeoafmkhbckhi"; } # Scroll Anywhere
-        { id = "bfhkfdnddlhfippjbflipboognpdpoeh"; } # Read on reMarkable
       ];
     };
 
