@@ -78,6 +78,7 @@
           ./home.nix
           ./gnome.nix
           ./desktop.nix
+          ({ pkgs, ... }: import ./sync.nix { inherit username pkgs; })
         ];
       };
 
