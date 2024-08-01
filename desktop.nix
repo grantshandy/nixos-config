@@ -18,9 +18,10 @@
         "brave-browser.desktop"
         "code.desktop"
       ];
+
+      "org/gnome/Console".custom-font = "Iosevka 12";
     };
 
-    dconf.settings."org/gnome/Console".custom-font = "Iosevka 12";
 
     programs.vscode = {
       enable = true;

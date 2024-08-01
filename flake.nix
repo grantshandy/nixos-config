@@ -34,7 +34,6 @@
               let mainLocale = "en_US.UTF-8"; in
               {
                 defaultLocale = mainLocale;
-                supportedLocales = [ "${mainLocale}/UTF-8" "ko_KR.UTF-8/UTF-8" ];
                 extraLocaleSettings = {
                   LC_ADDRESS = mainLocale;
                   LC_IDENTIFICATION = mainLocale;
@@ -79,6 +78,7 @@
           ./gnome.nix
           ./desktop.nix
           ({ pkgs, ... }: import ./sync.nix { inherit username pkgs; })
+          ({ pkgs, ... }: import ./ko.nix { inherit home-manager pkgs; })
         ];
       };
 
