@@ -52,11 +52,15 @@
       };
     };
 
-    programs.git = {
-      enable = true;
-      userName = "grantshandy";
-      userEmail = "granthandy@proton.me";
-    };
+    programs.git =
+      (
+        let config = (builtins.fromTOML (builtins.readFile ./config.toml)).git; in
+        {
+          enable = true;
+          userName = config.username;
+          userEmail = config.email;
+        }
+      );
 
     programs.gh = {
       enable = true;

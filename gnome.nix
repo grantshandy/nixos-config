@@ -1,7 +1,7 @@
 # Good minimal GNOME configuration with the core programs
 
 { pkgs, lib, ... }: {
-  # Enable the X11 windowing system.
+  # Enable the desktop environment and manager
   services.xserver = {
     enable = true;
 
@@ -14,14 +14,15 @@
     };
   };
 
+  # exclude unused default programs and add modern fonts/core applications
   environment.gnome.excludePackages =
-    with pkgs; [ gnome-tour gnome-connections yelp totem geary gnome-calendar ]
+    with pkgs; [ gnome-tour gnome-connections yelp totem geary gnome-calendar epiphany ]
       ++ (with gnome; [ gnome-music gnome-contacts gnome-maps ]);
   environment.systemPackages = [ pkgs.clapper ];
+  fonts.packages = with pkgs; [ noto-fonts noto-fonts-cjk-sans iosevka ];
 
-  fonts.packages = with pkgs; [ noto-fonts noto-fonts-cjk-sans ];
-
-  # Various services
+  # Various desktop services
+  boot.plymouth.enable = true;
   networking.networkmanager.enable = true;
   services.printing.enable = true;
 
@@ -34,60 +35,80 @@
     pulse.enable = true;
   };
 
-  # use automatic timezone
+  # use automatic timezone from GNOME
   time.timeZone = lib.mkForce null;
 
   home-manager.sharedModules =
-    let
-      extensions = with pkgs.gnomeExtensions; [
-        blur-my-shell
-        rounded-window-corners-reborn
-      ];
-    in
-    [{
-      gtk = {
-        enable = true;
-        theme = {
-          name = "adw-gtk3-dark";
-          package = pkgs.adw-gtk3;
-        };
-        iconTheme = {
-          name = "MoreWaita";
-          package = pkgs.morewaita-icon-theme;
-        };
-      };
-
-      # GNOME Shell Settings
-      dconf.settings = {
-        "org/gnome/desktop/interface" = {
-          color-scheme = "prefer-dark";
-          clock-format = "12h";
-          enable-hot-corners = true;
+    [
+      {
+        # force non-gnome apps in line
+        gtk = {
+          enable = true;
+          theme = {
+            name = "adw-gtk3-dark";
+            package = pkgs.adw-gtk3;
+          };
+          iconTheme = {
+            name = "MoreWaita";
+            package = pkgs.morewaita-icon-theme;
+          };
         };
 
-        "org/gnome/mutter".dynamic-workspaces = true;
+        dconf.settings = {
+          # enable automatic timezone and location services
+          "org/gnome/desktop/datetime".automatic-timezone = true;
+          "org/gnome/system/location".enabled = true;
 
-        # automatic timezone
-        "org/gnome/desktop/datetime".automatic-timezone = true;
-        "org/gnome/system/location".enabled = true;
+          # vv personal preferences vv
+          "org/gnome/desktop/interface" = {
+            color-scheme = "prefer-dark";
+            clock-format = "12h";
+            enable-hot-corners = true;
+            monospace-font-name = "Iosevka 12";
+          };
 
-        # simplified alt-tabbing
-        "org/gnome/desktop/wm/keybindings" = {
-          switch-applications = [ ];
-          switch-applications-backward = [ ];
-          switch-windows = [ "<Alt>Tab" ];
-          switch-windows-backward = [ "<Shift><Alt>Tab" ];
+          "org/gnome/desktop/background" =
+            let bgDir = "file://${pkgs.gnome.gnome-backgrounds}/share/backgrounds/gnome"; in
+            {
+              color-shading-type = "solid";
+              picture-options = "zoom";
+              picture-uri = "${bgDir}/amber-l.jxl";
+              picture-uri-dark = "${bgDir}/amber-d.jxl";
+              primary-color = "#ff7800";
+              secondary-color = "#000000";
+            };
+
+          # simplified alt-tabbing and workspaces
+          "org/gnome/desktop/wm/keybindings" = {
+            switch-applications = [ ];
+            switch-applications-backward = [ ];
+            switch-windows = [ "<Alt>Tab" ];
+            switch-windows-backward = [ "<Shift><Alt>Tab" ];
+          };
+          "org/gnome/shell/window-switcher".current-workspace-only = false;
+          "org/gnome/mutter".dynamic-workspaces = true;
         };
-        "org/gnome/shell/window-switcher".current-workspace-only = false;
-      };
+      }
 
-      # automatically enable all `extensions`
-      home.packages = extensions;
-      dconf.settings."org/gnome/shell" = {
-        disable-user-extensions = false;
-        enabled-extensions = pkgs.lib.lists.forEach extensions (ext: ext.passthru.extensionUuid); # (soy face)
-      };
+      # minimal cosmetic extensions
+      (
+        let
+          extensions = with pkgs.gnomeExtensions; [
+            blur-my-shell
+            rounded-window-corners-reborn
+          ];
+        in
+        {
+          home.packages = extensions;
+          dconf.settings = {
+            "org/gnome/shell" = {
+              disable-user-extensions = false;
+              enabled-extensions = pkgs.lib.lists.forEach extensions (ext: ext.passthru.extensionUuid); # (compsci soy face)
+            };
 
-      dconf.settings."org/gnome/shell/extensions/blur-my-shell/panel".override-background-dynamically = true;
-    }];
+            "org/gnome/shell/extensions/blur-my-shell/panel".override-background-dynamically = true;
+          };
+        }
+      )
+    ];
 }

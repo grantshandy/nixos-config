@@ -1,4 +1,5 @@
-{ pkgs, username, ... }:
+{ ... }:
+let username = (builtins.fromTOML (builtins.readFile ./config.toml)).user.name; in
 {
   services.syncthing = {
     enable = true;

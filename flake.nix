@@ -8,76 +8,65 @@
   };
 
   outputs = { nixpkgs, home-manager, ... }:
-    let username = "grant"; in
-    let nameDescription = "Grant Handy"; in
+    let config = (builtins.fromTOML (builtins.readFile ./config.toml)); in
     let stateVersion = "24.11"; in
-    let hostName = "lenovo"; in
+    let
+      baseModule = { pkgs, ... }: {
+        # minimal systemd-boot
+        boot.loader = {
+          systemd-boot = {
+            # don't show old generations in the boot screen
+            configurationLimit = 1;
+            enable = true;
+          };
+          efi.canTouchEfiVariables = true;
+        };
+
+        # time.timeZone = "America/Denver"; # <-- use auto timezone from GNOME instead
+        i18n = {
+          defaultLocale = "en_US.UTF-8";
+          extraLocaleSettings.LC_ALL = "en_US.UTF-8";
+        };
+
+        nixpkgs.config.allowUnfree = true;
+        nix.settings = {
+          experimental-features = [ "nix-command" "flakes" ];
+          auto-optimise-store = true;
+        };
+        documentation.nixos.enable = false;
+
+        users.users."${config.user.name}" = {
+          isNormalUser = true;
+          description = config.user.description;
+          extraGroups = [ "networkmanager" "wheel" ];
+          packages = with pkgs; [ vim git ];
+        };
+
+        home-manager = {
+          useGlobalPkgs = true;
+          useUserPackages = true;
+          users."${config.user.name}" = { ... }: {
+            home.username = "${config.user.name}";
+            home.homeDirectory = "/home/${config.user.name}";
+            home.stateVersion = stateVersion;
+          };
+        };
+
+        networking.hostName = config.hostname;
+        system.stateVersion = stateVersion;
+      };
+    in
     {
-      nixosConfigurations."${hostName}" = nixpkgs.lib.nixosSystem {
+      nixosConfigurations."${config.hostname}" = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
+          ./hardware-configuration.nix
           home-manager.nixosModules.home-manager
-          ({ pkgs, ... }: {
-            # Bootloader & System.
-            imports = [ ./hardware-configuration.nix ];
-
-            boot.loader = {
-              systemd-boot = {
-                configurationLimit = 1;
-                enable = true;
-              };
-              efi.canTouchEfiVariables = true;
-            };
-
-            # time.timeZone = "America/Denver"; # <-- use auto timezone from GNOME
-            i18n =
-              let mainLocale = "en_US.UTF-8"; in
-              {
-                defaultLocale = mainLocale;
-                extraLocaleSettings = {
-                  LC_ADDRESS = mainLocale;
-                  LC_IDENTIFICATION = mainLocale;
-                  LC_MEASUREMENT = mainLocale;
-                  LC_MONETARY = mainLocale;
-                  LC_NAME = mainLocale;
-                  LC_NUMERIC = mainLocale;
-                  LC_PAPER = mainLocale;
-                  LC_TELEPHONE = mainLocale;
-                  LC_TIME = mainLocale;
-                };
-              };
-
-            nixpkgs.config.allowUnfree = true;
-            nix.settings = {
-              experimental-features = [ "nix-command" "flakes" ];
-              auto-optimise-store = true;
-            };
-            documentation.nixos.enable = false;
-
-            users.users."${username}" = {
-              isNormalUser = true;
-              description = nameDescription;
-              extraGroups = [ "networkmanager" "wheel" ];
-              packages = with pkgs; [ vim git helix ];
-            };
-
-            home-manager = {
-              useGlobalPkgs = true;
-              useUserPackages = true;
-              users."${username}" = { ... }: {
-                home.username = "${username}";
-                home.homeDirectory = "/home/${username}";
-                home.stateVersion = stateVersion;
-              };
-            };
-
-            networking.hostName = hostName;
-            system.stateVersion = stateVersion;
-          })
+          baseModule
           ./home.nix
           ./gnome.nix
           ./desktop.nix
-          ({ pkgs, ... }: import ./sync.nix { inherit username pkgs; })
+          ./sync.nix
           ({ pkgs, ... }: import ./ko.nix { inherit home-manager pkgs; })
         ];
       };

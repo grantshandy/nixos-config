@@ -1,8 +1,5 @@
 { pkgs, ... }:
 {
-  environment.gnome.excludePackages = [ pkgs.epiphany ];
-  fonts.packages = with pkgs; [ iosevka ];
-
   home-manager.sharedModules = [{
     home.packages = with pkgs; [
       obsidian
@@ -11,17 +8,12 @@
       dialect
     ];
 
-    dconf.settings = {
-      "org/gnome/shell".favorite-apps = [
-        "org.gnome.Nautilus.desktop"
-        "org.gnome.Console.desktop"
-        "brave-browser.desktop"
-        "code.desktop"
-      ];
-
-      "org/gnome/Console".custom-font = "Iosevka 12";
-    };
-
+    dconf.settings."org/gnome/shell".favorite-apps = [
+      "org.gnome.Nautilus.desktop"
+      "org.gnome.Console.desktop"
+      "brave-browser.desktop"
+      "code.desktop"
+    ];
 
     programs.vscode = {
       enable = true;

@@ -1,0 +1,9 @@
+hostname = "lenovo"
+
+[user]
+name = "grant"
+description = "Grant Handy"
+
+[git]
+username = "grantshandy"
+email = "granthandy@proton.me"
