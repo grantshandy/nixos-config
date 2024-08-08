@@ -23,10 +23,22 @@
         };
 
         # time.timeZone = "America/Denver"; # <-- use auto timezone from GNOME instead
-        i18n = {
-          defaultLocale = "en_US.UTF-8";
-          extraLocaleSettings.LC_ALL = "en_US.UTF-8";
-        };
+        i18n =
+          let lc = "en_US.UTF-8"; in
+          {
+            defaultLocale = lc;
+            extraLocaleSettings = {
+              LC_ADDRESS = lc;
+              LC_IDENTIFICATION = lc;
+              LC_MEASUREMENT = lc;
+              LC_MONETARY = lc;
+              LC_NAME = lc;
+              LC_NUMERIC = lc;
+              LC_PAPER = lc;
+              LC_TELEPHONE = lc;
+              LC_TIME = lc;
+            };
+          };
 
         nixpkgs.config.allowUnfree = true;
         nix.settings = {

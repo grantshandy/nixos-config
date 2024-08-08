@@ -7,6 +7,7 @@
 
     displayManager.gdm.enable = true;
     desktopManager.gnome.enable = true;
+    excludePackages = [ pkgs.xterm ];
 
     xkb = {
       layout = "us";
@@ -16,7 +17,7 @@
 
   # exclude unused default programs and add modern fonts/core applications
   environment.gnome.excludePackages =
-    with pkgs; [ gnome-tour gnome-connections yelp totem geary gnome-calendar epiphany ]
+    with pkgs; [ gnome-tour gnome-connections yelp totem geary gnome-calendar epiphany baobab ]
       ++ (with gnome; [ gnome-music gnome-contacts gnome-maps ]);
   environment.systemPackages = [ pkgs.clapper ];
   fonts.packages = with pkgs; [ noto-fonts noto-fonts-cjk-sans iosevka ];
@@ -95,7 +96,7 @@
         let
           extensions = with pkgs.gnomeExtensions; [
             blur-my-shell
-            rounded-window-corners-reborn
+            # rounded-window-corners-reborn
           ];
         in
         {
