@@ -51,7 +51,7 @@
           isNormalUser = true;
           description = config.user.description;
           extraGroups = [ "networkmanager" "wheel" ];
-          packages = with pkgs; [ vim git ];
+          packages = with pkgs; [ helix git ];
         };
 
         home-manager = {
@@ -80,6 +80,7 @@
           ./desktop.nix
           ./sync.nix
           ({ pkgs, ... }: import ./ko.nix { inherit home-manager pkgs; })
+          ./shared.nix
         ];
       };
 

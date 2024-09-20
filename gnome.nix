@@ -17,8 +17,7 @@
 
   # exclude unused default programs and add modern fonts/core applications
   environment.gnome.excludePackages =
-    with pkgs; [ gnome-tour gnome-connections yelp totem geary gnome-calendar epiphany baobab ]
-      ++ (with gnome; [ gnome-music gnome-contacts gnome-maps ]);
+    with pkgs; [ gnome-tour gnome-connections yelp totem geary gnome-calendar epiphany baobab gnome-music gnome-contacts gnome-maps simple-scan ];
   environment.systemPackages = [ pkgs.clapper ];
   fonts.packages = with pkgs; [ noto-fonts noto-fonts-cjk-sans iosevka ];
 
@@ -69,7 +68,7 @@
           };
 
           "org/gnome/desktop/background" =
-            let bgDir = "file://${pkgs.gnome.gnome-backgrounds}/share/backgrounds/gnome"; in
+            let bgDir = "file://${pkgs.gnome-backgrounds}/share/backgrounds/gnome"; in
             {
               color-shading-type = "solid";
               picture-options = "zoom";

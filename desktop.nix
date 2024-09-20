@@ -7,7 +7,13 @@
       beeper
       dialect
       anki
+      mars-mips
     ];
+
+    home.file."face" = {
+      source = "${pkgs.gnome-control-center}/share/pixmaps/faces/cat.jpg";
+      target = ".face";
+    };
 
     dconf.settings."org/gnome/shell".favorite-apps = [
       "org.gnome.Nautilus.desktop"
@@ -18,11 +24,6 @@
     ];
 
     xdg.desktopEntries = {
-      Helix = {
-        name = "Helix";
-        noDisplay = true;
-      };
-    
       protonMail = {
         name = "Proton Mail";
         terminal = false;
@@ -41,6 +42,13 @@
           hash = "sha256-oiiaF3IySz/HXT5p7hsVGdT35364hbk82K1B4l6Ktck=";
         };
         exec = "xdg-open https://calendar.proton.me";
+      };
+
+      spotify = {
+        name = "Spotify";
+        terminal = false;
+        icon = "${pkgs.morewaita-icon-theme}/share/icons/MoreWaita/apps/scalable/spotify.svg";
+        exec = "xdg-open https://open.spotify.com";
       };
     };
 
@@ -96,6 +104,7 @@
       extensions = [
         { id = "eimadpbcbfnmbkopoojfekhnkhdbieeh"; } # Dark Reader
         { id = "jehmdpemhgfgjblpkilmeoafmkhbckhi"; } # Scroll Anywhere
+        { id = "ghmbeldphafepmbegfdlkpapadhbakde"; } # Proton Pass
       ];
     };
   }];

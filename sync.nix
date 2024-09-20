@@ -13,17 +13,6 @@ let username = (builtins.fromTOML (builtins.readFile ./config.toml)).user.name; 
       name = "Phone";
       id = "5IBK4XI-3SBE6A7-JCU7L3E-UB3W45N-SMPSC5C-HDHSVBG-UM6XUI6-HQHUSAA";
     };
-
-    overrideFolders = true;
-    settings.folders = {
-      notes = {
-        enable = true;
-        id = "gsnotes";
-        label = "Notes";
-        path = "/home/${username}/Notes";
-        devices = [ "phone" ];
-      };
-    };
   };
 
   home-manager.sharedModules = [{
