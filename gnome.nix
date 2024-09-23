@@ -86,7 +86,10 @@
             switch-windows-backward = [ "<Shift><Alt>Tab" ];
           };
           "org/gnome/shell/window-switcher".current-workspace-only = false;
-          "org/gnome/mutter".dynamic-workspaces = true;
+          "org/gnome/mutter" = {
+            dynamic-workspaces = true;
+            edge-tiling = true;
+          };
         };
       }
 
