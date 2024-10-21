@@ -1,4 +1,4 @@
-{ ... }: {
+{ userConfig, ... }: {
   home-manager.sharedModules = [{
     programs.helix = {
       enable = true;
@@ -47,20 +47,14 @@
     programs.direnv = {
       enable = true;
       nix-direnv.enable = true;
-      config = {
-        global.load_dotenv = true;
-      };
+      config.global.load_dotenv = true;
     };
 
-    programs.git =
-      (
-        let config = (builtins.fromTOML (builtins.readFile ./config.toml)).git; in
-        {
-          enable = true;
-          userName = config.username;
-          userEmail = config.email;
-        }
-      );
+    programs.git = {
+      enable = true;
+      userName = userConfig.git.username;
+      userEmail = userConfig.git.email;
+    };
 
     programs.gh = {
       enable = true;

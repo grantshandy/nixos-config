@@ -17,8 +17,8 @@
 
   # exclude unused default programs and add modern fonts/core applications
   environment.gnome.excludePackages =
-    with pkgs; [ gnome-tour gnome-connections yelp totem geary gnome-calendar epiphany baobab gnome-music gnome-contacts gnome-maps simple-scan ];
-  environment.systemPackages = [ pkgs.clapper ];
+    with pkgs; [ gnome-console gnome-tour gnome-connections yelp totem geary gnome-calendar epiphany baobab gnome-music gnome-contacts gnome-maps simple-scan ];
+  environment.systemPackages = with pkgs; [ clapper blackbox-terminal ];
   fonts.packages = with pkgs; [ noto-fonts noto-fonts-cjk-sans iosevka ];
 
   # Various desktop services

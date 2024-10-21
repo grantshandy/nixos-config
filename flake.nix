@@ -8,7 +8,7 @@
   };
 
   outputs = { nixpkgs, home-manager, ... }:
-    let config = (builtins.fromTOML (builtins.readFile ./config.toml)); in
+    let userConfig = (builtins.fromTOML (builtins.readFile ./config.toml)); in
     let stateVersion = "24.11"; in
     let
       baseModule = { pkgs, ... }: {
@@ -47,9 +47,9 @@
         };
         documentation.nixos.enable = false;
 
-        users.users."${config.user.name}" = {
+        users.users."${userConfig.user.name}" = {
           isNormalUser = true;
-          description = config.user.description;
+          description = userConfig.user.description;
           extraGroups = [ "networkmanager" "wheel" ];
           packages = with pkgs; [ helix git ];
         };
@@ -57,30 +57,30 @@
         home-manager = {
           useGlobalPkgs = true;
           useUserPackages = true;
-          users."${config.user.name}" = { ... }: {
-            home.username = "${config.user.name}";
-            home.homeDirectory = "/home/${config.user.name}";
+          users."${userConfig.user.name}" = { ... }: {
+            home.username = "${userConfig.user.name}";
+            home.homeDirectory = "/home/${userConfig.user.name}";
             home.stateVersion = stateVersion;
           };
         };
 
-        networking.hostName = config.hostname;
+        networking.hostName = userConfig.hostname;
         system.stateVersion = stateVersion;
       };
+      addImports = path: { pkgs, lib, ... }: import path { inherit pkgs lib userConfig home-manager; };
     in
     {
-      nixosConfigurations."${config.hostname}" = nixpkgs.lib.nixosSystem {
+      nixosConfigurations."${userConfig.hostname}" = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
           ./hardware-configuration.nix
           home-manager.nixosModules.home-manager
           baseModule
-          ./home.nix
-          ./gnome.nix
-          ./desktop.nix
-          ./sync.nix
-          ({ pkgs, ... }: import ./ko.nix { inherit home-manager pkgs; })
-          ./shared.nix
+          (addImports ./src/desktop.nix)
+          (addImports ./src/gnome.nix)
+          (addImports ./src/home.nix)
+          (addImports ./src/ko.nix)
+          (addImports ./src/sync.nix)
         ];
       };
 

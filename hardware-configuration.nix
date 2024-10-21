@@ -27,6 +27,15 @@
       options = [ "fmask=0077" "dmask=0077" ];
     };
 
+  # vvvvv ADDED vvvv
+  fileSystems."/mnt/shared" =
+    {
+      device = "/dev/disk/by-uuid/C62F-33E3";
+      fsType = "auto";
+      options = [ "nosuid" "nodev" "nofail" "x-gvfs-show" "uid=1000" "gid=1000" "umask=0000" ];
+    };
+  # ^^^^ DONE ^^^^
+
   swapDevices = [ ];
 
   # Enables DHCP on each ethernet and wireless interface. In case of scripted networking
