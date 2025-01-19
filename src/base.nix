@@ -1,4 +1,11 @@
-{ pkgs, lib, userConfig, stateVersion, ... }: {
+{
+  pkgs,
+  lib,
+  userConfig,
+  stateVersion,
+  ...
+}:
+{
   # minimal systemd-boot
   boot.loader = {
     systemd-boot = {
@@ -11,7 +18,9 @@
 
   # time.timeZone = "America/Denver"; # <-- use auto timezone from GNOME instead
   i18n =
-    let lc = "en_US.UTF-8"; in
+    let
+      lc = "en_US.UTF-8";
+    in
     {
       defaultLocale = lc;
       extraLocaleSettings = {
@@ -29,7 +38,11 @@
 
   nixpkgs.config.allowUnfree = true;
   nix.settings = {
-    experimental-features = [ "nix-command" "flakes" ];
+    experimental-features = [
+      "nix-command"
+      "flakes"
+      "pipe-operators"
+    ];
     auto-optimise-store = true;
   };
   documentation.nixos.enable = false;
@@ -37,19 +50,27 @@
   users.users."${userConfig.user.name}" = {
     isNormalUser = true;
     description = userConfig.user.description;
-    extraGroups = [ "networkmanager" "wheel" ];
-    packages = with pkgs; [ helix git ];
+    extraGroups = [
+      "networkmanager"
+      "wheel"
+    ];
+    packages = with pkgs; [
+      helix
+      git
+    ];
   };
 
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;
-    users."${userConfig.user.name}" = { ... }: {
-      home.username = "${userConfig.user.name}";
-      home.homeDirectory = "/home/${userConfig.user.name}";
-      home.stateVersion = stateVersion;
-      programs.home-manager.enable = true;
-    };
+    users."${userConfig.user.name}" =
+      { ... }:
+      {
+        home.username = "${userConfig.user.name}";
+        home.homeDirectory = "/home/${userConfig.user.name}";
+        home.stateVersion = stateVersion;
+        programs.home-manager.enable = true;
+      };
   };
 
   system.stateVersion = stateVersion;

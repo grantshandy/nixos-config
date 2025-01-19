@@ -9,14 +9,19 @@
       url = "github:nix-community/NUR";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    background = {
+      url = "https://images.wallpaperscraft.com/image/single/lake_mountains_landscape_1231510_1920x1080.jpg";
+      flake = false;
+    };
   };
 
-  outputs = inputs@{ nixpkgs, home-manager, ... }:
+  outputs =
+    inputs@{ nixpkgs, home-manager, ... }:
     let
       userConfig = builtins.fromTOML (builtins.readFile ./config.toml);
-      system = "x86_64-linux";
+      system = userConfig.system;
       specialArgs = {
-        inherit userConfig system inputs;
+        inherit userConfig inputs;
         stateVersion = "24.11";
       };
     in
@@ -25,7 +30,6 @@
         lenovo = nixpkgs.lib.nixosSystem {
           inherit system specialArgs;
           modules = [
-            ({ ... }: { networking.hostName = "lenovo"; })
             home-manager.nixosModules.home-manager
             ./hardware-configuration/lenovo.nix
             ./src/base.nix
@@ -39,7 +43,6 @@
         xenon = nixpkgs.lib.nixosSystem {
           inherit system specialArgs;
           modules = [
-            ({ ... }: { networking.hostName = "xenon"; })
             home-manager.nixosModules.home-manager
             ./hardware-configuration/xenon.nix
             ./src/base.nix
@@ -51,6 +54,6 @@
         };
       };
 
-      formatter."${system}" = nixpkgs.legacyPackages."${system}".nixpkgs-fmt;
+      formatter."${system}" = nixpkgs.legacyPackages."${system}".nixfmt-rfc-style;
     };
 }

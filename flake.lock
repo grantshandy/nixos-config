@@ -1,5 +1,17 @@
 {
   "nodes": {
+    "background": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-Eb8qC6L8r6ZirIZk8a+p4Y10VWKJoWKtpDUXJpKNVRk=",
+        "type": "file",
+        "url": "https://images.wallpaperscraft.com/image/single/lake_mountains_landscape_1231510_1920x1080.jpg"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://images.wallpaperscraft.com/image/single/lake_mountains_landscape_1231510_1920x1080.jpg"
+      }
+    },
     "flake-parts": {
       "inputs": {
         "nixpkgs-lib": [
@@ -82,6 +94,7 @@
     },
     "root": {
       "inputs": {
+        "background": "background",
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs",
         "nur": "nur"

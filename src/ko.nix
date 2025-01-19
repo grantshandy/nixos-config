@@ -5,9 +5,13 @@
 # '({ pkgs, ... }: import ./ko.nix { inherit home-manager pkgs; })'
 #
 
-{ pkgs, inputs, ... }: {
+{ pkgs, inputs, ... }:
+{
   i18n = {
-    supportedLocales = [ "en_US.UTF-8/UTF-8" "ko_KR.UTF-8/UTF-8" ];
+    supportedLocales = [
+      "en_US.UTF-8/UTF-8"
+      "ko_KR.UTF-8/UTF-8"
+    ];
     inputMethod = {
       enable = true;
       type = "ibus";
@@ -15,21 +19,28 @@
     };
   };
 
-  home-manager.sharedModules = [{
-    dconf.settings = {
-      "org/gnome/desktop/input-sources" = {
-        show-all-sources = true;
-        sources = with inputs.home-manager.lib.hm; [
-          (gvariant.mkTuple [ "xkb" "us" ])
-          (gvariant.mkTuple [ "ibus" "hangul" ])
-        ];
-      };
+  home-manager.sharedModules = [
+    {
+      dconf.settings = {
+        "org/gnome/desktop/input-sources" = {
+          show-all-sources = true;
+          sources = with inputs.home-manager.lib.hm; [
+            (gvariant.mkTuple [
+              "xkb"
+              "us"
+            ])
+            (gvariant.mkTuple [
+              "ibus"
+              "hangul"
+            ])
+          ];
+        };
 
-      "org/freedesktop/ibus/engine/hangul" = {
-        hangul-keyboard = "2"; # 두벌식
-        initial-input-mode = "hangul";
+        "org/freedesktop/ibus/engine/hangul" = {
+          hangul-keyboard = "2"; # 두벌식
+          initial-input-mode = "hangul";
+        };
       };
-    };
-  }];
+    }
+  ];
 }
-
