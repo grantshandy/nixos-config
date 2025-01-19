@@ -282,11 +282,13 @@
           enable = true;
           profiles.default = {
             # must-have extensions :)
-            extensions = with inputs.nur.legacyPackages."${pkgs.system}".repos.rycee.firefox-addons; [
-              ublock-origin
-              darkreader
-              proton-pass
-            ];
+            extensions = with pkgs.nur.repos.rycee.firefox-addons;
+              [
+                ublock-origin
+                darkreader
+                proton-pass
+                scroll_anywhere
+              ];
 
             # basic UI, no distractions
             settings = {

@@ -16,7 +16,7 @@
   };
 
   outputs =
-    inputs@{ nixpkgs, home-manager, ... }:
+    inputs@{ nixpkgs, home-manager, nur, ... }:
     let
       userConfig = builtins.fromTOML (builtins.readFile ./config.toml);
       system = userConfig.system;
@@ -31,6 +31,7 @@
           inherit system specialArgs;
           modules = [
             home-manager.nixosModules.home-manager
+            nur.modules.nixos.default
             ./hardware-configuration/lenovo.nix
             ./src/base.nix
             ./src/home.nix
@@ -44,6 +45,7 @@
           inherit system specialArgs;
           modules = [
             home-manager.nixosModules.home-manager
+            nur.modules.nixos.default
             ./hardware-configuration/xenon.nix
             ./src/base.nix
             ./src/home.nix
