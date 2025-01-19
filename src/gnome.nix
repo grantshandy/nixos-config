@@ -17,7 +17,7 @@
 
   # exclude unused default programs and add modern fonts/core applications
   environment.gnome.excludePackages =
-    with pkgs; [ gnome-console gnome-tour gnome-connections yelp totem geary gnome-calendar epiphany baobab gnome-music gnome-contacts gnome-maps simple-scan ];
+    with pkgs; [ gnome-console gnome-tour gnome-connections yelp totem geary epiphany baobab gnome-music gnome-contacts gnome-calendar gnome-maps simple-scan gnome-software ];
   environment.systemPackages = with pkgs; [ clapper blackbox-terminal ];
   fonts.packages = with pkgs; [ noto-fonts noto-fonts-cjk-sans iosevka ];
 
@@ -54,6 +54,8 @@
           };
         };
 
+        qt.platformTheme.name = "gtk3";
+
         dconf.settings = {
           # enable automatic timezone and location services
           "org/gnome/desktop/datetime".automatic-timezone = true;
@@ -68,14 +70,17 @@
           };
 
           "org/gnome/desktop/background" =
-            let bgDir = "file://${pkgs.gnome-backgrounds}/share/backgrounds/gnome"; in
+            let
+              img = pkgs.fetchurl {
+                url = "https://images.wallpaperscraft.com/image/single/panorama_mountains_pinnacle_113430_1920x1080.jpg";
+                sha256 = "sha256-2KRs1ZzREi5JJ0B2hUJYMEvr/XNiDw7ul6X77qyjI4Q=";
+              };
+            in
             {
               color-shading-type = "solid";
               picture-options = "zoom";
-              picture-uri = "${bgDir}/amber-l.jxl";
-              picture-uri-dark = "${bgDir}/amber-d.jxl";
-              primary-color = "#ff7800";
-              secondary-color = "#000000";
+              picture-uri = "${img}";
+              picture-uri-dark = "${img}";
             };
 
           # simplified alt-tabbing and workspaces

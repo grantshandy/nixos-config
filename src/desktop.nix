@@ -1,4 +1,4 @@
-{ pkgs, lib, userConfig, ... }:
+{ pkgs, lib, userConfig, nur, ... }:
 {
   home-manager.sharedModules = [
     {
@@ -7,15 +7,40 @@
         protonvpn-gui
         beeper
         anki
-        mars-mips
-        inkscape
-        shotwell
+        prismlauncher
       ];
+
+      programs.firefox = {
+        enable = true;
+        profiles.default = {
+          extensions =
+            with nur.legacyPackages."x86_64-linux".repos.rycee.firefox-addons; [
+              ublock-origin
+              darkreader
+              # scroll_anywhere
+            ];
+          settings = {
+            "browser.uidensity" = 0;
+            "gnomeTheme.activeTabContrast" = true;
+            "gnomeTheme.bookmarksToolbarUnderTabs" = true;
+            "gnomeTheme.hideSingleTab" = true;
+            "gnomeTheme.hideWebrtcIndicator" = true;
+            "gnomeTheme.spinner" = true;
+            "layers.acceleration.force-enabled" = true;
+            "svg.context-properties.content.enabled" = true;
+            "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
+            "widget.gtk.overlay-scrollbars.enabled" = true;
+          };
+          userChrome = ''
+            @import "${(pkgs.callPackage ../pkgs/firefox-gnome-theme.nix pkgs)}/share/firefox-gnome-theme/gnome-theme.css";
+          '';
+        };
+      };
 
       dconf.settings."org/gnome/shell".favorite-apps = [
         "org.gnome.Nautilus.desktop"
         "org.gnome.Console.desktop"
-        "brave-browser.desktop"
+        "firefox.desktop"
         "code.desktop"
         "com.raggesilver.BlackBox.desktop"
         "obsidian.desktop"
@@ -67,16 +92,11 @@
           "nix.serverPath" = "${pkgs.nixd}/bin/nixd";
         };
       };
-
-      programs.brave = {
-        enable = true;
-        extensions = lib.lists.forEach userConfig.browser-extensions (id: { inherit id; });
-      };
     }
 
     (
       let
-        iconDir = "${pkgs.morewaita-icon-theme}/share/icons/MoreWaita/apps/scalable";
+        iconDir = "${pkgs.morewaita-icon-theme}/share/icons/MoreWaita/scalable/apps";
       in
       {
         xdg.desktopEntries = builtins.listToAttrs (map

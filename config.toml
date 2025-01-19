@@ -4,12 +4,6 @@ user.description = "Grant Handy"
 git.username = "grantshandy"
 git.email = "granthandy@proton.me"
 
-browser-extensions = [
-    "eimadpbcbfnmbkopoojfekhnkhdbieeh", # Dark Reader
-    "jehmdpemhgfgjblpkilmeoafmkhbckhi", # Scroll Anywhere
-    "ghmbeldphafepmbegfdlkpapadhbakde", # Proton Pass
-]
-
 [[shortcuts]]
 name = "Proton Mail"
 url = "https://mail.proton.me"
@@ -24,7 +18,7 @@ icon.hash = "sha256-oiiaF3IySz/HXT5p7hsVGdT35364hbk82K1B4l6Ktck="
 
 [[shortcuts]]
 name = "Spotify"
-url = "ttps://open.spotify.com"
+url = "https://open.spotify.com"
 icon = "spotify.svg"
 
 [[sync-device]]
