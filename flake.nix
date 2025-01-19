@@ -11,26 +11,26 @@
     };
   };
 
-  outputs = { nixpkgs, home-manager, nur, ... }:
+  outputs = inputs@{ nixpkgs, home-manager, ... }:
     let
-      userConfig = (builtins.fromTOML (builtins.readFile ./config.toml));
+      userConfig = builtins.fromTOML (builtins.readFile ./config.toml);
       system = "x86_64-linux";
-      specialArgs = { inherit home-manager nur userConfig system; stateVersion = "24.11"; };
+      specialArgs = {
+        inherit userConfig system inputs;
+        stateVersion = "24.11";
+      };
     in
     {
       nixosConfigurations = {
         lenovo = nixpkgs.lib.nixosSystem {
           inherit system specialArgs;
           modules = [
-            ({ ... }: {
-              networking.hostName = "lenovo";
-            })
+            ({ ... }: { networking.hostName = "lenovo"; })
             home-manager.nixosModules.home-manager
             ./hardware-configuration/lenovo.nix
             ./src/base.nix
-            ./src/desktop.nix
-            ./src/gnome.nix
             ./src/home.nix
+            ./src/desktop.nix
             ./src/ko.nix
             ./src/sync.nix
           ];
@@ -39,15 +39,12 @@
         xenon = nixpkgs.lib.nixosSystem {
           inherit system specialArgs;
           modules = [
-            ({ ... }: {
-              networking.hostName = "xenon";
-            })
+            ({ ... }: { networking.hostName = "xenon"; })
             home-manager.nixosModules.home-manager
             ./hardware-configuration/xenon.nix
             ./src/base.nix
-            ./src/desktop.nix
-            ./src/gnome.nix
             ./src/home.nix
+            ./src/desktop.nix
             ./src/ko.nix
             ./src/sync.nix
           ];

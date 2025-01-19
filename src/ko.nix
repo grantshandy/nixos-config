@@ -5,7 +5,7 @@
 # '({ pkgs, ... }: import ./ko.nix { inherit home-manager pkgs; })'
 #
 
-{ pkgs, home-manager, ... }: {
+{ pkgs, inputs, ... }: {
   i18n = {
     supportedLocales = [ "en_US.UTF-8/UTF-8" "ko_KR.UTF-8/UTF-8" ];
     inputMethod = {
@@ -19,7 +19,7 @@
     dconf.settings = {
       "org/gnome/desktop/input-sources" = {
         show-all-sources = true;
-        sources = with home-manager.lib.hm; [
+        sources = with inputs.home-manager.lib.hm; [
           (gvariant.mkTuple [ "xkb" "us" ])
           (gvariant.mkTuple [ "ibus" "hangul" ])
         ];

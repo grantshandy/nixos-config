@@ -12,8 +12,4 @@
       (device: with device; { name = lib.toLower name; value = device; })
       sync-device);
   };
-
-  home-manager.sharedModules = [{
-    gtk.gtk3.bookmarks = [ "file:///home/${user.name}/Notes" ];
-  }];
 }
