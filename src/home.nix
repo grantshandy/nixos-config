@@ -37,6 +37,11 @@
         };
       };
 
+      programs.neovim = {
+        enable = true;
+        plugins = [ ];
+      };
+
       programs.tmux = {
         enable = true;
         escapeTime = 0;

@@ -92,12 +92,38 @@
         "type": "github"
       }
     },
+    "proton-calendar": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-dnFKkGewXP6p5ICf3AnLDTC5VyZ6IleCgW4ZRO5v1Kw=",
+        "type": "file",
+        "url": "https://raw.githubusercontent.com/ProtonMail/WebClients/2dac2f08a7969fe16160b22defb8392c20ef48a0/applications/calendar/src/favicon.svg"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://raw.githubusercontent.com/ProtonMail/WebClients/2dac2f08a7969fe16160b22defb8392c20ef48a0/applications/calendar/src/favicon.svg"
+      }
+    },
+    "proton-mail": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-GbdutcBohlu1fYk3XkdsvTzG+lLOmK8WdilwbTsbCt4=",
+        "type": "file",
+        "url": "https://raw.githubusercontent.com/ProtonMail/WebClients/2dac2f08a7969fe16160b22defb8392c20ef48a0/applications/mail/src/favicon.svg"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://raw.githubusercontent.com/ProtonMail/WebClients/2dac2f08a7969fe16160b22defb8392c20ef48a0/applications/mail/src/favicon.svg"
+      }
+    },
     "root": {
       "inputs": {
         "background": "background",
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs",
-        "nur": "nur"
+        "nur": "nur",
+        "proton-calendar": "proton-calendar",
+        "proton-mail": "proton-mail"
       }
     },
     "treefmt-nix": {

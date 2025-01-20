@@ -24,7 +24,7 @@
 
   # exclude unused default programs and add modern fonts/core applications
   environment.gnome.excludePackages = with pkgs; [
-    gnome-console
+    # gnome-console
     gnome-tour
     gnome-connections
     yelp
@@ -39,10 +39,7 @@
     simple-scan
     gnome-software
   ];
-  environment.systemPackages = with pkgs; [
-    clapper
-    blackbox-terminal
-  ];
+  environment.systemPackages = with pkgs; [ clapper ];
   fonts.packages = with pkgs; [
     noto-fonts
     noto-fonts-cjk-sans
@@ -131,6 +128,29 @@
           edge-tiling = true;
         };
       };
+
+      # custom shortcuts in config.toml
+      xdg.desktopEntries =
+        userConfig.shortcuts
+        |> builtins.filter (
+          s:
+          (builtins.hasAttr "icon" s && s.icon != false)
+          && (builtins.hasAttr "desktop" s && s.desktop == true)
+        )
+        |> builtins.map (s: {
+          name = "shortcut-${builtins.replaceStrings [ " " ] [ "" ] s.name}";
+          value = {
+            name = s.name;
+            icon =
+              if builtins.hasAttr s.icon inputs then
+                builtins.getAttr s.icon inputs
+              else
+                "${pkgs.morewaita-icon-theme}/share/icons/MoreWaita/scalable/apps/${s.icon}";
+            terminal = false;
+            exec = "${pkgs.xdg-utils}/bin/xdg-open ${s.url}";
+          };
+        })
+        |> builtins.listToAttrs;
     }
 
     # automatically enable this list of extensions
@@ -158,11 +178,9 @@
     # basic applications and vscode configuration
     {
       home.packages = with pkgs; [
-        obsidian
         protonvpn-gui
         beeper
         anki
-        prismlauncher
       ];
 
       dconf.settings."org/gnome/shell".favorite-apps = [
@@ -170,8 +188,6 @@
         "org.gnome.Console.desktop"
         "firefox.desktop"
         "code.desktop"
-        "com.raggesilver.BlackBox.desktop"
-        "obsidian.desktop"
         "beeper.desktop"
       ];
 
@@ -220,121 +236,70 @@
           "nix.serverPath" = "${pkgs.nixd}/bin/nixd";
         };
       };
-    }
 
-    # Custom web shortcuts in config.toml
-    (
-      let
-        iconDir = "${pkgs.morewaita-icon-theme}/share/icons/MoreWaita/scalable/apps";
-      in
-      {
-        xdg.desktopEntries =
-          userConfig.shortcuts
-          |> builtins.filter (
-            s:
-            (builtins.hasAttr "icon" s && s.icon != false)
-            && (builtins.hasAttr "desktop" s && s.desktop == true)
-          )
-          |> builtins.map (shortcut: {
-            name = lib.toLower (builtins.replaceStrings [ " " ] [ "" ] shortcut.name);
-            value = {
-              name = shortcut.name;
-              icon =
-                if builtins.typeOf shortcut.icon == "set" then
-                  pkgs.fetchurl shortcut.icon
-                else
-                  "${iconDir}/${shortcut.icon}";
-              terminal = false;
-              exec = "xdg-open ${shortcut.url}";
-            };
-          })
-          |> builtins.listToAttrs;
-      }
-    )
+      programs.firefox = {
+        enable = true;
+        profiles.default = {
+          # must-have extensions :)
+          extensions = with pkgs.nur.repos.rycee.firefox-addons; [
+            ublock-origin
+            darkreader
+            proton-pass
+            scroll_anywhere
+          ];
 
-    # Firefox configuration
-    (
-      let
-        # make firefox look nice
-        firefoxTheme = pkgs.stdenv.mkDerivation rec {
-          pname = "firefox-gnome-theme";
-          version = "v134";
-
-          src = pkgs.fetchFromGitHub {
-            owner = "rafaelmardojai";
-            repo = "firefox-gnome-theme";
-            tag = version;
-            sha256 = "sha256-S79Hqn2EtSxU4kp99t8tRschSifWD4p/51++0xNWUxw=";
+          # basic UI, no distractions
+          settings = {
+            "browser.uidensity" = 0;
+            "browser.accounts.enabled" = false;
+            "browser.homepage.enabled" = false;
+            "browser.newtab.url" = "about:blank";
+            "browser.newtabpage.pinned" = [ ];
+            "browser.newtabpage.activity-stream.newtabWallpapers.wallpaper" = "dark-blue";
+            "browser.newtabpage.activity-stream.feeds.topsites" = false;
+            "browser.toolbars.bookmarks.visibility" = "newtab";
+            "browser.search.defaultenginename" = "DuckDuckGo";
+            "browser.search.selectedEngine" = "DuckDuckGo";
+            "browser.search.useDBForOrder" = false;
+            "gnomeTheme.activeTabContrast" = true;
+            "gnomeTheme.bookmarksToolbarUnderTabs" = true;
+            "gnomeTheme.hideSingleTab" = true;
+            "gnomeTheme.hideWebrtcIndicator" = true;
+            "gnomeTheme.spinner" = true;
+            "widget.use-xdg-desktop-portal.file-picker" = 1;
+            "extensions.pocket.enabled" = false;
+            "browser.toolbarbuttons.introduced.pocket-button" = false;
+            "layers.acceleration.force-enabled" = true;
+            "svg.context-properties.content.enabled" = true;
+            "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
+            "widget.gtk.overlay-scrollbars.enabled" = true;
           };
 
-          dontConfigure = true;
-          dontBuild = true;
-          doCheck = false;
+          bookmarks = [
+            {
+              toolbar = true;
+              bookmarks =
+                userConfig.shortcuts
+                |> map (s: {
+                  inherit (s) name url;
+                });
+            }
+          ];
 
-          installPhase = ''
-            mkdir -p $out/share/firefox-gnome-theme
-            cp -r theme/* $out/share/firefox-gnome-theme
-          '';
-        };
-      in
-      {
-        programs.firefox = {
-          enable = true;
-          profiles.default = {
-            # must-have extensions :)
-            extensions = with pkgs.nur.repos.rycee.firefox-addons;
-              [
-                ublock-origin
-                darkreader
-                proton-pass
-                scroll_anywhere
-              ];
-
-            # basic UI, no distractions
-            settings = {
-              "browser.uidensity" = 0;
-              "browser.accounts.enabled" = false;
-              "browser.homepage.enabled" = false;
-              "browser.newtab.url" = "about:blank";
-              "browser.newtabpage.pinned" = [ ];
-              "browser.newtabpage.activity-stream.newtabWallpapers.wallpaper" = "dark-blue";
-              "browser.newtabpage.activity-stream.feeds.topsites" = false;
-              "browser.toolbars.bookmarks.visibility" = "newtab";
-              "browser.search.defaultenginename" = "DuckDuckGo";
-              "browser.search.selectedEngine" = "DuckDuckGo";
-              "browser.search.useDBForOrder" = false;
-              "gnomeTheme.activeTabContrast" = true;
-              "gnomeTheme.bookmarksToolbarUnderTabs" = true;
-              "gnomeTheme.hideSingleTab" = true;
-              "gnomeTheme.hideWebrtcIndicator" = true;
-              "gnomeTheme.spinner" = true;
-              "widget.use-xdg-desktop-portal.file-picker" = 1;
-              "extensions.pocket.enabled" = false;
-              "browser.toolbarbuttons.introduced.pocket-button" = false;
-              "layers.acceleration.force-enabled" = true;
-              "svg.context-properties.content.enabled" = true;
-              "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
-              "widget.gtk.overlay-scrollbars.enabled" = true;
-            };
-
-            bookmarks = [
-              {
-                name = "Preloaded";
-                toolbar = true;
-                bookmarks =
-                  userConfig.shortcuts
-                  |> map (s: {
-                    inherit (s) name url;
-                  });
-              }
-            ];
-
-            userChrome = ''
-              @import "${firefoxTheme}/share/firefox-gnome-theme/gnome-theme.css";
+          userChrome =
+            let
+              theme = pkgs.fetchFromGitHub {
+                owner = "rafaelmardojai";
+                repo = "firefox-gnome-theme";
+                tag = "v134";
+                sha256 = "sha256-S79Hqn2EtSxU4kp99t8tRschSifWD4p/51++0xNWUxw=";
+              };
+            in
+            ''
+              @import "${theme}/theme/gnome-theme.css";
             '';
-          };
         };
-      }
-    )
+      };
+    }
   ];
 }

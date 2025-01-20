@@ -8,31 +8,15 @@ git.username = "grantshandy"
 git.email = "granthandy@proton.me"
 
 # Desktop Shortcuts & Web Bookmarks
-[[shortcuts]]
-name = "Mail"
-url = "https://mail.proton.me"
-icon.url = "https://raw.githubusercontent.com/ProtonMail/WebClients/2dac2f08a7969fe16160b22defb8392c20ef48a0/applications/mail/src/favicon.svg"
-icon.hash = "sha256-ks+X7lCceeS0YQrY0eD9+1N+T26eB8IzLo+Pv0uV1ME="
-desktop = true
+shortcuts = [
+    { name = "Mail", url = "https://mail.proton.me", icon = "proton-mail", desktop = true },
+    { name = "Calendar", url = "https://calendar.proton.me", icon = "proton-calendar", desktop = true },
+    { name = "Spotify", url = "https://open.spotify.com", icon = "spotify.svg", desktop = true },
+    { name = "GitHub", url = "https://github.com" },
+    { name = "NixOS", url = "https://search.nixos.org/packages" },
+    { name = "Home Manager", url = "https://home-manager-options.extranix.com" }
+]
 
-[[shortcuts]]
-name = "Calendar"
-url = "https://calendar.proton.me"
-icon.url = "https://raw.githubusercontent.com/ProtonMail/WebClients/2dac2f08a7969fe16160b22defb8392c20ef48a0/applications/calendar/src/favicon.svg"
-icon.hash = "sha256-oiiaF3IySz/HXT5p7hsVGdT35364hbk82K1B4l6Ktck="
-desktop = true
-
-[[shortcuts]]
-name = "Spotify"
-url = "https://open.spotify.com"
-icon = "spotify.svg"
-desktop = true
-
-[[shortcuts]]
-name = "GitHub"
-url = "https://github.com"
-desktop = false
-
-[[sync-device]]
-name = "Phone"
-id = "5IBK4XI-3SBE6A7-JCU7L3E-UB3W45N-SMPSC5C-HDHSVBG-UM6XUI6-HQHUSAA"
+sync-device = [
+    { name = "Phone", id = "5IBK4XI-3SBE6A7-JCU7L3E-UB3W45N-SMPSC5C-HDHSVBG-UM6XUI6-HQHUSAA" }
+]
