@@ -181,6 +181,7 @@
         protonvpn-gui
         beeper
         anki
+        dialect
       ];
 
       dconf.settings."org/gnome/shell".favorite-apps = [
