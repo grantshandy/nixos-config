@@ -242,7 +242,7 @@
         enable = true;
         profiles.default = {
           # must-have extensions :)
-          extensions = with pkgs.nur.repos.rycee.firefox-addons; [
+          extensions = with inputs.firefox-addons.packages.${pkgs.system}; [
             ublock-origin
             darkreader
             proton-pass
@@ -262,6 +262,8 @@
             "browser.search.defaultenginename" = "DuckDuckGo";
             "browser.search.selectedEngine" = "DuckDuckGo";
             "browser.search.useDBForOrder" = false;
+            "browser.aboutConfig.showWarning" = false;
+            "browser.aboutwelcome.didSeeFinalScreen" = true;
             "gnomeTheme.activeTabContrast" = true;
             "gnomeTheme.bookmarksToolbarUnderTabs" = true;
             "gnomeTheme.hideSingleTab" = true;
