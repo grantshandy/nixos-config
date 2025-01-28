@@ -8,6 +8,14 @@
   ...
 }:
 {
+  imports = [
+    ./sync.nix
+    ./ko.nix
+
+    ./firefox
+    ./vscode.nix
+  ];
+
   # Enable the desktop environment and display manager
   services.xserver = {
     enable = true;
@@ -111,8 +119,8 @@
         "org/gnome/desktop/background" = {
           color-shading-type = "solid";
           picture-options = "zoom";
-          picture-uri = "${inputs.background}";
-          picture-uri-dark = "${inputs.background}";
+          picture-uri = "${../background.jpg}";
+          picture-uri-dark = "${../background.jpg}";
         };
 
         # simplified alt-tabbing and workspaces
@@ -121,6 +129,8 @@
           switch-applications-backward = [ ];
           switch-windows = [ "<Alt>Tab" ];
           switch-windows-backward = [ "<Shift><Alt>Tab" ];
+          switch-to-workspace-right = [ "<Super>Tab"];
+          switch-to-workspace-left = [ "<Shift><Super>Tab"];
         };
         "org/gnome/shell/window-switcher".current-workspace-only = false;
         "org/gnome/mutter" = {
@@ -128,29 +138,6 @@
           edge-tiling = true;
         };
       };
-
-      # custom shortcuts in config.toml
-      xdg.desktopEntries =
-        userConfig.shortcuts
-        |> builtins.filter (
-          s:
-          (builtins.hasAttr "icon" s && s.icon != false)
-          && (builtins.hasAttr "desktop" s && s.desktop == true)
-        )
-        |> builtins.map (s: {
-          name = "shortcut-${builtins.replaceStrings [ " " ] [ "" ] s.name}";
-          value = {
-            name = s.name;
-            icon =
-              if builtins.hasAttr s.icon inputs then
-                builtins.getAttr s.icon inputs
-              else
-                "${pkgs.morewaita-icon-theme}/share/icons/MoreWaita/scalable/apps/${s.icon}";
-            terminal = false;
-            exec = "${pkgs.xdg-utils}/bin/xdg-open ${s.url}";
-          };
-        })
-        |> builtins.listToAttrs;
     }
 
     # automatically enable this list of extensions
@@ -191,118 +178,6 @@
         "code.desktop"
         "beeper.desktop"
       ];
-
-      programs.vscode = {
-        enable = true;
-        package = pkgs.vscode-fhs;
-        extensions = with pkgs.vscode-extensions; [
-          rust-lang.rust-analyzer
-          fill-labs.dependi
-          tamasfe.even-better-toml
-          jnoortheen.nix-ide
-          mkhl.direnv
-          usernamehw.errorlens
-          bradlc.vscode-tailwindcss
-          piousdeer.adwaita-theme
-          wakatime.vscode-wakatime
-        ];
-        userSettings = {
-          window = {
-            # titleBarStyle = "custom";
-            commandCenter = true;
-            autoDetectColorScheme = true;
-          };
-          workbench = {
-            preferredDarkColorTheme = "Adwaita Dark";
-            preferredLightColorTheme = "Adwaita Light";
-            productIconTheme = "adwaita";
-            iconTheme = null;
-            tree.indent = 12;
-            colorTheme = "Adwaita Dark";
-            startupEditor = "none";
-            activityBar.location = "top";
-          };
-          editor = {
-            quickSuggesions = {
-              other = "on";
-              comments = "on";
-              strings = "on";
-            };
-            renderLineHighlight = "none";
-            inlayHints.enabled = "offUnlessPressed";
-          };
-          files.simpleDialog.enable = true;
-
-          "nix.enableLanguageServer" = true;
-          "nix.serverPath" = "${pkgs.nixd}/bin/nixd";
-        };
-      };
-
-      programs.firefox = {
-        enable = true;
-        profiles.default = {
-          # must-have extensions :)
-          extensions = with inputs.firefox-addons.packages.${pkgs.system}; [
-            ublock-origin
-            darkreader
-            proton-pass
-            scroll_anywhere
-          ];
-
-          # basic UI, no distractions
-          settings = {
-            "browser.uidensity" = 0;
-            "browser.accounts.enabled" = false;
-            "browser.homepage.enabled" = false;
-            "browser.newtab.url" = "about:blank";
-            "browser.newtabpage.pinned" = [ ];
-            "browser.newtabpage.activity-stream.newtabWallpapers.wallpaper" = "dark-blue";
-            "browser.newtabpage.activity-stream.feeds.topsites" = false;
-            "browser.toolbars.bookmarks.visibility" = "newtab";
-            "browser.search.defaultenginename" = "DuckDuckGo";
-            "browser.search.selectedEngine" = "DuckDuckGo";
-            "browser.search.useDBForOrder" = false;
-            "browser.aboutConfig.showWarning" = false;
-            "browser.aboutwelcome.didSeeFinalScreen" = true;
-            "gnomeTheme.activeTabContrast" = true;
-            "gnomeTheme.bookmarksToolbarUnderTabs" = true;
-            "gnomeTheme.hideSingleTab" = true;
-            "gnomeTheme.hideWebrtcIndicator" = true;
-            "gnomeTheme.spinner" = true;
-            "widget.use-xdg-desktop-portal.file-picker" = 1;
-            "extensions.pocket.enabled" = false;
-            "browser.toolbarbuttons.introduced.pocket-button" = false;
-            "layers.acceleration.force-enabled" = true;
-            "svg.context-properties.content.enabled" = true;
-            "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
-            "widget.gtk.overlay-scrollbars.enabled" = true;
-          };
-
-          bookmarks = [
-            {
-              toolbar = true;
-              bookmarks =
-                userConfig.shortcuts
-                |> map (s: {
-                  inherit (s) name url;
-                });
-            }
-          ];
-
-          userChrome =
-            let
-              theme = pkgs.fetchFromGitHub {
-                owner = "rafaelmardojai";
-                repo = "firefox-gnome-theme";
-                tag = "v134";
-                sha256 = "sha256-S79Hqn2EtSxU4kp99t8tRschSifWD4p/51++0xNWUxw=";
-              };
-            in
-            ''
-              @import "${theme}/theme/gnome-theme.css";
-            '';
-        };
-      };
     }
   ];
 }

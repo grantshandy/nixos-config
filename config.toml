@@ -1,20 +1,19 @@
 # Change this on aarch64-linux
 system = "x86_64-linux"
 
-# Account info
 user.name = "grant"
 user.description = "Grant Handy"
+
 git.username = "grantshandy"
 git.email = "granthandy@proton.me"
 
-# Desktop Shortcuts & Web Bookmarks
 shortcuts = [
-    { name = "Mail", url = "https://mail.proton.me", icon = "proton-mail", desktop = true },
-    { name = "Calendar", url = "https://calendar.proton.me", icon = "proton-calendar", desktop = true },
-    { name = "Spotify", url = "https://open.spotify.com", icon = "spotify.svg", desktop = true },
+    { name = "Mail", url = "https://mail.proton.me" },
+    { name = "Calendar", url = "https://calendar.proton.me" },
+    { name = "Spotify", url = "https://open.spotify.com" },
     { name = "GitHub", url = "https://github.com" },
-    { name = "NixOS", url = "https://search.nixos.org/packages" },
-    { name = "Home Manager", url = "https://home-manager-options.extranix.com" }
+    { name = "NixOS Package Search", url = "https://search.nixos.org/packages" },
+    { name = "Home Manager Search", url = "https://home-manager-options.extranix.com" }
 ]
 
 sync-device = [
