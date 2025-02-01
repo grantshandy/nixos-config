@@ -41,14 +41,8 @@
           }
 
           (
-            with inputs.firefox-addons.packages.${pkgs.system};
-            [
-              ublock-origin
-              darkreader
-              proton-pass
-              youtube-shorts-block
-              return-youtube-dislikes
-            ]
+            userConfig.firefox.extensions
+            |> map (name: inputs.firefox-addons.packages.${pkgs.system}.${name})
             |> map (ext: {
               name = ext.addonId;
               value = {
@@ -110,11 +104,7 @@
         bookmarks = [
           {
             toolbar = true;
-            bookmarks =
-              userConfig.shortcuts
-              |> map (s: {
-                inherit (s) name url;
-              });
+            bookmarks = userConfig.firefox.bookmarks;
           }
         ];
 

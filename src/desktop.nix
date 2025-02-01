@@ -4,14 +4,12 @@
   pkgs,
   lib,
   userConfig,
-  inputs,
   ...
 }:
 {
   imports = [
     ./sync.nix
     ./ko.nix
-
     ./firefox
     ./vscode.nix
   ];
@@ -33,6 +31,7 @@
   # exclude unused default programs and add modern fonts/core applications
   environment.gnome.excludePackages = with pkgs; [
     # gnome-console
+    snapshot
     gnome-tour
     gnome-connections
     yelp
@@ -58,7 +57,7 @@
   boot.plymouth.enable = true;
   networking.networkmanager.enable = true;
   services.printing.enable = true;
-  hardware.pulseaudio.enable = false;
+  services.pulseaudio.enable = false;
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
@@ -84,7 +83,6 @@
     '';
 
   home-manager.sharedModules = [
-
     # desktop environment stylized
     {
       # style older gtk3/qt applications and non-gnome
@@ -129,15 +127,24 @@
           switch-applications-backward = [ ];
           switch-windows = [ "<Alt>Tab" ];
           switch-windows-backward = [ "<Shift><Alt>Tab" ];
-          switch-to-workspace-right = [ "<Super>Tab"];
-          switch-to-workspace-left = [ "<Shift><Super>Tab"];
+          switch-to-workspace-right = [ "<Super>Tab" ];
+          switch-to-workspace-left = [ "<Shift><Super>Tab" ];
         };
         "org/gnome/shell/window-switcher".current-workspace-only = false;
         "org/gnome/mutter" = {
           dynamic-workspaces = true;
           edge-tiling = true;
         };
+
+        "org/gnome/shell".favorite-apps = [
+          "org.gnome.Nautilus.desktop"
+          "org.gnome.Console.desktop"
+          "firefox.desktop"
+          "code.desktop"
+        ] ++ (userConfig.apps.favorites or [ ]);
       };
+
+      home.packages = (userConfig.apps.pkgs or [ ]) |> map (app: pkgs.${app});
     }
 
     # automatically enable this list of extensions
@@ -161,23 +168,5 @@
         };
       }
     )
-
-    # basic applications and vscode configuration
-    {
-      home.packages = with pkgs; [
-        protonvpn-gui
-        beeper
-        anki
-        dialect
-      ];
-
-      dconf.settings."org/gnome/shell".favorite-apps = [
-        "org.gnome.Nautilus.desktop"
-        "org.gnome.Console.desktop"
-        "firefox.desktop"
-        "code.desktop"
-        "beeper.desktop"
-      ];
-    }
   ];
 }

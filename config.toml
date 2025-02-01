@@ -1,21 +1,37 @@
 # Change this on aarch64-linux
 system = "x86_64-linux"
 
-user.name = "grant"
-user.description = "Grant Handy"
+[user]
+name = "grant"
+description = "Grant Handy"
 
-git.username = "grantshandy"
-git.email = "granthandy@proton.me"
+[apps]
+pkgs = [ "protonvpn-gui", "beeper", "anki", "dialect" ]
+favorites = [ "beeper.desktop" ]
 
-shortcuts = [
+[git]
+username = "grantshandy"
+email = "granthandy@proton.me"
+
+[firefox]
+extensions = [
+    "ublock-origin",
+    "darkreader",
+    "proton-pass",
+    "youtube-shorts-block",
+    "return-youtube-dislikes",
+]
+bookmarks = [
     { name = "Mail", url = "https://mail.proton.me" },
     { name = "Calendar", url = "https://calendar.proton.me" },
     { name = "Spotify", url = "https://open.spotify.com" },
     { name = "GitHub", url = "https://github.com" },
     { name = "NixOS Package Search", url = "https://search.nixos.org/packages" },
-    { name = "Home Manager Search", url = "https://home-manager-options.extranix.com" }
+    { name = "Home Manager Search", url = "https://home-manager-options.extranix.com" },
+    { name = "NixOS Wiki", url = "https://wiki.nixos.org/wiki/NixOS_Wiki" },
+    { name = "Papago", url = "https://papago.naver.com" }
 ]
 
-sync-device = [
-    { name = "Phone", id = "5IBK4XI-3SBE6A7-JCU7L3E-UB3W45N-SMPSC5C-HDHSVBG-UM6XUI6-HQHUSAA" }
-]
+[[sync-device]]
+name = "Phone"
+id = "5IBK4XI-3SBE6A7-JCU7L3E-UB3W45N-SMPSC5C-HDHSVBG-UM6XUI6-HQHUSAA"
