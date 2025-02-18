@@ -123,6 +123,7 @@
 
         # simplified alt-tabbing and workspaces
         "org/gnome/desktop/wm/keybindings" = {
+          always-on-top = [ "<Shift><Super>T" ];
           switch-applications = [ ];
           switch-applications-backward = [ ];
           switch-windows = [ "<Alt>Tab" ];
