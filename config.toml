@@ -29,7 +29,8 @@ bookmarks = [
     { name = "NixOS Package Search", url = "https://search.nixos.org/packages" },
     { name = "Home Manager Search", url = "https://home-manager-options.extranix.com" },
     { name = "NixOS Wiki", url = "https://wiki.nixos.org/wiki/NixOS_Wiki" },
-    { name = "Papago", url = "https://papago.naver.com" }
+    { name = "Papago", url = "https://papago.naver.com" },
+    { name = "Canvas", url = "https://utah.instructure.com" }
 ]
 
 [[sync-device]]

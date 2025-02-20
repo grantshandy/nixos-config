@@ -30,7 +30,7 @@
 
   # exclude unused default programs and add modern fonts/core applications
   environment.gnome.excludePackages = with pkgs; [
-    # gnome-console
+    gnome-console
     snapshot
     gnome-tour
     gnome-connections
@@ -46,7 +46,7 @@
     simple-scan
     gnome-software
   ];
-  environment.systemPackages = with pkgs; [ clapper ];
+  environment.systemPackages = with pkgs; [ celluloid ptyxis ];
   fonts.packages = with pkgs; [
     noto-fonts
     noto-fonts-cjk-sans
@@ -139,7 +139,7 @@
 
         "org/gnome/shell".favorite-apps = [
           "org.gnome.Nautilus.desktop"
-          "org.gnome.Console.desktop"
+          "org.gnome.Ptyxis.desktop"
           "firefox.desktop"
           "code.desktop"
         ] ++ (userConfig.apps.favorites or [ ]);
