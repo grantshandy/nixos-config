@@ -46,7 +46,10 @@
     simple-scan
     gnome-software
   ];
-  environment.systemPackages = with pkgs; [ celluloid ptyxis ];
+  environment.systemPackages = with pkgs; [
+    celluloid
+    ptyxis
+  ];
   fonts.packages = with pkgs; [
     noto-fonts
     noto-fonts-cjk-sans

@@ -7,7 +7,7 @@ description = "Grant Handy"
 
 [apps]
 pkgs = [ "protonvpn-gui", "beeper", "anki", "dialect" ]
-favorites = [ "beeper.desktop" ]
+favorites = [ "beeper.desktop", "anki.desktop" ]
 
 [git]
 username = "grantshandy"
