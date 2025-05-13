@@ -5,7 +5,8 @@
       programs.vscode = {
         enable = true;
         package = pkgs.vscode-fhs;
-        extensions = with pkgs.vscode-extensions; [
+        profiles.default = {
+          extensions = with pkgs.vscode-extensions; [
           rust-lang.rust-analyzer
           fill-labs.dependi
           tamasfe.even-better-toml
@@ -47,6 +48,7 @@
           "nix.serverPath" = "${pkgs.nixd}/bin/nixd";
           "explorer.confirmDragAndDrop" = false;
         };
+      };
       };
     }
   ];

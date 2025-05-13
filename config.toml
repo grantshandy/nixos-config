@@ -6,8 +6,8 @@ name = "grant"
 description = "Grant Handy"
 
 [apps]
-pkgs = [ "protonvpn-gui", "beeper", "anki", "dialect" ]
-favorites = [ "beeper.desktop", "anki.desktop" ]
+pkgs = [ "protonvpn-gui", "beeper", "anki", "dialect", "fractal" ]
+favorites = [ "beepertexts.desktop", "anki.desktop" ]
 
 [git]
 username = "grantshandy"
@@ -30,7 +30,8 @@ bookmarks = [
     { name = "Home Manager Search", url = "https://home-manager-options.extranix.com" },
     { name = "NixOS Wiki", url = "https://wiki.nixos.org/wiki/NixOS_Wiki" },
     { name = "Papago", url = "https://papago.naver.com" },
-    { name = "Canvas", url = "https://utah.instructure.com" }
+    { name = "Canvas", url = "https://utah.instructure.com" },
+    { name = "Thesaurus", url = "https://www.powerthesaurus.org/" }
 ]
 
 [[sync-device]]

@@ -6,13 +6,16 @@
   ...
 }:
 {
+  imports = [ ./lss.nix ];
+
   home-manager.sharedModules = [
     {
-      programs.firefox.enable = true;
+      programs.firefox = {
+        enable = true;
 
       # This method for installing plugins here largely from:
       # https://discourse.nixos.org/t/declare-firefox-extensions-and-settings/36265/7
-      programs.firefox.policies = {
+      policies = {
         # Settings:
         # https://mozilla.github.io/policy-templates/
         DisableFeedbackCommands = true;
@@ -55,13 +58,7 @@
         ];
       };
 
-      programs.firefox.profiles.default = {
-        search = {
-          force = true;
-          default = "DuckDuckGo";
-          privateDefault = "DuckDuckGo";
-        };
-
+      profiles.default = {
         settings = {
           # gnome theme settings:
           "gnomeTheme.activeTabContrast" = true;
@@ -101,26 +98,32 @@
           "widget.gtk.overlay-scrollbars.enabled" = true;
         };
 
-        bookmarks = [
-          {
-            toolbar = true;
-            bookmarks = userConfig.firefox.bookmarks;
-          }
-        ];
+        bookmarks = {
+          force = true;
+          settings = [
+            {
+              name = "User Added";
+              toolbar = true;
+              bookmarks = userConfig.firefox.bookmarks;
+            }
+          ];
+        };
 
         userChrome =
           let
             theme = pkgs.fetchFromGitHub {
               owner = "rafaelmardojai";
               repo = "firefox-gnome-theme";
-              tag = "v134";
-              sha256 = "sha256-S79Hqn2EtSxU4kp99t8tRschSifWD4p/51++0xNWUxw=";
+              tag = "v137";
+              sha256 = "sha256-oiHLDHXq7ymsMVYSg92dD1OLnKLQoU/Gf2F1GoONLCE=";
             };
           in
           ''
             @import "${theme}/theme/gnome-theme.css";
           '';
       };
+      };
     }
+    
   ];
 }
