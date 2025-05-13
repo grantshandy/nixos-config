@@ -28,8 +28,6 @@
     };
   };
 
-  services.flatpak.enable = true;
-
   # exclude unused default programs and add modern fonts/core applications
   environment.gnome.excludePackages = with pkgs; [
     gnome-console

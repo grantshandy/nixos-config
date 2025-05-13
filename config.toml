@@ -1,4 +1,3 @@
-# Change this on aarch64-linux
 system = "x86_64-linux"
 
 [user]
@@ -6,7 +5,7 @@ name = "grant"
 description = "Grant Handy"
 
 [apps]
-pkgs = [ "protonvpn-gui", "beeper", "anki", "dialect", "fractal" ]
+pkgs = [ "protonvpn-gui", "beeper", "anki" ]
 favorites = [ "beepertexts.desktop", "anki.desktop" ]
 
 [git]
