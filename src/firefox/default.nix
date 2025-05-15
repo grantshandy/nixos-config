@@ -6,10 +6,19 @@
   ...
 }:
 {
-  imports = [ ./lss.nix ];
-
   home-manager.sharedModules = [
     {
+      imports = [ ./lss.nix ];
+
+      services.lss = {
+        enable = true;
+        firefoxSearch = true;
+        settings = {
+          default = userConfig.firefox.default-engine or "duckduckgo";
+          engines = userConfig.firefox.extra-engines or {};
+        };
+      };
+
       programs.firefox = {
         enable = true;
 

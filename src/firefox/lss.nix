@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ config, lib, pkgs, ... }:
 let
   lss = pkgs.rustPlatform.buildRustPackage rec {
     pname = "lss";
@@ -15,19 +15,27 @@ let
     cargoHash = "sha256-GJ0bVkUUfB2lQo4p1B2Ac68hobfAVjx7YRicg/1GN+Q=";
   };
 
-  config = {
-    port = 9321;
-    default = "duckduckgo";
-
-    engines = {
-      hmgr = "https://home-manager-options.extranix.com/?query={s}&release=master";
+  cfg = config.services.lss;
+  tomlFormat = pkgs.formats.toml { };
+  configFile = tomlFormat.generate "lss-config.toml" cfg.settings;
+in
+{
+  options.services.lss = {
+    enable = lib.mkEnableOption "lss";
+    firefoxSearch = lib.mkEnableOption "Set lss as the default search engine in Firefox.";
+    settings = lib.mkOption {
+      type = tomlFormat.type;
+      example = lib.literalExpression ''
+        {
+          port = 9321;
+          default = "duckduckgo";
+          engines.homemanager = "https://home-manager-options.extranix.com/?query={s}&release=master";
+        }
+      '';
     };
   };
 
-  configFile = (pkgs.formats.toml { }).generate "config.toml" config;
-in
-{
-  home-manager.sharedModules = [{
+  config = lib.mkIf cfg.enable {
     systemd.user = {
       enable = true;
       services.lss = {
@@ -49,13 +57,21 @@ in
 
     xdg.configFile."lss/config.toml".source = configFile;
 
-    programs.firefox.profiles.default.search = {
-      force = true;
-      default = config.default;
-      privateDefault = config.default;
-      engines.${config.default}.urls = [{
-        template = "http://localhost:${toString (config.port)}/?q={searchTerms}";
-      }];
-    };
-  }];
+    programs.firefox.profiles.default.search =
+      let
+        port = toString cfg.settings.port or 9321;
+        name = cfg.settings.default;
+        errMsg = "services.lss.settings.default must be set with services.lss.settings.firefoxSearch is enabled";
+      in
+        lib.mkIf (cfg.firefoxSearch && lib.asserts.assertMsg (lib.attrsets.hasAttr "default" cfg.settings) errMsg)
+      {
+        force = true;
+        default = name;
+        privateDefault = name;
+        engines.${name}.urls = [{
+          inherit name;
+          template = "http://localhost:${port}/?q={searchTerms}";
+        }];
+      };
+  };
 }
