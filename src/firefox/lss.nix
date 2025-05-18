@@ -2,17 +2,17 @@
 let
   lss = pkgs.rustPlatform.buildRustPackage rec {
     pname = "lss";
-    version = "1.0.0";
+    version = "1.1.0";
 
     src = pkgs.fetchFromGitHub {
       owner = "grantshandy";
       repo = "lss";
       rev = version;
-      hash = "sha256-yz42y1cC5tPN0s9gf+hEhZP3lYPJLy1lk5ttaBddf4A=";
+      hash = "sha256-tDYnHbbflLpPHx3RN01Zuy6C5uNBcJ7D+bL0lRLTST0=";
     };
 
     useFetchCargoVendor = true;
-    cargoHash = "sha256-GJ0bVkUUfB2lQo4p1B2Ac68hobfAVjx7YRicg/1GN+Q=";
+    cargoHash = "sha256-U0U+V7aVE/aoeX4ZMzQ6cCsEY2PVjkS4N07bUSwsVMc=";
   };
 
   cfg = config.services.lss;

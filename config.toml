@@ -37,7 +37,7 @@ bookmarks = [
 
 [firefox.extra-engines]
 homemanager = "https://home-manager-options.extranix.com/?query={s}&release=master"
-hanjadict = "https://koreanhanja.app/{s}"
+"한자" = "https://koreanhanja.app/{s}"
 
 [[sync-device]]
 name = "Phone"

@@ -166,6 +166,7 @@
             disable-user-extensions = false;
             # (functional compsci soy face):
             enabled-extensions = pkgs.lib.lists.forEach extensions (ext: ext.passthru.extensionUuid);
+          
           };
 
           "org/gnome/shell/extensions/blur-my-shell/panel".override-background-dynamically = true;
