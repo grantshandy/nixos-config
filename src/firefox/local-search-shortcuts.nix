@@ -1,34 +1,35 @@
 { config, lib, pkgs, ... }:
 let
-  lss = pkgs.rustPlatform.buildRustPackage rec {
-    pname = "lss";
-    version = "1.1.0";
+  name = "local-search-shortcuts";
+  package = pkgs.rustPlatform.buildRustPackage rec {
+    pname = name;
+    version = "1.2.2";
 
     src = pkgs.fetchFromGitHub {
       owner = "grantshandy";
-      repo = "lss";
+      repo = name;
       rev = version;
-      hash = "sha256-tDYnHbbflLpPHx3RN01Zuy6C5uNBcJ7D+bL0lRLTST0=";
+      hash = "sha256-6uHQ1VkZWtOmY2Q8dgR1if4toMa/czDujaCj65sq498=";
     };
 
     useFetchCargoVendor = true;
-    cargoHash = "sha256-U0U+V7aVE/aoeX4ZMzQ6cCsEY2PVjkS4N07bUSwsVMc=";
+    cargoHash = "sha256-AzhjOoiWWmKzG+/CrN/DUwOERHR1MB2iHzNYM4BJLDA=";
   };
 
-  cfg = config.services.lss;
+  cfg = config.services.${name};
   tomlFormat = pkgs.formats.toml { };
-  configFile = tomlFormat.generate "lss-config.toml" cfg.settings;
+  configFile = tomlFormat.generate "${name}-config.toml" cfg.settings;
 in
 {
-  options.services.lss = {
-    enable = lib.mkEnableOption "lss";
-    firefoxSearch = lib.mkEnableOption "Set lss as the default search engine in Firefox.";
+  options.services.${name} = {
+    enable = lib.mkEnableOption name;
+    firefoxSearch = lib.mkEnableOption "Set the ${name} provider as the default search engine in Firefox.";
     settings = lib.mkOption {
       type = tomlFormat.type;
       example = lib.literalExpression ''
         {
           port = 9321;
-          default = "duckduckgo";
+          default = "google";
           engines.homemanager = "https://home-manager-options.extranix.com/?query={s}&release=master";
         }
       '';
@@ -38,9 +39,9 @@ in
   config = lib.mkIf cfg.enable {
     systemd.user = {
       enable = true;
-      services.lss = {
+      services.${name} = {
         Unit = {
-          Description = "Search Shortcuts";
+          Description = "Local Search Shortcuts";
           After = [ "network.target" ];
         };
         Path = {
@@ -48,28 +49,28 @@ in
           UnitSec= "1s";
         };
         Service = {
-          ExecStart = "${lss}/bin/lss";
+          ExecStart = "${package}/bin/${name}";
           Restart = "always";
         };
         Install.WantedBy = [ "default.target" ];
       };
     };
 
-    xdg.configFile."lss/config.toml".source = configFile;
+    xdg.configFile."${name}/config.toml".source = configFile;
 
     programs.firefox.profiles.default.search =
       let
         port = toString cfg.settings.port or 9321;
-        name = cfg.settings.default;
-        errMsg = "services.lss.settings.default must be set with services.lss.settings.firefoxSearch is enabled";
+        default-engine = cfg.settings.default;
+        errMsg = "services.${name}.settings.default must be set with services.${name}.settings.firefoxSearch is enabled";
       in
         lib.mkIf (cfg.firefoxSearch && lib.asserts.assertMsg (lib.attrsets.hasAttr "default" cfg.settings) errMsg)
       {
         force = true;
-        default = name;
-        privateDefault = name;
-        engines.${name}.urls = [{
-          inherit name;
+        default = default-engine;
+        privateDefault = default-engine;
+        engines.${default-engine}.urls = [{
+          inherit default-engine;
           template = "http://localhost:${port}/?q={searchTerms}";
         }];
       };

@@ -45,6 +45,7 @@
     gnome-maps
     simple-scan
     gnome-software
+    decibels
   ];
   environment.systemPackages = with pkgs; [
     celluloid
@@ -164,7 +165,6 @@
         dconf.settings = {
           "org/gnome/shell" = {
             disable-user-extensions = false;
-            # (functional compsci soy face):
             enabled-extensions = pkgs.lib.lists.forEach extensions (ext: ext.passthru.extensionUuid);
           
           };

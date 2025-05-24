@@ -13,8 +13,9 @@ username = "grantshandy"
 email = "granthandy@proton.me"
 
 [firefox]
-default-engine = "duckduckgo"
-
+default-engine = "ddg"
+extra-engines.homemanager = "https://home-manager-options.extranix.com/?query={s}&release=master"
+extra-engines."한자" = "https://koreanhanja.app/{s}"
 extensions = [
     "ublock-origin",
     "darkreader",
@@ -27,17 +28,11 @@ bookmarks = [
     { name = "Calendar", url = "https://calendar.proton.me" },
     { name = "Spotify", url = "https://open.spotify.com" },
     { name = "GitHub", url = "https://github.com" },
-    { name = "NixOS Package Search", url = "https://search.nixos.org/packages" },
-    { name = "Home Manager Search", url = "https://home-manager-options.extranix.com" },
     { name = "NixOS Wiki", url = "https://wiki.nixos.org/wiki/NixOS_Wiki" },
     { name = "Papago", url = "https://papago.naver.com" },
     { name = "Canvas", url = "https://utah.instructure.com" },
     { name = "Thesaurus", url = "https://www.powerthesaurus.org/" }
 ]
-
-[firefox.extra-engines]
-homemanager = "https://home-manager-options.extranix.com/?query={s}&release=master"
-"한자" = "https://koreanhanja.app/{s}"
 
 [[sync-device]]
 name = "Phone"

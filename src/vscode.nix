@@ -48,6 +48,7 @@
             "nix.enableLanguageServer" = true;
             "nix.serverPath" = "${pkgs.nixd}/bin/nixd";
             "explorer.confirmDragAndDrop" = false;
+            "svelte.enable-ts-plugin" = true;
           };
         };
       };
