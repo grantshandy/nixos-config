@@ -45,7 +45,7 @@
     gnome-maps
     simple-scan
     gnome-software
-    decibels
+    # decibels
   ];
   environment.systemPackages = with pkgs; [
     celluloid
@@ -54,7 +54,6 @@
   fonts.packages = with pkgs; [
     noto-fonts
     noto-fonts-cjk-sans
-    iosevka
   ];
 
   # Various backend desktop services
@@ -115,7 +114,6 @@
           color-scheme = "prefer-dark";
           clock-format = "12h";
           enable-hot-corners = true;
-          monospace-font-name = "Iosevka 12";
         };
 
         "org/gnome/desktop/background" = {
@@ -156,7 +154,7 @@
     (
       let
         extensions = with pkgs.gnomeExtensions; [
-          blur-my-shell # make overview background blurred background image. Very nice.
+          # blur-my-shell # make overview background blurred background image. Very nice.
           # rounded-window-corners-reborn # rounded windows on firefox & vscode (performance cost)
         ];
       in
@@ -169,7 +167,7 @@
           
           };
 
-          "org/gnome/shell/extensions/blur-my-shell/panel".override-background-dynamically = true;
+          # "org/gnome/shell/extensions/blur-my-shell/panel".override-background-dynamically = true;
         };
       }
     )

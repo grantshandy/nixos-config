@@ -5,7 +5,7 @@ name = "grant"
 description = "Grant Handy"
 
 [apps]
-pkgs = [ "protonvpn-gui", "beeper", "anki" ]
+pkgs = [ "protonvpn-gui", "anki", "beeper", "blanket" ]
 favorites = [ "beepertexts.desktop", "anki.desktop" ]
 
 [git]
@@ -15,7 +15,9 @@ email = "granthandy@proton.me"
 [firefox]
 default-engine = "ddg"
 extra-engines.homemanager = "https://home-manager-options.extranix.com/?query={s}&release=master"
-extra-engines."한자" = "https://koreanhanja.app/{s}"
+extra-engines.hanjadict = "https://koreanhanja.app/{s}"
+extra-engines.koverb = "https://koreanverb.app/?search={s}"
+
 extensions = [
     "ublock-origin",
     "darkreader",
