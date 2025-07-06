@@ -1,17 +1,15 @@
 # Good minimal GNOME configuration with the core programs
-
 {
   pkgs,
   lib,
   userConfig,
   ...
-}:
-{
+}: {
   imports = [
     ./sync.nix
     ./ko.nix
     ./firefox
-    ./vscode.nix
+    ./zed
   ];
 
   # Enable the desktop environment and display manager
@@ -20,7 +18,7 @@
 
     displayManager.gdm.enable = true;
     desktopManager.gnome.enable = true;
-    excludePackages = [ pkgs.xterm ];
+    excludePackages = [pkgs.xterm];
 
     xkb = {
       layout = "us";
@@ -73,17 +71,15 @@
   time.timeZone = lib.mkForce null;
 
   # set GDM profile photo
-  system.activationScripts.script.text =
-    let
-      name = userConfig.user.name;
-      face = "cat.jpg";
-    in
-    ''
-      mkdir -p /var/lib/AccountsService/users
-      echo -e "[User]\nIcon=${pkgs.gnome-control-center}/share/pixmaps/faces/${face}\n" > /var/lib/AccountsService/users/${name}
-      chown root:root /var/lib/AccountsService/users/${name}
-      chmod 0600 /var/lib/AccountsService/users/${name}
-    '';
+  system.activationScripts.script.text = let
+    name = userConfig.user.name;
+    face = "cat.jpg";
+  in ''
+    mkdir -p /var/lib/AccountsService/users
+    echo -e "[User]\nIcon=${pkgs.gnome-control-center}/share/pixmaps/faces/${face}\n" > /var/lib/AccountsService/users/${name}
+    chown root:root /var/lib/AccountsService/users/${name}
+    chmod 0600 /var/lib/AccountsService/users/${name}
+  '';
 
   home-manager.sharedModules = [
     # desktop environment stylized
@@ -125,13 +121,13 @@
 
         # simplified alt-tabbing and workspaces
         "org/gnome/desktop/wm/keybindings" = {
-          always-on-top = [ "<Shift><Super>T" ];
-          switch-applications = [ ];
-          switch-applications-backward = [ ];
-          switch-windows = [ "<Alt>Tab" ];
-          switch-windows-backward = [ "<Shift><Alt>Tab" ];
-          switch-to-workspace-right = [ "<Super>Tab" ];
-          switch-to-workspace-left = [ "<Shift><Super>Tab" ];
+          always-on-top = ["<Shift><Super>T"];
+          switch-applications = [];
+          switch-applications-backward = [];
+          switch-windows = ["<Alt>Tab"];
+          switch-windows-backward = ["<Shift><Alt>Tab"];
+          switch-to-workspace-right = ["<Super>Tab"];
+          switch-to-workspace-left = ["<Shift><Super>Tab"];
         };
         "org/gnome/shell/window-switcher".current-workspace-only = false;
         "org/gnome/mutter" = {
@@ -139,15 +135,17 @@
           edge-tiling = true;
         };
 
-        "org/gnome/shell".favorite-apps = [
-          "org.gnome.Nautilus.desktop"
-          "org.gnome.Ptyxis.desktop"
-          "firefox.desktop"
-          "code.desktop"
-        ] ++ (userConfig.apps.favorites or [ ]);
+        "org/gnome/shell".favorite-apps =
+          [
+            "org.gnome.Nautilus.desktop"
+            "org.gnome.Ptyxis.desktop"
+            "firefox.desktop"
+            "code.desktop"
+          ]
+          ++ (userConfig.apps.favorites or []);
       };
 
-      home.packages = (userConfig.apps.pkgs or [ ]) |> map (app: pkgs.${app});
+      home.packages = (userConfig.apps.pkgs or []) |> map (app: pkgs.${app});
     }
 
     # automatically enable this list of extensions
@@ -157,14 +155,12 @@
           # blur-my-shell # make overview background blurred background image. Very nice.
           # rounded-window-corners-reborn # rounded windows on firefox & vscode (performance cost)
         ];
-      in
-      {
+      in {
         home.packages = extensions;
         dconf.settings = {
           "org/gnome/shell" = {
             disable-user-extensions = false;
             enabled-extensions = pkgs.lib.lists.forEach extensions (ext: ext.passthru.extensionUuid);
-          
           };
 
           # "org/gnome/shell/extensions/blur-my-shell/panel".override-background-dynamically = true;

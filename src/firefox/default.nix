@@ -90,7 +90,8 @@
             "browser.newtabpage.activity-stream.newtabWallpapers.wallpaper" = "";
             "browser.newtabpage.activity-stream.newtabWallpapers.wallpaper-dark" = "";
             "browser.newtabpage.activity-stream.newtabWallpapers.wallpaper-light" = "";
-
+            "browser.newtabpage.activity-stream.showWeather" = false;
+            "browser.newtabpage.activity-stream.feeds.section.topstories" = false;
             "browser.newtabpage.activity-stream.feeds.topsites" = false;
             "browser.toolbars.bookmarks.visibility" = "newtab";
             "browser.search.useDBForOrder" = false;
