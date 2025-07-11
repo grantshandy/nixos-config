@@ -126,8 +126,8 @@
           switch-applications-backward = [];
           switch-windows = ["<Alt>Tab"];
           switch-windows-backward = ["<Shift><Alt>Tab"];
-          switch-to-workspace-right = ["<Super>Tab"];
-          switch-to-workspace-left = ["<Shift><Super>Tab"];
+          switch-to-workspace-down = ["<Super>Tab"];
+          switch-to-workspace-up = ["<Shift><Super>Tab"];
         };
         "org/gnome/shell/window-switcher".current-workspace-only = false;
         "org/gnome/mutter" = {

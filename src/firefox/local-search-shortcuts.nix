@@ -61,10 +61,9 @@ in
     programs.firefox.profiles.default.search =
       let
         port = toString cfg.settings.port or 9321;
-        default-engine = cfg.settings.default;
-        errMsg = "services.${name}.settings.default must be set with services.${name}.settings.firefoxSearch is enabled";
+        default-engine = cfg.settings.default or "Local Search Shortcuts";
       in
-        lib.mkIf (cfg.firefoxSearch && lib.asserts.assertMsg (lib.attrsets.hasAttr "default" cfg.settings) errMsg)
+        lib.mkIf cfg.firefoxSearch
       {
         force = true;
         default = default-engine;
