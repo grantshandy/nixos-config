@@ -4,11 +4,10 @@
   lib,
   userConfig,
   ...
-}:
-{
+}: {
   home-manager.sharedModules = [
     {
-      imports = [ ./local-search-shortcuts.nix ];
+      imports = [./local-search-shortcuts.nix];
 
       services.local-search-shortcuts = {
         enable = true;
@@ -86,7 +85,7 @@
             "browser.homepage.enabled" = false;
 
             "browser.newtab.url" = "about:blank";
-            "browser.newtabpage.pinned" = [ ];
+            "browser.newtabpage.pinned" = [];
             "browser.newtabpage.activity-stream.newtabWallpapers.wallpaper" = "";
             "browser.newtabpage.activity-stream.newtabWallpapers.wallpaper-dark" = "";
             "browser.newtabpage.activity-stream.newtabWallpapers.wallpaper-light" = "";
@@ -97,6 +96,15 @@
             "browser.search.useDBForOrder" = false;
             "browser.aboutConfig.showWarning" = false;
             "browser.aboutwelcome.didSeeFinalScreen" = true;
+
+            "browser.urlbar.suggest.bookmark" = false;
+            "browser.urlbar.suggest.engines" = false;
+            "browser.urlbar.suggest.history" = false;
+            "browser.urlbar.suggest.openpage" = false;
+            "browser.urlbar.suggest.quickactions" = false;
+            "browser.urlbar.suggest.quicksuggest.nonsponsored" = false;
+            "browser.urlbar.suggest.quicksuggest.sponsored" = false;
+            "browser.urlbar.suggest.topsites" = false;
 
             "media.eme.enabled" = true;
             "widget.use-xdg-desktop-portal.file-picker" = 1;
@@ -119,18 +127,16 @@
             ];
           };
 
-          userChrome =
-            let
-              theme = pkgs.fetchFromGitHub {
-                owner = "rafaelmardojai";
-                repo = "firefox-gnome-theme";
-                rev = "1ca82b07be9ff99da4b26092a846101ad109ef05";
-                sha256 = "sha256-G1ZrQrQWRLA15kLFT9+Ycz2GK+FmXHUwEK8pXnKSyKk=";
-              };
-            in
-            ''
-              @import "${theme}/theme/gnome-theme.css";
-            '';
+          userChrome = let
+            theme = pkgs.fetchFromGitHub {
+              owner = "rafaelmardojai";
+              repo = "firefox-gnome-theme";
+              rev = "1ca82b07be9ff99da4b26092a846101ad109ef05";
+              sha256 = "sha256-G1ZrQrQWRLA15kLFT9+Ycz2GK+FmXHUwEK8pXnKSyKk=";
+            };
+          in ''
+            @import "${theme}/theme/gnome-theme.css";
+          '';
         };
       };
     }

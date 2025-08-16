@@ -1,47 +1,10 @@
-{ userConfig, pkgs, ... }:
 {
+  userConfig,
+  pkgs,
+  ...
+}: {
   home-manager.sharedModules = [
     {
-      programs.helix = {
-        enable = true;
-        settings = {
-          theme = "adwaita-dark";
-          editor = {
-            bufferline = "multiple";
-            auto-format = false;
-            lsp.display-messages = true;
-            soft-wrap.enable = true;
-            indent-guides.render = true;
-            statusline = {
-              left = [
-                "mode"
-                "spinner"
-              ];
-              center = [ "file-name" ];
-              right = [
-                "diagnostics"
-                "selections"
-                "position"
-                "file-encoding"
-                "file-line-ending"
-                "file-type"
-              ];
-              separator = "|";
-              mode = {
-                normal = "NORMAL";
-                insert = "INSERT";
-                select = "SELECT";
-              };
-            };
-          };
-        };
-      };
-
-      programs.neovim = {
-        enable = true;
-        plugins = [ ];
-      };
-
       programs.tmux = {
         enable = true;
 
@@ -53,18 +16,43 @@
         ];
 
         extraConfig = ''
-          # https://old.reddit.com/r/tmux/comments/mesrci/tmux_2_doesnt_seem_to_use_256_colors/
-          set -g default-terminal "xterm-256color"
-          set -ga terminal-overrides ",*256col*:Tc"
-          set -ga terminal-overrides '*:Ss=\E[%p1%d q:Se=\E[ q'
-          set-environment -g COLORTERM "truecolor"
+                    # https://old.reddit.com/r/tmux/comments/mesrci/tmux_2_doesnt_seem_to_use_256_colors/
+                    set -g default-terminal "xterm-256color"
+                    set -ga terminal-overrides ",*256col*:Tc"
+                    set -ga terminal-overrides '*:Ss=\E[%p1%d q:Se=\E[ q'
+                    set-environment -g COLORTERM "truecolor"
 
-          # Mouse works as expected
-          set-option -g mouse on
-          # easy-to-remember split pane commands
-          bind | split-window -h -c "#{pane_current_path}"
-          bind - split-window -v -c "#{pane_current_path}"
-          bind c new-window -c "#{pane_current_path}"
+                    # Mouse works as expected
+                    set-option -g mouse on
+                    # easy-to-remember split pane commands
+                    bind | split-window -h -c "#{pane_current_path}"
+                    bind - split-window -v -c "#{pane_current_path}"
+                    bind c new-window -c "#{pane_current_path}"
+
+
+          # vim-like pane resizing
+          bind -r C-k resize-pane -U
+          bind -r C-j resize-pane -D
+          bind -r C-h resize-pane -L
+          bind -r C-l resize-pane -R
+
+          # vim-like pane switching
+          bind -r k select-pane -U
+          bind -r j select-pane -D
+          bind -r h select-pane -L
+          bind -r l select-pane -R
+
+          # and now unbind keys
+          unbind Up
+          unbind Down
+          unbind Left
+          unbind Right
+
+          unbind C-Up
+          unbind C-Down
+          unbind C-Left
+          unbind C-Right
+
         '';
       };
 

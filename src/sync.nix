@@ -1,6 +1,9 @@
-{ userConfig, lib, ... }:
-with userConfig;
 {
+  userConfig,
+  lib,
+  ...
+}:
+with userConfig; {
   services.syncthing = {
     enable = true;
     openDefaultPorts = true;
@@ -11,11 +14,13 @@ with userConfig;
     overrideDevices = true;
     settings.devices = builtins.listToAttrs (
       map (
-        device: with device; {
-          name = lib.toLower name;
-          value = device;
-        }
-      ) sync-device
+        device:
+          with device; {
+            name = lib.toLower name;
+            value = device;
+          }
+      )
+      sync-device
     );
   };
 }

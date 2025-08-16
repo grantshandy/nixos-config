@@ -1,12 +1,13 @@
 # GNOME에 대해 한글 활성화
 # Switch between US QWERTY & Hangul with <SUPER>+<SPACE>
-
 # call this module with `home-manager` to pass along the gvariant library:
 # '({ pkgs, ... }: import ./ko.nix { inherit home-manager pkgs; })'
 #
-
-{ pkgs, inputs, ... }:
 {
+  pkgs,
+  inputs,
+  ...
+}: {
   i18n = {
     supportedLocales = [
       "en_US.UTF-8/UTF-8"
@@ -15,7 +16,7 @@
     inputMethod = {
       enable = true;
       type = "ibus";
-      ibus.engines = [ pkgs.ibus-engines.hangul ];
+      ibus.engines = [pkgs.ibus-engines.hangul];
     };
   };
 

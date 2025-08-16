@@ -5,7 +5,15 @@ name = "grant"
 description = "Grant Handy"
 
 [apps]
-pkgs = [ "protonvpn-gui", "anki", "beeper", "blanket" ]
+pkgs = [
+    "protonvpn-gui",
+    "gnome-feeds",
+    "anki",
+    "beeper",
+    "blanket",
+    "racket",
+    "gnome-solanum"
+]
 favorites = [ "beepertexts.desktop", "dev.zed.Zed.desktop", "anki.desktop" ]
 
 [git]

@@ -1,5 +1,9 @@
-{ config, lib, pkgs, ... }:
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
   name = "local-search-shortcuts";
   package = pkgs.rustPlatform.buildRustPackage rec {
     pname = name;
@@ -17,10 +21,9 @@ let
   };
 
   cfg = config.services.${name};
-  tomlFormat = pkgs.formats.toml { };
+  tomlFormat = pkgs.formats.toml {};
   configFile = tomlFormat.generate "${name}-config.toml" cfg.settings;
-in
-{
+in {
   options.services.${name} = {
     enable = lib.mkEnableOption name;
     firefoxSearch = lib.mkEnableOption "Set the ${name} provider as the default search engine in Firefox.";
@@ -42,36 +45,37 @@ in
       services.${name} = {
         Unit = {
           Description = "Local Search Shortcuts";
-          After = [ "network.target" ];
+          After = ["network.target"];
         };
         Path = {
           PathChanged = "${configFile}";
-          UnitSec= "1s";
+          UnitSec = "1s";
         };
         Service = {
           ExecStart = "${package}/bin/${name}";
           Restart = "always";
         };
-        Install.WantedBy = [ "default.target" ];
+        Install.WantedBy = ["default.target"];
       };
     };
 
     xdg.configFile."${name}/config.toml".source = configFile;
 
-    programs.firefox.profiles.default.search =
-      let
-        port = toString cfg.settings.port or 9321;
-        default-engine = cfg.settings.default or "Local Search Shortcuts";
-      in
-        lib.mkIf cfg.firefoxSearch
+    programs.firefox.profiles.default.search = let
+      port = toString cfg.settings.port or 9321;
+      default-engine = cfg.settings.default or "Local Search Shortcuts";
+    in
+      lib.mkIf cfg.firefoxSearch
       {
         force = true;
         default = default-engine;
         privateDefault = default-engine;
-        engines.${default-engine}.urls = [{
-          inherit default-engine;
-          template = "http://localhost:${port}/?q={searchTerms}";
-        }];
+        engines.${default-engine}.urls = [
+          {
+            inherit default-engine;
+            template = "http://localhost:${port}/?q={searchTerms}";
+          }
+        ];
       };
   };
 }

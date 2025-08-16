@@ -9,12 +9,17 @@
       url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nixvim = {
+      url = "github:nix-community/nixvim/nixos-25.05";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs @ {
     nixpkgs,
     home-manager,
     nur,
+    nixvim,
     ...
   }: let
     userConfig = builtins.readFile ./config.toml |> builtins.fromTOML;
@@ -24,10 +29,12 @@
       stateVersion = "25.05";
     };
     base = [
+      nixvim.nixosModules.nixvim
       home-manager.nixosModules.home-manager
       nur.modules.nixos.default
       ./src/base.nix
       ./src/home.nix
+      ./src/nvim.nix
     ];
     desktop = base ++ [./src/desktop.nix];
   in {
