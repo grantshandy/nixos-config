@@ -1,15 +1,34 @@
 {pkgs, ...}: {
+  fonts.packages = [pkgs.nerd-fonts.adwaita-mono];
+  environment.systemPackages = [pkgs.ripgrep];
+
+  home-manager.sharedModules = [
+    {
+      # dconf.settings."org/gnome/Ptyxis/Profiles/d6b22da30fc4910e7f570a9f68472f1b" = {
+      #   label = "default";
+      #   pallete = "Everforest";
+      #   use-proxy = false;
+      # };
+    }
+  ];
+
   programs.nixvim = {
     enable = true;
     defaultEditor = true;
     nixpkgs.useGlobalPackages = true;
 
-    plugins = {
-      telescope.enable = true;
-      neo-tree.enable = true;
-      autoclose.enable = true;
+	colorschemes.ayu.enable = true;
 
+    plugins = {
+      lsp.enable = true;
+
+      telescope.enable = true;
+      nvim-tree.enable = true;
+      autoclose.enable = true;
       treesitter.enable = true;
+      transparent.enable = true;
+
+      web-devicons.enable = true;
 
       rustaceanvim = {
         enable = true;
@@ -26,18 +45,14 @@
           };
         };
       };
-
-      lsp = {
-        enable = true;
-      };
     };
 
     keymaps = [
       {
         mode = "n";
         key = "<leader>e";
-        action = "<CMD>Neotree toggle<CR>";
-        options.desc = "NeoTree";
+        action = "<CMD>NvimTreeToggle<CR>";
+        options.desc = "NvimTree";
       }
 
       # Files
@@ -73,6 +88,4 @@
       }
     ];
   };
-
-  environment.systemPackages = with pkgs; [ripgrep];
 }
