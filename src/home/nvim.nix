@@ -7,8 +7,7 @@
     inputs.nixvim.homeModules.nixvim
   ];
 
-  # fonts.packages = [pkgs.nerd-fonts.adwaita-mono];
-  # environment.systemPackages = [pkgs.ripgrep];
+  home.packages = [pkgs.ripgrep];
 
   # dconf.settings."org/gnome/Ptyxis/Profiles/d6b22da30fc4910e7f570a9f68472f1b" = {
   #   label = "default";

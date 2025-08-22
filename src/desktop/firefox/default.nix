@@ -8,7 +8,6 @@
   home-manager.sharedModules = [
     {
       imports = [
-        inputs.nur.modules.nixos.default
         ./local-search-shortcuts.nix
       ];
 

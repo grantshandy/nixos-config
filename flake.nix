@@ -18,12 +18,13 @@
   outputs = inputs @ {
     nixpkgs,
     home-manager,
-    nur,
     nixvim,
     ...
   }: let
     userConfig = builtins.readFile ./config.toml |> builtins.fromTOML;
     system = userConfig.system;
+
+    stateVersion = "25.05";
 
     specialArgs = {
       inherit userConfig inputs;
@@ -45,18 +46,7 @@
         lc = "en_US.UTF-8";
       in {
         defaultLocale = lc;
-        # todo: required?
-        extraLocaleSettings = {
-          LC_ADDRESS = lc;
-          LC_IDENTIFICATION = lc;
-          LC_MEASUREMENT = lc;
-          LC_MONETARY = lc;
-          LC_NAME = lc;
-          LC_NUMERIC = lc;
-          LC_PAPER = lc;
-          LC_TELEPHONE = lc;
-          LC_TIME = lc;
-        };
+        extraLocaleSettings.LC_ALL = lc;
       };
 
       nixpkgs.config.allowUnfree = true;
@@ -80,12 +70,11 @@
         packages = with pkgs; [git];
       };
 
-      system.stateVersion = "25.05";
+      system.stateVersion = stateVersion;
     };
 
     mkSystem = hardware:
-      nixpkgs.lib.nixosSystem
-      {
+      nixpkgs.lib.nixosSystem {
         inherit system specialArgs;
         modules = [
           hardware
@@ -93,19 +82,17 @@
           ./src/desktop
           home-manager.nixosModules.home-manager
           {
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
-            # home-manager.users.grant = {
-            #   home.username = "${userConfig.user.name}";
-            #   home.homeDirectory = "/home/${userConfig.user.name}";
-            #   home.stateVersion = "25.05";
-            #   programs.home-manager.enable = true;
+            home-manager = {
+              useGlobalPkgs = true;
+              useUserPackages = true;
+              extraSpecialArgs = specialArgs;
+              users.grant = {...}: {
+                imports = [./src/home];
 
-            #   # home.packages = [pkgs.fzf];
-            # };
-            # home-manager.sharedModules = [./home2.nix];
-            home-manager.users.grant = {pkgs, ...}: {
-              home.packages = [pkgs.fzf];
+                home.username = "${userConfig.user.name}";
+                home.homeDirectory = "/home/${userConfig.user.name}";
+                home.stateVersion = stateVersion;
+              };
             };
           }
         ];
@@ -114,6 +101,11 @@
     nixosConfigurations = {
       lenovo = mkSystem ./hardware-configuration/lenovo.nix;
       xenon = mkSystem ./hardware-configuration/xenon.nix;
+    };
+
+    homeConfigurations.cade = home-manager.lib.homeManagerConfiguration {
+      pkgs = nixpkgs.legacyPackages.${system};
+      modules = [./src/home];
     };
 
     formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;

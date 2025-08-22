@@ -115,8 +115,8 @@
         "org/gnome/desktop/background" = {
           color-shading-type = "solid";
           picture-options = "zoom";
-          picture-uri = "${../background.jpg}";
-          picture-uri-dark = "${../background.jpg}";
+          picture-uri = "${./background.jpg}";
+          picture-uri-dark = "${./background.jpg}";
         };
 
         # simplified alt-tabbing and workspaces
