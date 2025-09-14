@@ -99,10 +99,6 @@
             "browser.aboutConfig.showWarning" = false;
             "browser.aboutwelcome.didSeeFinalScreen" = true;
 
-            "browser.urlbar.suggest.bookmark" = false;
-            "browser.urlbar.suggest.engines" = false;
-            "browser.urlbar.suggest.history" = false;
-            "browser.urlbar.suggest.openpage" = false;
             "browser.urlbar.suggest.quickactions" = false;
             "browser.urlbar.suggest.quicksuggest.nonsponsored" = false;
             "browser.urlbar.suggest.quicksuggest.sponsored" = false;

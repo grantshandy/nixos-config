@@ -7,7 +7,7 @@
     inputs.nixvim.homeModules.nixvim
   ];
 
-  home.packages = [pkgs.ripgrep];
+  home.packages = [pkgs.ripgrep pkgs.libclang];
 
   # dconf.settings."org/gnome/Ptyxis/Profiles/d6b22da30fc4910e7f570a9f68472f1b" = {
   #   label = "default";
@@ -23,14 +23,16 @@
     colorschemes.ayu.enable = true;
 
     plugins = {
-      lsp.enable = true;
+      lsp = {
+        enable = true;
+        inlayHints = true;
+      };
 
       telescope.enable = true;
       nvim-tree.enable = true;
       autoclose.enable = true;
       treesitter.enable = true;
       transparent.enable = true;
-
       web-devicons.enable = true;
 
       rustaceanvim = {

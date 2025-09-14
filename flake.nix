@@ -41,7 +41,6 @@
         efi.canTouchEfiVariables = true;
       };
 
-      # time.timeZone = "America/Denver"; # <-- use auto timezone from GNOME instead
       i18n = let
         lc = "en_US.UTF-8";
       in {

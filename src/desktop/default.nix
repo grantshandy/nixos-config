@@ -43,15 +43,18 @@
     gnome-maps
     simple-scan
     gnome-software
-    # decibels
+    evince
+    decibels
   ];
   environment.systemPackages = with pkgs; [
     celluloid
     ptyxis
+    papers
   ];
   fonts.packages = with pkgs; [
     noto-fonts
     noto-fonts-cjk-sans
+    nerd-fonts.adwaita-mono
   ];
 
   # Various backend desktop services
@@ -66,6 +69,9 @@
     alsa.support32Bit = true;
     pulse.enable = true;
   };
+
+  services.orca.enable = false;
+  services.speechd.enable = false;
 
   # use automatic timezone from GNOME
   time.timeZone = lib.mkForce null;

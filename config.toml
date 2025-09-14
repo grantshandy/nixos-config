@@ -5,16 +5,8 @@ name = "grant"
 description = "Grant Handy"
 
 [apps]
-pkgs = [
-    "protonvpn-gui",
-    "gnome-feeds",
-    "anki",
-    "beeper",
-    "blanket",
-    "racket",
-    "gnome-solanum"
-]
-favorites = [ "beepertexts.desktop", "dev.zed.Zed.desktop", "anki.desktop" ]
+pkgs = ["protonvpn-gui", "beeper", "racket"]
+favorites = ["beepertexts.desktop"]
 
 [git]
 username = "grantshandy"
@@ -41,7 +33,7 @@ bookmarks = [
     { name = "NixOS Wiki", url = "https://wiki.nixos.org/wiki/NixOS_Wiki" },
     { name = "Papago", url = "https://papago.naver.com" },
     { name = "Canvas", url = "https://utah.instructure.com" },
-    { name = "Thesaurus", url = "https://www.powerthesaurus.org/" }
+    { name = "Thesaurus", url = "https://www.powerthesaurus.org/" },
 ]
 
 [[sync-device]]
