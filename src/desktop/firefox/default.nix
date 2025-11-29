@@ -1,5 +1,6 @@
 {
   inputs,
+  pkgs-unstable,
   pkgs,
   lib,
   userConfig,
@@ -10,6 +11,8 @@
       imports = [
         ./local-search-shortcuts.nix
       ];
+
+      dconf.settings."org/gnome/shell".favorite-apps = ["firefox.desktop"];
 
       services.local-search-shortcuts = {
         enable = true;
@@ -22,6 +25,7 @@
 
       programs.firefox = {
         enable = true;
+        package = pkgs-unstable.firefox;
 
         # This method for installing plugins here largely from:
         # https://discourse.nixos.org/t/declare-firefox-extensions-and-settings/36265/7
@@ -45,15 +49,7 @@
             Locked = true;
           };
 
-          ExtensionSettings = lib.mkMerge [
-            {
-              "*" = {
-                "blocked_install_message" = "Extensions are handled by Nix!";
-                "installation_mode" = "blocked";
-              };
-            }
-
-            (
+          ExtensionSettings =
               userConfig.firefox.extensions
               |> map (name: inputs.firefox-addons.packages.${pkgs.system}.${name})
               |> map (ext: {
@@ -63,9 +59,7 @@
                   install_url = "file://${ext}/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}/${ext.addonId}.xpi";
                 };
               })
-              |> builtins.listToAttrs
-            )
-          ];
+              |> builtins.listToAttrs;
         };
 
         profiles.default = {
@@ -129,8 +123,8 @@
             theme = pkgs.fetchFromGitHub {
               owner = "rafaelmardojai";
               repo = "firefox-gnome-theme";
-              rev = "1ca82b07be9ff99da4b26092a846101ad109ef05";
-              sha256 = "sha256-G1ZrQrQWRLA15kLFT9+Ycz2GK+FmXHUwEK8pXnKSyKk=";
+              rev = "v143";
+              sha256 = "sha256-0E3TqvXAy81qeM/jZXWWOTZ14Hs1RT7o78UyZM+Jbr4=";
             };
           in ''
             @import "${theme}/theme/gnome-theme.css";

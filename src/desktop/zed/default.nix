@@ -1,5 +1,6 @@
 {
   pkgs,
+  pkgs-unstable,
   config,
   ...
 }: {
@@ -9,12 +10,15 @@
 
       programs.zed-editor = {
         enable = true;
+        package = pkgs-unstable.zed-editor;
         extensions = ["nix" "html" "toml" "svelte" "env"];
         themes.adwaita = ./adwaita.json;
 
         extraPackages = with pkgs; [clang-tools];
 
         userSettings = {
+          # disable_ai = true;
+
           language_overrides = {
             c.lsp = "clangd";
             cpp.lsp = "clangd";
@@ -28,13 +32,11 @@
             };
           };
           lsp = {
-            rust-analyzer.binary.path = "${pkgs.rust-analyzer}/bin/rust-analyzer";
+            rust-analyzer.binary.path = "${pkgs-unstable.rust-analyzer}/bin/rust-analyzer";
 
-            clangd = {
-              binary = {
-                path = "${pkgs.clang-tools}/bin/clangd";
-                path_lookup = true;
-              };
+            clangd.binary = {
+              path = "${pkgs.clang-tools}/bin/clangd";
+              path_lookup = true;
             };
           };
           theme = {
@@ -42,7 +44,6 @@
             light = "Adwaita Pastel Light 48";
             dark = "Adwaita Pastel Dark 48";
           };
-          features.edit_prediction_provider = "supermaven";
         };
       };
     }

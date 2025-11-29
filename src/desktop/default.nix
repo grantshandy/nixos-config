@@ -1,12 +1,13 @@
 # Good minimal GNOME configuration with the core programs
 {
   pkgs,
+  pkgs-unstable,
   lib,
   userConfig,
   ...
 }: {
   imports = [
-    ./sync.nix
+    # ./sync.nix
     ./ko.nix
     ./firefox
     ./zed
@@ -28,28 +29,32 @@
 
   # exclude unused default programs and add modern fonts/core applications
   environment.gnome.excludePackages = with pkgs; [
-    gnome-console
     snapshot
-    gnome-tour
-    gnome-connections
     yelp
     totem
     geary
     epiphany
     baobab
+    simple-scan
+    evince
+    decibels
+    orca
+    gnome-console
+    gnome-tour
+    gnome-connections
     gnome-music
     gnome-contacts
     gnome-calendar
     gnome-maps
-    simple-scan
     gnome-software
-    evince
-    decibels
+    gnome-system-monitor
   ];
   environment.systemPackages = with pkgs; [
-    celluloid
+    showtime
     ptyxis
     papers
+    resources
+    eyedropper
   ];
   fonts.packages = with pkgs; [
     noto-fonts
@@ -57,21 +62,22 @@
     nerd-fonts.adwaita-mono
   ];
 
+  services.gnome.evolution-data-server.enable = lib.mkForce false;
+  services.gnome.gnome-online-accounts.enable = false;
+
   # Various backend desktop services
   boot.plymouth.enable = true;
   networking.networkmanager.enable = true;
   services.printing.enable = true;
-  services.pulseaudio.enable = false;
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
     alsa.enable = true;
     alsa.support32Bit = true;
-    pulse.enable = true;
   };
 
-  services.orca.enable = false;
-  services.speechd.enable = false;
+  # services.orca.enable = false;
+  # services.speechd.enable = false;
 
   # use automatic timezone from GNOME
   time.timeZone = lib.mkForce null;
@@ -100,7 +106,7 @@
         };
         iconTheme = {
           name = "MoreWaita";
-          package = pkgs.morewaita-icon-theme;
+          package = pkgs-unstable.morewaita-icon-theme;
         };
       };
       qt.platformTheme.name = "gtk3";
@@ -108,7 +114,7 @@
       # Some gnome settings that I prefer. Not too controversial.
       dconf.settings = {
         # enable automatic timezone and location services
-        "org/gnome/desktop/datetime".automatic-timezone = true;
+        # "org/gnome/desktop/datetime".automatic-timezone = true;
         "org/gnome/system/location".enabled = true;
 
         # vv personal preferences vv
@@ -132,8 +138,8 @@
           switch-applications-backward = [];
           switch-windows = ["<Alt>Tab"];
           switch-windows-backward = ["<Shift><Alt>Tab"];
-          switch-to-workspace-down = ["<Super>Tab"];
-          switch-to-workspace-up = ["<Shift><Super>Tab"];
+          switch-to-workspace-right = ["<Super>Tab"];
+          switch-to-workspace-left = ["<Shift><Super>Tab"];
         };
         "org/gnome/shell/window-switcher".current-workspace-only = false;
         "org/gnome/mutter" = {
@@ -145,21 +151,22 @@
           [
             "org.gnome.Nautilus.desktop"
             "org.gnome.Ptyxis.desktop"
-            "firefox.desktop"
-            "code.desktop"
           ]
           ++ (userConfig.apps.favorites or []);
       };
 
-      home.packages = (userConfig.apps.pkgs or []) |> map (app: pkgs.${app});
+      home.packages =
+        (map (app: pkgs.${app}) (userConfig.apps.pkgs or []))
+        ++ (map (app: pkgs-unstable.${app}) (userConfig.apps.pkgs-unstable or []));
     }
 
     # automatically enable this list of extensions
     (
       let
         extensions = with pkgs.gnomeExtensions; [
-          # blur-my-shell # make overview background blurred background image. Very nice.
+          blur-my-shell # make overview background blurred background image. Very nice.
           # rounded-window-corners-reborn # rounded windows on firefox & vscode (performance cost)
+          pip-on-top
         ];
       in {
         home.packages = extensions;
@@ -169,7 +176,8 @@
             enabled-extensions = pkgs.lib.lists.forEach extensions (ext: ext.passthru.extensionUuid);
           };
 
-          # "org/gnome/shell/extensions/blur-my-shell/panel".override-background-dynamically = true;
+          "org/gnome/shell/extensions/blur-my-shell/panel".override-background-dynamically = true;
+          "org/gnome/shell/extensions/pip-on-top".stick = true;
         };
       }
     )

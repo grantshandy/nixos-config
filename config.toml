@@ -5,7 +5,8 @@ name = "grant"
 description = "Grant Handy"
 
 [apps]
-pkgs = ["protonvpn-gui", "beeper", "racket"]
+pkgs = ["protonvpn-gui", "racket"]
+pkgs-unstable = ["beeper"]
 favorites = ["beepertexts.desktop"]
 
 [git]
