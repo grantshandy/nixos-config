@@ -50,16 +50,16 @@
           };
 
           ExtensionSettings =
-              userConfig.firefox.extensions
-              |> map (name: inputs.firefox-addons.packages.${pkgs.system}.${name})
-              |> map (ext: {
-                name = ext.addonId;
-                value = {
-                  installation_mode = "force_installed";
-                  install_url = "file://${ext}/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}/${ext.addonId}.xpi";
-                };
-              })
-              |> builtins.listToAttrs;
+            userConfig.firefox.extensions
+            |> map (name: inputs.firefox-addons.packages.${pkgs.system}.${name})
+            |> map (ext: {
+              name = ext.addonId;
+              value = {
+                installation_mode = "force_installed";
+                install_url = "file://${ext}/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}/${ext.addonId}.xpi";
+              };
+            })
+            |> builtins.listToAttrs;
         };
 
         profiles.default = {

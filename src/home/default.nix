@@ -72,8 +72,7 @@
 
   programs.git = {
     enable = true;
-    userName = userConfig.git.username;
-    userEmail = userConfig.git.email;
+    settings.user = userConfig.git;
   };
 
   programs.gh = {

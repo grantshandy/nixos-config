@@ -10,7 +10,7 @@
 
       programs.zed-editor = {
         enable = true;
-        package = pkgs-unstable.zed-editor;
+        package = pkgs.zed-editor;
         extensions = ["nix" "html" "toml" "svelte" "env"];
         themes.adwaita = ./adwaita.json;
 

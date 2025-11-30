@@ -8,51 +8,33 @@
 }: {
   imports = [
     # ./sync.nix
-    ./ko.nix
+    # ./ko.nix
     ./firefox
     ./zed
   ];
 
   # Enable the desktop environment and display manager
-  services.xserver = {
-    enable = true;
-
-    displayManager.gdm.enable = true;
-    desktopManager.gnome.enable = true;
-    excludePackages = [pkgs.xterm];
-
-    xkb = {
-      layout = "us";
-      variant = "";
-    };
-  };
+  services.displayManager.gdm.enable = true;
+  services.desktopManager.gnome.enable = true;
 
   # exclude unused default programs and add modern fonts/core applications
   environment.gnome.excludePackages = with pkgs; [
-    snapshot
-    yelp
-    totem
-    geary
     epiphany
-    baobab
-    simple-scan
-    evince
-    decibels
-    orca
+    gnome-calendar
     gnome-console
+    gnome-contacts
+    gnome-maps
+    gnome-music
+    gnome-system-monitor
     gnome-tour
     gnome-connections
-    gnome-music
-    gnome-contacts
-    gnome-calendar
-    gnome-maps
-    gnome-software
-    gnome-system-monitor
+    geary
+    simple-scan
+    snapshot
+    yelp
   ];
   environment.systemPackages = with pkgs; [
-    showtime
     ptyxis
-    papers
     resources
     eyedropper
   ];
@@ -126,7 +108,7 @@
 
         "org/gnome/desktop/background" = {
           color-shading-type = "solid";
-          picture-options = "zoom";
+          picture-options = "center";
           picture-uri = "${./background.jpg}";
           picture-uri-dark = "${./background.jpg}";
         };
@@ -158,13 +140,19 @@
       home.packages =
         (map (app: pkgs.${app}) (userConfig.apps.pkgs or []))
         ++ (map (app: pkgs-unstable.${app}) (userConfig.apps.pkgs-unstable or []));
+
+      # Remove annoying printing configuration desktop entry
+      xdg.desktopEntries."cups" = {
+        name = "cups";
+        noDisplay = true;
+      };
     }
 
     # automatically enable this list of extensions
     (
       let
         extensions = with pkgs.gnomeExtensions; [
-          blur-my-shell # make overview background blurred background image. Very nice.
+          # blur-my-shell # make overview background blurred background image. Very nice.
           # rounded-window-corners-reborn # rounded windows on firefox & vscode (performance cost)
           pip-on-top
         ];
@@ -176,7 +164,7 @@
             enabled-extensions = pkgs.lib.lists.forEach extensions (ext: ext.passthru.extensionUuid);
           };
 
-          "org/gnome/shell/extensions/blur-my-shell/panel".override-background-dynamically = true;
+          # "org/gnome/shell/extensions/blur-my-shell/panel".override-background-dynamically = true;
           "org/gnome/shell/extensions/pip-on-top".stick = true;
         };
       }

@@ -10,7 +10,7 @@ pkgs-unstable = ["beeper"]
 favorites = ["beepertexts.desktop"]
 
 [git]
-username = "grantshandy"
+name = "grantshandy"
 email = "granthandy@proton.me"
 
 [firefox]
