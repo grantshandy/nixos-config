@@ -32,6 +32,7 @@
     simple-scan
     snapshot
     yelp
+    seahorse
   ];
   environment.systemPackages = with pkgs; [
     ptyxis
@@ -58,8 +59,8 @@
     alsa.support32Bit = true;
   };
 
-  # services.orca.enable = false;
-  # services.speechd.enable = false;
+  services.orca.enable = lib.mkForce false;
+  services.speechd.enable = lib.mkForce false;
 
   # use automatic timezone from GNOME
   time.timeZone = lib.mkForce null;
@@ -152,7 +153,7 @@
     (
       let
         extensions = with pkgs.gnomeExtensions; [
-          # blur-my-shell # make overview background blurred background image. Very nice.
+          blur-my-shell # make overview background blurred background image. Very nice.
           # rounded-window-corners-reborn # rounded windows on firefox & vscode (performance cost)
           pip-on-top
         ];
@@ -164,7 +165,7 @@
             enabled-extensions = pkgs.lib.lists.forEach extensions (ext: ext.passthru.extensionUuid);
           };
 
-          # "org/gnome/shell/extensions/blur-my-shell/panel".override-background-dynamically = true;
+          "org/gnome/shell/extensions/blur-my-shell/panel".override-background-dynamically = true;
           "org/gnome/shell/extensions/pip-on-top".stick = true;
         };
       }

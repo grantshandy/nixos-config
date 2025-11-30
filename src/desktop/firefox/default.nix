@@ -51,7 +51,7 @@
 
           ExtensionSettings =
             userConfig.firefox.extensions
-            |> map (name: inputs.firefox-addons.packages.${pkgs.system}.${name})
+            |> map (name: inputs.firefox-addons.packages.${userConfig.system}.${name})
             |> map (ext: {
               name = ext.addonId;
               value = {
