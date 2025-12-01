@@ -15,9 +15,11 @@ email = "granthandy@proton.me"
 
 [firefox]
 default-engine = "ddg"
-extra-engines.homemanager = "https://home-manager-options.extranix.com/?query={s}&release=master"
-extra-engines.hanjadict = "https://koreanhanja.app/{s}"
-extra-engines.koverb = "https://koreanverb.app/?search={s}"
+
+[firefox.default-engines]
+homemanager = "https://home-manager-options.extranix.com/?query={s}&release=master"
+hanjadict = "https://koreanhanja.app/{s}"
+koverb = "https://koreanverb.app/?search={s}"
 
 extensions = [
     "ublock-origin",
