@@ -5,7 +5,7 @@ name = "grant"
 description = "Grant Handy"
 
 [apps]
-pkgs = ["protonvpn-gui", "racket"]
+pkgs = ["protonvpn-gui"]
 pkgs-unstable = ["beeper"]
 favorites = ["beepertexts.desktop"]
 
@@ -15,11 +15,6 @@ email = "granthandy@proton.me"
 
 [firefox]
 default-engine = "ddg"
-
-[firefox.default-engines]
-homemanager = "https://home-manager-options.extranix.com/?query={s}&release=master"
-hanjadict = "https://koreanhanja.app/{s}"
-koverb = "https://koreanverb.app/?search={s}"
 
 extensions = [
     "ublock-origin",
@@ -38,6 +33,11 @@ bookmarks = [
     { name = "Canvas", url = "https://utah.instructure.com" },
     { name = "Thesaurus", url = "https://www.powerthesaurus.org/" },
 ]
+
+[firefox.engines]
+homemanager = "https://home-manager-options.extranix.com/?query={s}&release=master"
+hanjadict = "https://koreanhanja.app/{s}"
+koverb = "https://koreanverb.app/?search={s}"
 
 [[sync-device]]
 name = "Phone"

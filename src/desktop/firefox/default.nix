@@ -19,7 +19,7 @@
         firefoxSearch = true;
         settings = {
           default = userConfig.firefox.default-engine or "DuckDuckGo";
-          engines = userConfig.firefox.extra-engines or {};
+          engines = userConfig.firefox.engines or {};
         };
       };
 
