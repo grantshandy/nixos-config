@@ -30,7 +30,7 @@
     fsType = "vfat";
     options = ["fmask=0077" "dmask=0077"];
   };
-  
+
   fileSystems."/mnt/backup" = {
     device = "/dev/disk/by-uuid/0D02-4891";
     fsType = "vfat";

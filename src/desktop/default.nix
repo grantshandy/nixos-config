@@ -17,6 +17,17 @@
   services.displayManager.gdm.enable = true;
   services.desktopManager.gnome.enable = true;
 
+  services.gnome.core-developer-tools.enable = true;
+  services.flatpak = {
+    enable = true;
+    remotes = [
+      {
+        name = "flathub";
+        location = "https://dl.flathub.org/repo/flathub.flatpakrepo";
+      }
+    ];
+  };
+
   # exclude unused default programs and add modern fonts/core applications
   environment.gnome.excludePackages = with pkgs; [
     epiphany
@@ -26,6 +37,7 @@
     gnome-maps
     gnome-music
     gnome-system-monitor
+    gnome-software
     gnome-tour
     gnome-connections
     geary
@@ -38,6 +50,8 @@
     ptyxis
     resources
     eyedropper
+    flatpak-builder
+    bazaar
   ];
   fonts.packages = with pkgs; [
     noto-fonts
