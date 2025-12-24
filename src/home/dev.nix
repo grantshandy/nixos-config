@@ -1,6 +1,13 @@
 {pkgs, ...}: {
   home.packages = with pkgs; [
-    cargo
+    # Rust
+    rustup
+    # rust-analyzer
+
+    # C
     gcc
+    # clang-tools
+    #
+    jetbrains.rust-rover
   ];
 }

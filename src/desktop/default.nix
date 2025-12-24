@@ -18,6 +18,8 @@
     ports = [4321];
   };
 
+  programs.steam.enable = true;
+
   # Enable the desktop environment and display manager
   services.displayManager.gdm.enable = true;
   services.desktopManager.gnome.enable = true;
@@ -131,7 +133,7 @@
 
         "org/gnome/desktop/background" = {
           color-shading-type = "solid";
-          picture-options = "scaled";
+          picture-options = "spanned";
           picture-uri = "${./wallpapers/south.jpg}";
           picture-uri-dark = "${./wallpapers/skyline.jpg}";
         };
@@ -174,9 +176,9 @@
     # automatically enable this list of extensions
     (
       let
-        extensions = with pkgs.gnomeExtensions; [
+        extensions = with pkgs-unstable.gnomeExtensions; [
           blur-my-shell # make overview background blurred background image. Very nice.
-          # rounded-window-corners-reborn # rounded windows on firefox & vscode (performance cost)
+          rounded-window-corners-reborn # rounded windows on firefox & vscode (performance cost)
           pip-on-top
         ];
       in {
