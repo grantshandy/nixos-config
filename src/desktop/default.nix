@@ -8,10 +8,15 @@
 }: {
   imports = [
     # ./sync.nix
-    # ./ko.nix
+    ./ko.nix
     ./firefox
     ./zed
   ];
+
+  services.openssh = {
+    enable = true;
+    ports = [4321];
+  };
 
   # Enable the desktop environment and display manager
   services.displayManager.gdm.enable = true;
@@ -52,6 +57,7 @@
     eyedropper
     flatpak-builder
     bazaar
+    fragments
   ];
   fonts.packages = with pkgs; [
     noto-fonts
@@ -79,6 +85,8 @@
   # use automatic timezone from GNOME
   time.timeZone = lib.mkForce null;
 
+  services.gnome-korean-ime.enable = true;
+
   # set GDM profile photo
   system.activationScripts.script.text = let
     name = userConfig.user.name;
@@ -103,7 +111,7 @@
         };
         iconTheme = {
           name = "MoreWaita";
-          package = pkgs-unstable.morewaita-icon-theme;
+          package = pkgs.morewaita-icon-theme;
         };
       };
       qt.platformTheme.name = "gtk3";
@@ -123,9 +131,9 @@
 
         "org/gnome/desktop/background" = {
           color-shading-type = "solid";
-          picture-options = "center";
-          picture-uri = "${./background.jpg}";
-          picture-uri-dark = "${./background.jpg}";
+          picture-options = "scaled";
+          picture-uri = "${./wallpapers/south.jpg}";
+          picture-uri-dark = "${./wallpapers/skyline.jpg}";
         };
 
         # simplified alt-tabbing and workspaces

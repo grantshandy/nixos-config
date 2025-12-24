@@ -47,11 +47,11 @@
 
           server.default_settings = {
             inlayHints = {lifetimeElisionHints = {enable = "always";};};
-            rust-analyzer = {
-              cargo.allFeatures = true;
-              check.command = "clippy";
-              files.excludeDirs = ["target" ".git" ".cargo" ".github" ".direnv"];
-            };
+            # rust-analyzer = {
+            #   cargo.allFeatures = true;
+            #   check.command = "clippy";
+            #   files.excludeDirs = ["target" ".git" ".cargo" ".github" ".direnv"];
+            # };
           };
         };
       };

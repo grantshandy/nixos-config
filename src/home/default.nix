@@ -5,6 +5,7 @@
 }: {
   imports = [
     ./nvim.nix
+    ./dev.nix
   ];
 
   programs.home-manager.enable = true;

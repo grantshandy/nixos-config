@@ -32,7 +32,7 @@
             };
           };
           lsp = {
-            rust-analyzer.binary.path = "${pkgs-unstable.rust-analyzer}/bin/rust-analyzer";
+            rust-analyzer.binary.path = "${pkgs.rust-analyzer}/bin/rust-analyzer";
 
             clangd.binary = {
               path = "${pkgs.clang-tools}/bin/clangd";
