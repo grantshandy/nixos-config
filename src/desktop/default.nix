@@ -59,7 +59,6 @@
     eyedropper
     flatpak-builder
     bazaar
-    fragments
   ];
   fonts.packages = with pkgs; [
     noto-fonts

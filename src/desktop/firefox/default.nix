@@ -23,6 +23,9 @@
         };
       };
 
+      # fixes rounded corners bug (for example)
+      home.sessionVariables.MOZ_ENABLE_WAYLAND = "1";
+
       programs.firefox = {
         enable = true;
         package = pkgs-unstable.firefox;
@@ -64,12 +67,20 @@
 
         profiles.default = {
           settings = {
+            # enable stylesheets
+            "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
+
             # gnome theme settings:
             "gnomeTheme.activeTabContrast" = true;
             "gnomeTheme.bookmarksToolbarUnderTabs" = true;
             "gnomeTheme.hideSingleTab" = true;
             "gnomeTheme.hideWebrtcIndicator" = true;
             "gnomeTheme.spinner" = true;
+
+            # sync look with GTK
+            "widget.use-xdg-desktop-portal.file-picker" = 1;
+            "widget.gtk.overlay-scrollbars.enabled" = true;
+            "widget.gtk.rounded-bottom-corners.enabled" = true;
 
             # mouse behavior
             "general.autoScroll" = true;
@@ -99,13 +110,10 @@
             "browser.urlbar.suggest.topsites" = false;
 
             "media.eme.enabled" = true;
-            "widget.use-xdg-desktop-portal.file-picker" = 1;
             "extensions.pocket.enabled" = false;
             "browser.toolbarbuttons.introduced.pocket-button" = false;
             "layers.acceleration.force-enabled" = true;
             "svg.context-properties.content.enabled" = true;
-            "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
-            "widget.gtk.overlay-scrollbars.enabled" = true;
           };
 
           bookmarks = {
