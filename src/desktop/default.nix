@@ -7,6 +7,8 @@
   ...
 }: {
   imports = [
+    ./wallpapers
+
     # ./sync.nix
     ./ko.nix
     ./firefox
@@ -133,8 +135,6 @@
         "org/gnome/desktop/background" = {
           color-shading-type = "solid";
           picture-options = "spanned";
-          picture-uri = "${./wallpapers/south.jpg}";
-          picture-uri-dark = "${./wallpapers/skyline.jpg}";
         };
 
         # simplified alt-tabbing and workspaces
