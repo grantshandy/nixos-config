@@ -177,7 +177,7 @@
       let
         extensions = with pkgs-unstable.gnomeExtensions; [
           blur-my-shell # make overview background blurred background image. Very nice.
-          rounded-window-corners-reborn # rounded windows on firefox & vscode (performance cost)
+          # rounded-window-corners-reborn # rounded windows on firefox & vscode (performance cost)
           pip-on-top
         ];
       in {
