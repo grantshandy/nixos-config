@@ -12,10 +12,26 @@
       programs.zed-editor = {
         enable = true;
         package = pkgs.zed-editor;
-        extensions = ["nix" "html" "toml" "svelte" "env"];
-        themes.adwaita = ./adwaita.json;
-
         extraPackages = with pkgs; [clang-tools];
+
+        extensions = [
+          "nix"
+          "env"
+
+          "html"
+          "html-snippets"
+          "svelte"
+
+          "toml"
+          "make"
+        ];
+
+        themes.adwaita = ./adwaita.json;
+        userSettings.theme = {
+          mode = "system";
+          light = "Adwaita Pastel Light 48";
+          dark = "Adwaita Pastel Dark 48";
+        };
 
         userSettings = {
           # disable_ai = true;
@@ -23,6 +39,14 @@
           relative_line_numbers = "enabled";
           git.inline_blame.enabled = false;
           notification_panel.button = false;
+          collaboration_panel.button = false;
+
+          title_bar = {
+            show_sign_in = false;
+            show_user_picture = false;
+            show_onboarding_banner = false;
+            show_branch_icon = true;
+          };
 
           language_overrides = {
             c.lsp = "clangd";
@@ -56,12 +80,6 @@
           };
 
           dap.CodeLLDB.binary = "${pkgs.vscode-extensions.vadimcn.vscode-lldb}/share/vscode/extensions/vadimcn.vscode-lldb/adapter/codelldb";
-
-          theme = {
-            mode = "system";
-            light = "Adwaita Pastel Light 48";
-            dark = "Adwaita Pastel Dark 48";
-          };
         };
       };
     }
