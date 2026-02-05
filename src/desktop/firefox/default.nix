@@ -23,12 +23,11 @@
         };
       };
 
-      # fixes rounded corners bug (for example)
-      home.sessionVariables.MOZ_ENABLE_WAYLAND = "1";
-
       programs.firefox = {
         enable = true;
-        package = pkgs-unstable.firefox;
+        package = pkgs-unstable.firefox.override {
+          cfg.enableWayland = true;
+        };
 
         # This method for installing plugins here largely from:
         # https://discourse.nixos.org/t/declare-firefox-extensions-and-settings/36265/7
