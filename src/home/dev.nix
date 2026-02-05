@@ -3,5 +3,6 @@
     ascii
     man-pages
     alejandra
+    gcc
   ];
 }
