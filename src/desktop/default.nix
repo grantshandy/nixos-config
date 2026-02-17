@@ -8,8 +8,6 @@
 }: {
   imports = [
     ./wallpapers
-
-    # ./sync.nix
     ./ko.nix
     ./firefox
     ./zed
