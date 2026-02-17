@@ -65,6 +65,8 @@
         };
 
         profiles.default = {
+          isDefault = true;
+
           settings = {
             # enable stylesheets
             "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
@@ -135,6 +137,20 @@
             };
           in ''
             @import "${theme}/theme/gnome-theme.css";
+          '';
+
+          userContent = ''
+            @-moz-document url("about:blank"), url("about:newtab"), url("about:home") {
+              body {
+                background-color: #222226 !important;
+              }
+            }
+
+            @-moz-document url("about:blank") {
+              body {
+                user-select: none !important;
+              }
+            }
           '';
         };
       };
