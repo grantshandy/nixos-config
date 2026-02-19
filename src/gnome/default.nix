@@ -1,7 +1,6 @@
 # Good minimal GNOME configuration with the core programs
 {
   pkgs,
-  pkgs-unstable,
   lib,
   userConfig,
   ...
@@ -9,31 +8,13 @@
   imports = [
     ./wallpapers
     ./ko.nix
-    ./firefox
-    ./zed
   ];
 
-  services.openssh = {
-    enable = true;
-    ports = [4321];
-  };
-
-  programs.steam.enable = true;
+  services.gnome-korean-ime.enable = true;
 
   # Enable the desktop environment and display manager
   services.displayManager.gdm.enable = true;
   services.desktopManager.gnome.enable = true;
-
-  services.gnome.core-developer-tools.enable = true;
-  services.flatpak = {
-    enable = true;
-    remotes = [
-      {
-        name = "flathub";
-        location = "https://dl.flathub.org/repo/flathub.flatpakrepo";
-      }
-    ];
-  };
 
   # exclude unused default programs and add modern fonts/core applications
   environment.gnome.excludePackages = with pkgs; [
@@ -56,9 +37,6 @@
   environment.systemPackages = with pkgs; [
     ptyxis
     resources
-    eyedropper
-    flatpak-builder
-    bazaar
   ];
   fonts.packages = with pkgs; [
     noto-fonts
@@ -85,8 +63,6 @@
 
   # use automatic timezone from GNOME
   time.timeZone = lib.mkForce null;
-
-  services.gnome-korean-ime.enable = true;
 
   # set GDM profile photo
   system.activationScripts.script.text = let
@@ -151,17 +127,11 @@
           edge-tiling = true;
         };
 
-        "org/gnome/shell".favorite-apps =
-          [
-            "org.gnome.Nautilus.desktop"
-            "org.gnome.Ptyxis.desktop"
-          ]
-          ++ (userConfig.apps.favorites or []);
+        "org/gnome/shell".favorite-apps = [
+          "org.gnome.Nautilus.desktop"
+          "org.gnome.Ptyxis.desktop"
+        ];
       };
-
-      home.packages =
-        (map (app: pkgs.${app}) (userConfig.apps.pkgs or []))
-        ++ (map (app: pkgs-unstable.${app}) (userConfig.apps.pkgs-unstable or []));
 
       # Remove annoying printing configuration desktop entry
       xdg.desktopEntries."cups" = {
@@ -173,7 +143,7 @@
     # automatically enable this list of extensions
     (
       let
-        extensions = with pkgs-unstable.gnomeExtensions; [
+        extensions = with pkgs.gnomeExtensions; [
           blur-my-shell # make overview background blurred background image. Very nice.
           # rounded-window-corners-reborn # rounded windows on firefox & vscode (performance cost)
           pip-on-top

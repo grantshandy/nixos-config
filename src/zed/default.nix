@@ -24,6 +24,7 @@
 
           "toml"
           "make"
+          "typst"
         ];
 
         themes.adwaita = ./adwaita.json;
@@ -77,6 +78,7 @@
             };
 
             package-version-server.binary.path = lib.getExe pkgs.package-version-server;
+            tinymist.binary.path = lib.getExe pkgs.tinymist;
           };
 
           dap.CodeLLDB.binary = "${pkgs.vscode-extensions.vadimcn.vscode-lldb}/share/vscode/extensions/vadimcn.vscode-lldb/adapter/codelldb";

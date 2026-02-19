@@ -5,7 +5,16 @@
 }: {
   imports = [
     ./nvim.nix
-    ./dev.nix
+  ];
+
+  home.packages = with pkgs; [
+    nix-tree
+    typst
+    ascii
+    man-pages
+    alejandra
+    gcc
+    gnumake
   ];
 
   programs.home-manager.enable = true;

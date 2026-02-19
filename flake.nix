@@ -84,10 +84,11 @@
     mkSystem = hardware:
       nixpkgs.lib.nixosSystem {
         inherit system specialArgs;
+
         modules = [
           hardware
           baseConfiguration
-          ./src/desktop
+          ./src
           nix-flatpak.nixosModules.nix-flatpak
           home-manager.nixosModules.home-manager
           {
@@ -95,7 +96,7 @@
               useGlobalPkgs = true;
               useUserPackages = true;
               extraSpecialArgs = specialArgs;
-              users.grant = {...}: {
+              users.${userConfig.user.name} = {...}: {
                 imports = [./src/home];
 
                 home.username = "${userConfig.user.name}";
@@ -110,11 +111,6 @@
     nixosConfigurations = {
       lenovo = mkSystem ./hardware-configuration/lenovo.nix;
       xenon = mkSystem ./hardware-configuration/xenon.nix;
-    };
-
-    homeConfigurations.cade = home-manager.lib.homeManagerConfiguration {
-      pkgs = nixpkgs.legacyPackages.${system};
-      modules = [./src/home];
     };
 
     formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;

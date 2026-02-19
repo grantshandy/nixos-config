@@ -1,11 +1,13 @@
 {
   inputs,
   pkgs-unstable,
+  userConfig,
   pkgs,
   lib,
-  userConfig,
   ...
-}: {
+}: let
+  config = builtins.fromTOML (builtins.readFile ./config.toml);
+in {
   home-manager.sharedModules = [
     {
       imports = [
@@ -18,8 +20,8 @@
         enable = true;
         firefoxSearch = true;
         settings = {
-          default = userConfig.firefox.default-engine or "DuckDuckGo";
-          engines = userConfig.firefox.engines or {};
+          default = config.default-engine or "DuckDuckGo";
+          engines = config.engines or {};
         };
       };
 
@@ -52,7 +54,7 @@
           };
 
           ExtensionSettings =
-            userConfig.firefox.extensions
+            config.extensions
             |> map (name: inputs.firefox-addons.packages.${userConfig.system}.${name})
             |> map (ext: {
               name = ext.addonId;
@@ -123,7 +125,7 @@
               {
                 name = "User Added";
                 toolbar = true;
-                bookmarks = userConfig.firefox.bookmarks;
+                bookmarks = config.bookmarks;
               }
             ];
           };
