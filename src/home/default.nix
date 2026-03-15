@@ -15,6 +15,7 @@
     alejandra
     gcc
     gnumake
+    file
   ];
 
   programs.home-manager.enable = true;
