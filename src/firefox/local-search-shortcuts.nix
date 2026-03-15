@@ -1,3 +1,4 @@
+# home-manager module that automatically enables local-search-shortcuts.
 {
   config,
   lib,
@@ -17,6 +18,7 @@
     };
 
     cargoHash = "sha256-AzhjOoiWWmKzG+/CrN/DUwOERHR1MB2iHzNYM4BJLDA=";
+    meta.mainProgram = name;
   };
 
   cfg = config.services.${name};
@@ -28,51 +30,59 @@ in {
     firefoxSearch = lib.mkEnableOption "Set the ${name} provider as the default search engine in Firefox.";
     settings = lib.mkOption {
       type = tomlFormat.type;
+      default = {
+        port = 9321;
+        default = "ddg";
+      };
       example = lib.literalExpression ''
         {
           port = 9321;
-          default = "google";
+          default = "ddg";
           engines.homemanager = "https://home-manager-options.extranix.com/?query={s}&release=master";
         }
       '';
     };
+    displayName = lib.mkOption {
+      type = lib.types.str;
+      default = "lss";
+    };
   };
 
   config = lib.mkIf cfg.enable {
-    systemd.user = {
-      enable = true;
-      services.${name} = {
-        Unit = {
-          Description = "Local Search Shortcuts";
-          After = ["network.target"];
-        };
-        Path = {
-          PathChanged = "${configFile}";
-          UnitSec = "1s";
-        };
-        Service = {
-          ExecStart = "${package}/bin/${name}";
-          Restart = "always";
-        };
-        Install.WantedBy = ["default.target"];
-      };
-    };
-
     xdg.configFile."${name}/config.toml".source = configFile;
+
+    systemd.user.services.${name} = {
+      Unit = {
+        Description = "Local Search Shortcuts";
+        After = ["network.target"];
+        X-Restart-Triggers = [
+          configFile
+        ];
+      };
+      Service = {
+        ExecStart = lib.getExe package;
+        Restart = "always";
+      };
+      Install.WantedBy = ["default.target"];
+    };
 
     programs.firefox.profiles.default.search = let
       port = toString cfg.settings.port or 9321;
-      default-engine = cfg.settings.default or "Local Search Shortcuts";
     in
       lib.mkIf cfg.firefoxSearch
       {
         force = true;
-        default = default-engine;
-        privateDefault = default-engine;
-        engines.${default-engine}.urls = [
+        default = cfg.displayName;
+        privateDefault = cfg.displayName;
+        engines.${cfg.displayName}.urls = [
           {
-            inherit default-engine;
-            template = "http://localhost:${port}/?q={searchTerms}";
+            template = "http://localhost:${port}/";
+            params = [
+              {
+                name = "q";
+                value = "{searchTerms}";
+              }
+            ];
           }
         ];
       };

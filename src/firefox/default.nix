@@ -20,14 +20,13 @@ in {
         enable = true;
         firefoxSearch = true;
         settings = {
-          default = config.default-engine or "DuckDuckGo";
-          engines = config.engines or {};
+          inherit (config) engines default;
         };
       };
 
       programs.firefox = {
         enable = true;
-        package = pkgs-unstable.firefox.override {
+        package = pkgs.firefox.override {
           cfg.enableWayland = true;
         };
 
