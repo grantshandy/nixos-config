@@ -14,6 +14,7 @@
 
   environment.systemPackages = with pkgs; [
     eyedropper
+    protonvpn-gui
   ];
 
   # services.openssh = {

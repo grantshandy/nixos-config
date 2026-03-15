@@ -1,7 +1,11 @@
-{pkgs, ...}: {
-  environment.systemPackages = with pkgs; [
-    bazaar
-    flatpak-builder
+{
+  pkgs,
+  pkgs-unstable,
+  ...
+}: {
+  environment.systemPackages = [
+    pkgs-unstable.bazaar
+    pkgs.flatpak-builder
   ];
 
   services.flatpak = {
