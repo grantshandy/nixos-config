@@ -1,160 +1,152 @@
 {
   inputs,
-  pkgs-unstable,
   userConfig,
   pkgs,
-  lib,
   ...
 }: let
   config = builtins.fromTOML (builtins.readFile ./config.toml);
 in {
-  home-manager.sharedModules = [
-    {
-      imports = [
-        ./local-search-shortcuts.nix
-      ];
-
-      dconf.settings."org/gnome/shell".favorite-apps = ["firefox.desktop"];
-
-      services.local-search-shortcuts = {
-        enable = true;
-        firefoxSearch = true;
-        settings = {
-          inherit (config) engines default;
-        };
-      };
-
-      programs.firefox = {
-        enable = true;
-        package = pkgs.firefox.override {
-          cfg.enableWayland = true;
-        };
-
-        # This method for installing plugins here largely from:
-        # https://discourse.nixos.org/t/declare-firefox-extensions-and-settings/36265/7
-        policies = {
-          # Settings:
-          # https://mozilla.github.io/policy-templates/
-          DisableFeedbackCommands = true;
-          DisableFirefoxAccounts = true;
-          DisablePocket = true;
-          DisableTelemetry = true;
-          OfferToSaveLogins = false;
-          OfferToSaveLoginsDefault = false;
-
-          EncryptedMediaExtensions = {
-            Enabled = true;
-            Locked = true;
-          };
-
-          UserMessaging = {
-            SkipOnboarding = true;
-            Locked = true;
-          };
-
-          ExtensionSettings =
-            config.extensions
-            |> map (name: inputs.firefox-addons.packages.${userConfig.system}.${name})
-            |> map (ext: {
-              name = ext.addonId;
-              value = {
-                installation_mode = "force_installed";
-                install_url = "file://${ext}/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}/${ext.addonId}.xpi";
-              };
-            })
-            |> builtins.listToAttrs;
-        };
-
-        profiles.default = {
-          isDefault = true;
-
-          settings = {
-            # enable stylesheets
-            "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
-
-            # gnome theme settings:
-            "gnomeTheme.activeTabContrast" = true;
-            "gnomeTheme.bookmarksToolbarUnderTabs" = true;
-            "gnomeTheme.hideSingleTab" = true;
-            "gnomeTheme.hideWebrtcIndicator" = true;
-            "gnomeTheme.spinner" = true;
-
-            # sync look with GTK
-            "widget.use-xdg-desktop-portal.file-picker" = 1;
-            "widget.gtk.overlay-scrollbars.enabled" = true;
-            "widget.gtk.rounded-bottom-corners.enabled" = true;
-
-            # mouse behavior
-            "general.autoScroll" = true;
-            "middlemouse.paste" = false;
-
-            "browser.uiCustomization.state" = builtins.readFile ./ui.json |> builtins.fromJSON;
-            "browser.uidensity" = 0;
-            "browser.accounts.enabled" = false;
-            "browser.homepage.enabled" = false;
-
-            "browser.newtab.url" = "about:blank";
-            "browser.newtabpage.pinned" = [];
-            "browser.newtabpage.activity-stream.newtabWallpapers.wallpaper" = "";
-            "browser.newtabpage.activity-stream.newtabWallpapers.wallpaper-dark" = "";
-            "browser.newtabpage.activity-stream.newtabWallpapers.wallpaper-light" = "";
-            "browser.newtabpage.activity-stream.showWeather" = false;
-            "browser.newtabpage.activity-stream.feeds.section.topstories" = false;
-            "browser.newtabpage.activity-stream.feeds.topsites" = false;
-            "browser.toolbars.bookmarks.visibility" = "newtab";
-            "browser.search.useDBForOrder" = false;
-            "browser.aboutConfig.showWarning" = false;
-            "browser.aboutwelcome.didSeeFinalScreen" = true;
-
-            "browser.urlbar.suggest.quickactions" = false;
-            "browser.urlbar.suggest.quicksuggest.nonsponsored" = false;
-            "browser.urlbar.suggest.quicksuggest.sponsored" = false;
-            "browser.urlbar.suggest.topsites" = false;
-
-            "media.eme.enabled" = true;
-            "extensions.pocket.enabled" = false;
-            "browser.toolbarbuttons.introduced.pocket-button" = false;
-            "layers.acceleration.force-enabled" = true;
-            "svg.context-properties.content.enabled" = true;
-          };
-
-          bookmarks = {
-            force = true;
-            settings = [
-              {
-                name = "User Added";
-                toolbar = true;
-                bookmarks = config.bookmarks;
-              }
-            ];
-          };
-
-          userChrome = let
-            theme = pkgs.fetchFromGitHub {
-              owner = "rafaelmardojai";
-              repo = "firefox-gnome-theme";
-              rev = "v143";
-              sha256 = "sha256-0E3TqvXAy81qeM/jZXWWOTZ14Hs1RT7o78UyZM+Jbr4=";
-            };
-          in ''
-            @import "${theme}/theme/gnome-theme.css";
-          '';
-
-          userContent = ''
-            @-moz-document url("about:blank"), url("about:newtab"), url("about:home") {
-              body {
-                background-color: #222226 !important;
-              }
-            }
-
-            @-moz-document url("about:blank") {
-              body {
-                user-select: none !important;
-              }
-            }
-          '';
-        };
-      };
-    }
+  imports = [
+    ./local-search-shortcuts.nix
   ];
+
+  dconf.settings."org/gnome/shell".favorite-apps = ["firefox.desktop"];
+
+  services.local-search-shortcuts = {
+    enable = true;
+    firefoxSearch = true;
+    inherit (config) engines default;
+  };
+
+  programs.firefox = {
+    enable = true;
+    package = pkgs.firefox.override {
+      cfg.enableWayland = true;
+    };
+
+    # This method for installing plugins here largely from:
+    # https://discourse.nixos.org/t/declare-firefox-extensions-and-settings/36265/7
+    policies = {
+      # Settings:
+      # https://mozilla.github.io/policy-templates/
+      DisableFeedbackCommands = true;
+      DisableFirefoxAccounts = true;
+      DisablePocket = true;
+      DisableTelemetry = true;
+      OfferToSaveLogins = false;
+      OfferToSaveLoginsDefault = false;
+
+      EncryptedMediaExtensions = {
+        Enabled = true;
+        Locked = true;
+      };
+
+      UserMessaging = {
+        SkipOnboarding = true;
+        Locked = true;
+      };
+
+      ExtensionSettings =
+        config.extensions
+        |> map (name: inputs.firefox-addons.packages.${userConfig.system}.${name})
+        |> map (ext: {
+          name = ext.addonId;
+          value = {
+            installation_mode = "force_installed";
+            install_url = "file://${ext}/share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}/${ext.addonId}.xpi";
+          };
+        })
+        |> builtins.listToAttrs;
+    };
+
+    profiles.default = {
+      isDefault = true;
+
+      settings = {
+        # enable stylesheets
+        "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
+
+        # gnome theme settings:
+        "gnomeTheme.activeTabContrast" = true;
+        "gnomeTheme.bookmarksToolbarUnderTabs" = true;
+        "gnomeTheme.hideSingleTab" = true;
+        "gnomeTheme.hideWebrtcIndicator" = true;
+        "gnomeTheme.spinner" = true;
+
+        # sync look with GTK
+        "widget.use-xdg-desktop-portal.file-picker" = 1;
+        "widget.gtk.overlay-scrollbars.enabled" = true;
+        "widget.gtk.rounded-bottom-corners.enabled" = true;
+
+        # mouse behavior
+        "general.autoScroll" = true;
+        "middlemouse.paste" = false;
+
+        "browser.uiCustomization.state" = builtins.readFile ./ui.json |> builtins.fromJSON;
+        "browser.uidensity" = 0;
+        "browser.accounts.enabled" = false;
+        "browser.homepage.enabled" = false;
+
+        "browser.newtab.url" = "about:blank";
+        "browser.newtabpage.pinned" = [];
+        "browser.newtabpage.activity-stream.newtabWallpapers.wallpaper" = "";
+        "browser.newtabpage.activity-stream.newtabWallpapers.wallpaper-dark" = "";
+        "browser.newtabpage.activity-stream.newtabWallpapers.wallpaper-light" = "";
+        "browser.newtabpage.activity-stream.showWeather" = false;
+        "browser.newtabpage.activity-stream.feeds.section.topstories" = false;
+        "browser.newtabpage.activity-stream.feeds.topsites" = false;
+        "browser.toolbars.bookmarks.visibility" = "newtab";
+        "browser.search.useDBForOrder" = false;
+        "browser.aboutConfig.showWarning" = false;
+        "browser.aboutwelcome.didSeeFinalScreen" = true;
+
+        "browser.urlbar.suggest.quickactions" = false;
+        "browser.urlbar.suggest.quicksuggest.nonsponsored" = false;
+        "browser.urlbar.suggest.quicksuggest.sponsored" = false;
+        "browser.urlbar.suggest.topsites" = false;
+
+        "media.eme.enabled" = true;
+        "extensions.pocket.enabled" = false;
+        "browser.toolbarbuttons.introduced.pocket-button" = false;
+        "layers.acceleration.force-enabled" = true;
+        "svg.context-properties.content.enabled" = true;
+      };
+
+      bookmarks = {
+        force = true;
+        settings = [
+          {
+            name = "User Added";
+            toolbar = true;
+            bookmarks = config.bookmarks;
+          }
+        ];
+      };
+
+      userChrome = let
+        theme = pkgs.fetchFromGitHub {
+          owner = "rafaelmardojai";
+          repo = "firefox-gnome-theme";
+          rev = "43bc26501a637c68df723645966b77168cefa9d0";
+          sha256 = "sha256-6cGDN/2iSNUJWp035zzr6BZCzFtO92PIKNeWxuwPPcA=";
+        };
+      in ''
+        @import "${theme}/theme/gnome-theme.css";
+      '';
+
+      userContent = ''
+        @-moz-document url("about:blank"), url("about:newtab"), url("about:home") {
+          body {
+            background-color: #222226 !important;
+          }
+        }
+
+        @-moz-document url("about:blank") {
+          body {
+            user-select: none !important;
+          }
+        }
+      '';
+    };
+  };
 }

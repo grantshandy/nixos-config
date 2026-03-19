@@ -1,20 +1,18 @@
 {
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
-    nixpkgs-unstable.url = "github:nixos/nixpkgs";
-    nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
     home-manager = {
       url = "github:nix-community/home-manager/release-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
     firefox-addons = {
       url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nixvim = {
-      url = "github:nix-community/nixvim/nixos-25.11";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+
+    nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs";
   };
 
   outputs = inputs @ {
@@ -22,7 +20,6 @@
     nixpkgs-unstable,
     nix-flatpak,
     home-manager,
-    nixvim,
     ...
   }: let
     userConfig = builtins.fromTOML (builtins.readFile ./config.toml);
@@ -81,6 +78,21 @@
       system.stateVersion = stateVersion;
     };
 
+    homeConfiguration = {
+      imports = [home-manager.nixosModules.home-manager];
+
+      home-manager = {
+        useGlobalPkgs = true;
+        useUserPackages = true;
+        extraSpecialArgs = specialArgs;
+        users.${userConfig.user.name} = {...}: {
+          home.username = "${userConfig.user.name}";
+          home.homeDirectory = "/home/${userConfig.user.name}";
+          home.stateVersion = stateVersion;
+        };
+      };
+    };
+
     mkSystem = hardware:
       nixpkgs.lib.nixosSystem {
         inherit system specialArgs;
@@ -88,23 +100,8 @@
         modules = [
           hardware
           baseConfiguration
+          homeConfiguration
           ./src
-          nix-flatpak.nixosModules.nix-flatpak
-          home-manager.nixosModules.home-manager
-          {
-            home-manager = {
-              useGlobalPkgs = true;
-              useUserPackages = true;
-              extraSpecialArgs = specialArgs;
-              users.${userConfig.user.name} = {...}: {
-                imports = [./src/home];
-
-                home.username = "${userConfig.user.name}";
-                home.homeDirectory = "/home/${userConfig.user.name}";
-                home.stateVersion = stateVersion;
-              };
-            };
-          }
         ];
       };
   in {
@@ -112,7 +109,5 @@
       lenovo = mkSystem ./hardware-configuration/lenovo.nix;
       xenon = mkSystem ./hardware-configuration/xenon.nix;
     };
-
-    formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
   };
 }

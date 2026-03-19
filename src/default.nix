@@ -1,21 +1,22 @@
-{
-  pkgs,
-  lib,
-  userConfig,
-  ...
-}: {
+{pkgs, ...}: {
   imports = [
     ./gnome
-    ./firefox
-    ./zed
-    ./beeper.nix
     ./flatpak.nix
   ];
 
+  home-manager.sharedModules = [
+    ./firefox
+    ./zed
+
+    ./beeper.nix
+    ./tools.nix
+  ];
+
   environment.systemPackages = with pkgs; [
-    eyedropper
     protonvpn-gui
   ];
+
+  # services.gnome.core-developer-tools.enable = true;
 
   # services.openssh = {
   #   enable = true;

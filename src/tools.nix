@@ -3,10 +3,6 @@
   pkgs,
   ...
 }: {
-  imports = [
-    ./nvim.nix
-  ];
-
   home.packages = with pkgs; [
     nix-tree
     typst
@@ -17,8 +13,6 @@
     gnumake
     file
   ];
-
-  programs.home-manager.enable = true;
 
   programs.tmux = {
     enable = true;
