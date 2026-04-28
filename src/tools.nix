@@ -12,6 +12,7 @@
     gcc
     gnumake
     file
+    tree
   ];
 
   programs.tmux = {
