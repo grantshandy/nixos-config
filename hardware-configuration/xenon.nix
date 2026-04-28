@@ -34,7 +34,7 @@
   fileSystems."/mnt/backup" = {
     device = "/dev/disk/by-uuid/0D02-4891";
     fsType = "vfat";
-    options = ["nosuid" "nodev" "nofail" "x-gvfs-show"];
+    options = ["nosuid" "nodev" "nofail" "x-gvfs-show" "user" "rw" "umask=000" "uid=1000" "gid=1000"];
   };
 
   # Enables DHCP on each ethernet and wireless interface. In case of scripted networking

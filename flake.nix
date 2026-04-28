@@ -18,7 +18,6 @@
   outputs = inputs @ {
     nixpkgs,
     nixpkgs-unstable,
-    nix-flatpak,
     home-manager,
     ...
   }: let
