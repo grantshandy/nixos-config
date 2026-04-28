@@ -9,7 +9,7 @@
   programs.zed-editor = {
     enable = true;
     package = pkgs-unstable.zed-editor;
-    extraPackages = with pkgs; [clang-tools];
+    extraPackages = with pkgs; [clang-tools tinymist package-version-server];
 
     extensions = [
       "nix"
@@ -71,13 +71,8 @@
           };
         };
 
-        clangd.binary = {
-          path = "${pkgs.clang-tools}/bin/clangd";
-          path_lookup = true;
-        };
-
-        package-version-server.binary.path = lib.getExe pkgs.package-version-server;
-        tinymist.binary.path = lib.getExe pkgs.tinymist;
+        # package-version-server.binary.path = lib.getExe pkgs.package-version-server;
+        # tinymist.binary.path = lib.getExe pkgs.tinymist;
       };
 
       dap.CodeLLDB.binary = "${pkgs.vscode-extensions.vadimcn.vscode-lldb}/share/vscode/extensions/vadimcn.vscode-lldb/adapter/codelldb";
