@@ -2,8 +2,10 @@
   inputs,
   userConfig,
   pkgs,
+  config,
   ...
 }: let
+  cfg = config;
   config = builtins.fromTOML (builtins.readFile ./config.toml);
 in {
   imports = [
@@ -23,6 +25,8 @@ in {
     package = pkgs.firefox.override {
       cfg.enableWayland = true;
     };
+
+    configPath = ".config/mozilla/firefox";
 
     # This method for installing plugins here largely from:
     # https://discourse.nixos.org/t/declare-firefox-extensions-and-settings/36265/7
@@ -82,13 +86,12 @@ in {
         "general.autoScroll" = true;
         "middlemouse.paste" = false;
 
-        "browser.uiCustomization.state" = builtins.readFile ./ui.json |> builtins.fromJSON;
         "browser.uidensity" = 0;
         "browser.accounts.enabled" = false;
         "browser.homepage.enabled" = false;
 
         "browser.newtab.url" = "about:blank";
-        "browser.newtabpage.pinned" = [];
+        "browser.newtabpage.pinned" = "[]";
         "browser.newtabpage.activity-stream.newtabWallpapers.wallpaper" = "";
         "browser.newtabpage.activity-stream.newtabWallpapers.wallpaper-dark" = "";
         "browser.newtabpage.activity-stream.newtabWallpapers.wallpaper-light" = "";
@@ -127,8 +130,8 @@ in {
         theme = pkgs.fetchFromGitHub {
           owner = "rafaelmardojai";
           repo = "firefox-gnome-theme";
-          rev = "43bc26501a637c68df723645966b77168cefa9d0";
-          sha256 = "sha256-6cGDN/2iSNUJWp035zzr6BZCzFtO92PIKNeWxuwPPcA=";
+          rev = "942159e73e40bf785816f7f1f5feed9ef3d7c8f9";
+          sha256 = "sha256-UdfMivNMwCCqQsYDg5pSz8X2IOaOrIZLIIy+Bg3CO2o=";
         };
       in ''
         @import "${theme}/theme/gnome-theme.css";

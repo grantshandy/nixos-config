@@ -1,4 +1,8 @@
-{pkgs, ...}: {
+{
+  pkgs,
+  pkgs-unstable,
+  ...
+}: {
   imports = [
     ./gnome
     ./flatpak.nix
@@ -13,8 +17,17 @@
   ];
 
   environment.systemPackages = with pkgs; [
-    protonvpn-gui
+    proton-vpn
+    libreoffice
   ];
+
+  virtualisation.docker.enable = true;
+  users.users.grant.extraGroups = ["docker"];
+
+  services.ollama = {
+    enable = true;
+    package = pkgs.ollama-rocm;
+  };
 
   # services.gnome.core-developer-tools.enable = true;
 

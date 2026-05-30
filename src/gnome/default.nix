@@ -1,6 +1,7 @@
 # Good minimal GNOME configuration with the core programs
 {
   pkgs,
+  pkgs-unstable,
   lib,
   userConfig,
   ...
@@ -8,6 +9,7 @@
   imports = [
     ./wallpapers
     ./ko.nix
+    ./dev.nix
   ];
 
   services.gnome-korean-ime.enable = true;
@@ -21,6 +23,7 @@
     epiphany
     gnome-calendar
     gnome-console
+    gnome-calculator
     gnome-contacts
     gnome-maps
     gnome-music
@@ -35,6 +38,7 @@
     seahorse
   ];
   environment.systemPackages = with pkgs; [
+    pkgs-unstable.gnome-calculator
     ptyxis
     resources
   ];
@@ -49,6 +53,7 @@
 
   # Various backend desktop services
   boot.plymouth.enable = true;
+  hardware.graphics.enable = true;
   networking.networkmanager.enable = true;
   services.printing.enable = true;
   security.rtkit.enable = true;
