@@ -1,11 +1,7 @@
-{
-  pkgs,
-  pkgs-unstable,
-  ...
-}: {
+{pkgs, ...}: {
   imports = [
     ./gnome
-    ./flatpak.nix
+    # ./flatpak.nix
   ];
 
   home-manager.sharedModules = [
@@ -16,18 +12,18 @@
     ./tools.nix
   ];
 
-  environment.systemPackages = with pkgs; [
-    proton-vpn
-    libreoffice
+  environment.systemPackages = [
+    pkgs.proton-vpn
+    # pkgs.libreoffice
   ];
 
-  virtualisation.docker.enable = true;
-  users.users.grant.extraGroups = ["docker"];
+  # virtualisation.docker.enable = true;
+  # users.users.grant.extraGroups = ["docker"];
 
-  services.ollama = {
-    enable = true;
-    package = pkgs.ollama-rocm;
-  };
+  # services.ollama = {
+  # enable = true;
+  # package = pkgs.ollama-rocm;
+  # };
 
   # services.gnome.core-developer-tools.enable = true;
 

@@ -5,12 +5,9 @@
 }: {
   home.packages = with pkgs; [
     nix-tree
-    typst
     ascii
     man-pages
     alejandra
-    gcc
-    gnumake
     file
     tree
   ];

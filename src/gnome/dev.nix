@@ -1,4 +1,4 @@
 {...}: {
-  services.gnome.core-developer-tools.enable = true;
+  # services.gnome.core-developer-tools.enable = true;
   # environment.systemPackages = with pkgs; [gitte];
 }
