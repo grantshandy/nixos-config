@@ -2,11 +2,9 @@
   inputs,
   userConfig,
   pkgs,
-  config,
   ...
 }: let
-  cfg = config;
-  config = builtins.fromTOML (builtins.readFile ./config.toml);
+  config = fromTOML (builtins.readFile ./config.toml);
 in {
   imports = [
     ./local-search-shortcuts.nix
@@ -86,6 +84,7 @@ in {
         "general.autoScroll" = true;
         "middlemouse.paste" = false;
 
+        "browser.uiCustomization.state" = builtins.readFile ./ui.json;
         "browser.uidensity" = 0;
         "browser.accounts.enabled" = false;
         "browser.homepage.enabled" = false;
@@ -135,20 +134,6 @@ in {
         };
       in ''
         @import "${theme}/theme/gnome-theme.css";
-      '';
-
-      userContent = ''
-        @-moz-document url("about:blank"), url("about:newtab"), url("about:home") {
-          body {
-            background-color: #222226 !important;
-          }
-        }
-
-        @-moz-document url("about:blank") {
-          body {
-            user-select: none !important;
-          }
-        }
       '';
     };
   };
