@@ -1,6 +1,7 @@
 {
   pkgs,
   lib,
+  userConfig,
   ...
 }: let
   interval = "20m";
@@ -17,8 +18,17 @@
 
     echo "Setting wallpaper to: $TARGET"
 
-    ${pkgs.glib}/bin/gsettings set org.gnome.desktop.background picture-uri "file://$TARGET"
-    ${pkgs.glib}/bin/gsettings set org.gnome.desktop.background picture-uri-dark "file://$TARGET"
+    # Crop to exact dual-monitor resolution, preserving aspect ratio
+    CONVERTED="''${XDG_RUNTIME_DIR:-/tmp}/wallpaper-current.jpg"
+    ${lib.getExe pkgs.imagemagick} "$TARGET" \
+      -resize ${userConfig.resolution}^ \
+      -gravity Center \
+      -extent ${userConfig.resolution} \
+      "$CONVERTED"
+
+    ${pkgs.glib}/bin/gsettings set org.gnome.desktop.background picture-uri "file://$CONVERTED"
+    ${pkgs.glib}/bin/gsettings set org.gnome.desktop.background picture-uri-dark "file://$CONVERTED"
+    ${pkgs.glib}/bin/gsettings set org.gnome.desktop.background picture-options "spanned"
   '';
 in {
   home-manager.sharedModules = [

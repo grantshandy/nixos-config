@@ -1,4 +1,5 @@
 system = "x86_64-linux"
+resolution = "3840x1200"
 
 [user]
 name = "grant"
