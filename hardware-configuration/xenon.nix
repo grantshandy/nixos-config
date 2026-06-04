@@ -20,6 +20,8 @@
   boot.kernelModules = ["kvm-amd"];
   boot.extraModulePackages = [];
 
+  hardware.graphics.enable = true;
+
   fileSystems."/" = {
     device = "/dev/disk/by-uuid/392d6125-966e-4040-aec8-e1403833ed12";
     fsType = "ext4";
