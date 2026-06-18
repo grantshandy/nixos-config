@@ -9,7 +9,7 @@
   programs.zed-editor = {
     enable = true;
     package = pkgs-unstable.zed-editor;
-    extraPackages = with pkgs; [clang-tools tinymist package-version-server ruff];
+    extraPackages = with pkgs; [clang-tools tinymist package-version-server ruff nodejs-slim];
 
     extensions = [
       "nix"
@@ -46,6 +46,11 @@
       git.inline_blame.enabled = false;
       notification_panel.button = false;
       collaboration_panel.button = false;
+
+      node = {
+        path = "${pkgs.nodejs}/bin/node";
+        npm_path = "${pkgs.nodejs}/bin/npm";
+      };
 
       title_bar = {
         show_sign_in = false;
