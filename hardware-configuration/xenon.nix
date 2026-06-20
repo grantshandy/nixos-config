@@ -23,7 +23,7 @@
   hardware.graphics.enable = true;
 
   fileSystems."/" = {
-    device = "/dev/disk/by-uuid/392d6125-966e-4040-aec8-e1403833ed12";
+    device = "/dev/disk/by-uuid/46c48da7-4e1c-45df-8458-571dfb3e8c20";
     fsType = "ext4";
   };
 
