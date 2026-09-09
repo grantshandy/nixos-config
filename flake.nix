@@ -92,21 +92,25 @@
       };
     };
 
-    mkSystem = hardware:
+    mkSystem = specific:
       nixpkgs.lib.nixosSystem {
         inherit system specialArgs;
 
-        modules = [
-          hardware
-          baseConfiguration
-          homeConfiguration
-          ./src
-        ];
+        modules =
+          specific
+          ++ [
+            baseConfiguration
+            homeConfiguration
+            ./src
+          ];
       };
   in {
     nixosConfigurations = {
-      lenovo = mkSystem ./hardware-configuration/lenovo.nix;
-      xenon = mkSystem ./hardware-configuration/xenon.nix;
+      lenovo = mkSystem [./hardware-configuration/lenovo.nix];
+      xenon = mkSystem [
+        ./src/navidrome.nix
+        ./hardware-configuration/xenon.nix
+      ];
     };
   };
 }

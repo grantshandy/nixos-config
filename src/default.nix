@@ -35,15 +35,15 @@
   # nixpkgs.config.allowUnfree = true;
   # virtualisation.virtualbox.host.enableExtensionPack = true;
 
-  # services.openssh = {
-  #   enable = true;
-  #   ports = [4321];
-  #   settings = {
-  #     PasswordAuthentication = true;
-  #     PermitRootLogin = "no";
-  #   };
-  # };
-  # networking.firewall.allowedTCPPorts = [4321];
+  services.openssh = {
+    enable = true;
+    ports = [4321];
+    settings = {
+      PasswordAuthentication = true;
+      PermitRootLogin = "no";
+    };
+  };
+  networking.firewall.allowedTCPPorts = [4321];
 
-  # programs.steam.enable = true;
+  programs.steam.enable = true;
 }
