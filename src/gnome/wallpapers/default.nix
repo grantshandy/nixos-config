@@ -7,6 +7,8 @@
   interval = "20m";
 
   cycleScript = pkgs.writeShellScriptBin "cycle-wallpaper" ''
+    set -euo pipefail
+
     TARGET=$(${pkgs.findutils}/bin/find "${./.}" \
       -type f \( -name "*.jpg" -o -name "*.png" -o -name "*.jpeg" \) \
       | ${pkgs.coreutils}/bin/shuf -n 1)
@@ -18,9 +20,18 @@
 
     echo "Setting wallpaper to: $TARGET"
 
-    # Crop to exact dual-monitor resolution, preserving aspect ratio
+    # Force the plain jpeg/png decoder instead of letting ImageMagick
+    # content-sniff the file. Without this, phone photos with an embedded
+    # Ultra HDR gain map get routed through the (buggy) uhdr coder, which
+    # can fail mid-transform and leave a broken/blank output file.
+    case "$TARGET" in
+      *.png|*.PNG) FORMAT="png" ;;
+      *) FORMAT="jpeg" ;;
+    esac
+
     CONVERTED="''${XDG_RUNTIME_DIR:-/tmp}/wallpaper-current.jpg"
-    ${lib.getExe pkgs.imagemagick} "$TARGET" \
+    ${lib.getExe pkgs.imagemagick} "''${FORMAT}:$TARGET" \
+      -strip \
       -resize ${userConfig.resolution}^ \
       -gravity Center \
       -extent ${userConfig.resolution} \
