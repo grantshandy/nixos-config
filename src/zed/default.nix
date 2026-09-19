@@ -32,15 +32,7 @@
     };
 
     userSettings = {
-      language_models.ollama.available_models = [
-        {
-          name = "qwen3.5:9b";
-          max_tokens = 25000;
-          max_context_tokens = 16384;
-        }
-      ];
-
-      # disable_ai = true;
+      disable_ai = true;
       vim_mode = true;
       relative_line_numbers = "enabled";
       git.inline_blame.enabled = false;
