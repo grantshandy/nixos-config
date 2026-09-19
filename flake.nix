@@ -106,10 +106,18 @@
       };
   in {
     nixosConfigurations = {
-      lenovo = mkSystem [./hardware-configuration/lenovo.nix];
+      lenovo = mkSystem [
+        ./hardware-configuration/lenovo.nix
+        {
+          services.tailscale.enable = true;
+        }
+      ];
       xenon = mkSystem [
         ./src/navidrome.nix
         ./hardware-configuration/xenon.nix
+        {
+          programs.steam.enable = true;
+        }
       ];
     };
   };

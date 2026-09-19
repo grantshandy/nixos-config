@@ -45,5 +45,4 @@
   };
   networking.firewall.allowedTCPPorts = [4321];
 
-  programs.steam.enable = true;
 }
