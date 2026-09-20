@@ -110,6 +110,10 @@
         ./hardware-configuration/lenovo.nix
         {
           services.tailscale.enable = true;
+
+          home-manager.sharedModules = [{
+            # gtk.gtk3.bookmarks = ["sftp://xenon:4321/home/grant/"];
+          }];
         }
       ];
       xenon = mkSystem [

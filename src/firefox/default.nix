@@ -130,8 +130,8 @@ in {
         theme = pkgs.fetchFromGitHub {
           owner = "rafaelmardojai";
           repo = "firefox-gnome-theme";
-          rev = "942159e73e40bf785816f7f1f5feed9ef3d7c8f9";
-          sha256 = "sha256-UdfMivNMwCCqQsYDg5pSz8X2IOaOrIZLIIy+Bg3CO2o=";
+          rev = "5602ed62d638142c1ab31dccd01dfbfb28841225";
+          sha256 = "sha256-ptl5aRlCv9/uRSv2u8Hq8UFVFeZ6Q/bT049bpqNgc3w=";
         };
       in ''
         @import "${theme}/theme/gnome-theme.css";
