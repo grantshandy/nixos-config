@@ -22,7 +22,12 @@
       "unified-extensions-button"
     ],
     "toolbar-menubar": ["menubar-items"],
-    "TabsToolbar": ["tabbrowser-tabs", "new-tab-button", "alltabs-button"],
+    "TabsToolbar": [
+      "tabbrowser-tabs",
+      "new-tab-button",
+      "alltabs-button",
+      "ai-window-toggle"
+    ],
     "vertical-tabs": [],
     "PersonalToolbar": ["personal-bookmarks"]
   },
@@ -34,14 +39,17 @@
     "addon_darkreader_org-browser-action",
     "78272b6fa58f4a1abaac99321d503a20_proton_me-browser-action",
     "_34daeb50-c2d2-4f14-886a-7160b24d66a4_-browser-action",
-    "screenshot-button"
+    "screenshot-button",
+    "ai-window-toggle"
   ],
   "dirtyAreaCache": [
     "nav-bar",
     "vertical-tabs",
     "unified-extensions-area",
-    "TabsToolbar"
+    "TabsToolbar",
+    "toolbar-menubar",
+    "PersonalToolbar"
   ],
-  "currentVersion": 24,
-  "newElementCount": 2
+  "currentVersion": 26,
+  "newElementCount": 4
 }
