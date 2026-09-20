@@ -98,6 +98,14 @@
       };
       qt.platformTheme.name = "gtk3";
 
+      home.packages = with pkgs; [
+        adwaita-icon-theme
+        morewaita-icon-theme
+      ];
+
+      home.file.".local/share/icons/MoreWaita".source = "${pkgs.morewaita-icon-theme}/share/icons/MoreWaita";
+      home.file.".local/share/icons/Adwaita".source = "${pkgs.adwaita-icon-theme}/share/icons/Adwaita";
+
       # Some gnome settings that I prefer. Not too controversial.
       dconf.settings = {
         # enable automatic timezone and location services
