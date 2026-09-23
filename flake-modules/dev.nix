@@ -11,7 +11,6 @@
         inputs.agenix.packages.${system}.default
         pkgs.alejandra
         pkgs.git
-        pkgs.htop
       ];
     };
   };
