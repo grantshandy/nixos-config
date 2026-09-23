@@ -1,6 +1,7 @@
 {
   config,
   pkgs,
+  pkgs-unstable,
   lib,
   ...
 }: let
@@ -19,7 +20,7 @@ in {
       "127.0.0.1" = [dns];
     };
     firewall = {
-      allowedTCPPorts = [443];
+      allowedTCPPorts = [443 headplane_port];
       interfaces.tailscale0.allowedTCPPorts = [headplane_port];
     };
   };
@@ -54,6 +55,7 @@ in {
 
   services.headscale = {
     enable = true;
+    package = pkgs-unstable.headscale;
     port = headscale_port;
     address = "127.0.0.1";
 
@@ -78,11 +80,12 @@ in {
 
   services.headplane = {
     enable = true;
+    package = pkgs-unstable.headplane;
     settings = {
       server = {
         host = "0.0.0.0";
         port = headplane_port;
-        # base_url = base_url;
+        cookie_secure = false;
         cookie_secret_path = headplane_cookie_path;
       };
 
