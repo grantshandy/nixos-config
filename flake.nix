@@ -70,6 +70,7 @@
         extraGroups = [
           "networkmanager"
           "wheel"
+          "kvm"
         ];
         packages = with pkgs; [git];
       };
@@ -110,10 +111,6 @@
         ./hardware-configuration/lenovo.nix
         {
           services.tailscale.enable = true;
-
-          home-manager.sharedModules = [{
-            # gtk.gtk3.bookmarks = ["sftp://xenon:4321/home/grant/"];
-          }];
         }
       ];
       xenon = mkSystem [
@@ -121,6 +118,10 @@
         ./hardware-configuration/xenon.nix
         {
           programs.steam.enable = true;
+          networking.networkmanager.wifi.backend = "iwd";
+          networking.networkmanager.wifi.powersave = false;
+          services.xrdp.enable = true;
+          boot.binfmt.emulatedSystems = ["aarch64-linux"];
         }
       ];
     };

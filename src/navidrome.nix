@@ -16,11 +16,34 @@ in {
   systemd.tmpfiles.rules = [
     "d /media 0755 root root - -"
     "d ${musicDir} 2775 navidrome media - -"
-    "d ${musicDir}/.beets 2775 navidrome media - -"
-    "A+ ${musicDir} - - - - group:media:rwx,default:group:media:rwx"
+    "d ${musicDir}/.beets 2775 ${userConfig.user.name} media - -"
   ];
 
-  services.tailscale.enable = true;
+  systemd.services.media-acl-init = {
+    description = "Apply recursive default ACL for media group under ${musicDir}";
+    wantedBy = ["multi-user.target"];
+    before = ["navidrome.service"];
+    after = ["local-fs.target"];
+    serviceConfig.Type = "oneshot";
+    script = ''
+      ${pkgs.acl}/bin/setfacl -R -m g:media:rwx -d -m g:media:rwx ${musicDir}
+    '';
+  };
+
+  systemd.services.navidrome = {
+    after = ["media-acl-init.service"];
+    requires = ["media-acl-init.service"];
+  };
+
+  services.tailscale = {
+    enable = true;
+    openFirewall = true;
+    extraUpFlags = [
+      "--accept-dns=false"
+    ];
+  };
+
+
   networking.firewall.trustedInterfaces = ["tailscale0"];
 
   services.navidrome = {
@@ -29,13 +52,23 @@ in {
       MusicFolder = musicDir;
       Address = "0.0.0.0";
       Scanner.PurgeMissing = "always";
+      CoverArtPriority = "cover.*,folder.*,front.*";
+      BaseUrl = "/music";
     };
   };
 
-  environment.systemPackages = [ pkgs.nicotine-plus ];
+  environment.systemPackages = with pkgs; [mp3gain nicotine-plus navidrome];
+
+  networking.firewall = {
+    enable = true;
+    allowedTCPPorts = [55125 55126];
+    allowedUDPPorts = [55125 55126];
+  };
 
   home-manager.sharedModules = [
     ({...}: {
+      home.packages = [pkgs.imagemagick];
+
       programs.beets = {
         enable = true;
         settings = {
@@ -47,17 +80,23 @@ in {
           permdir = "0775";
 
           import = {
-            move = true; # move files instead of copying
-            write = true; # write corrected tags back into files
+            move = true;
+            write = true;
           };
-          plugins = [ "fetchart" "embedart" "scrub" "discogs" "spotify" ];
+          plugins = ["fetchart" "embedart" "scrub" "musicbrainz" "replace" "replaygain"];
 
-          # lyrics = {
-          #   auto = true;
-          #   sources = [ "lrclib" "genius" "musixmatch" ];
-          #   synced = true;
-          #   force = false;
-          # };
+          fetchart = {
+            auto = true;
+            sources = [ "filesystem" "coverart" "itunes" "amazon" "albumart" ];
+            cover_names = [ "cover" "front" "folder" ];
+            maxwidth = 1200;
+            minwidth = 320;
+            cover_format = "jpg";
+            quality = 85;
+          };
+
+          embedart.auto = true;
+          replaygain.backend = "gstreamer";
         };
       };
     })

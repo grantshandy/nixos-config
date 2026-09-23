@@ -2,7 +2,7 @@
 
 ![screenshot](./screenshot.png)
 
-This is my [NixOS](https://nixos.org) 25.11 configuration for both my laptop and desktop.
+This is my [NixOS](https://nixos.org) 26.05 configuration for both my laptop and desktop.
 
 It includes a near-stock [GNOME](https://gnome.org) desktop environment with a few tweaks to make it a bit more cohesive.
 
