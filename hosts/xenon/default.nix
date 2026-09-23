@@ -1,5 +1,11 @@
 {...}: {
-  imports = [./hardware-configuration.nix ../../modules/nixos/bootloader-systemd.nix ../../modules/nixos/desktop ../../modules/nixos/navidrome.nix];
+  imports = [
+    ./hardware-configuration.nix
+    ../../modules/nixos/bootloader-systemd.nix
+    ../../modules/nixos/desktop
+    ../../modules/nixos/navidrome.nix
+    ../../modules/nixos/soulseek.nix
+  ];
 
   programs.steam.enable = true;
 

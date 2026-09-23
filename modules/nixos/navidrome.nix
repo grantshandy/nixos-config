@@ -36,6 +36,7 @@ in {
 
   services.navidrome = {
     enable = true;
+    openFirewall = true;
     settings = {
       MusicFolder = musicDir;
       Address = "0.0.0.0";
@@ -43,14 +44,6 @@ in {
       CoverArtPriority = "cover.*,folder.*,front.*";
       BaseUrl = "/music";
     };
-  };
-
-  environment.systemPackages = [pkgs.nicotine-plus];
-
-  networking.firewall = {
-    enable = true;
-    allowedTCPPorts = [55125 55126];
-    allowedUDPPorts = [55125 55126];
   };
 
   home-manager.sharedModules = [

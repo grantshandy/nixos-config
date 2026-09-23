@@ -7,5 +7,5 @@
   ];
   home-manager.sharedModules = [../../home/desktop.nix];
 
-  environment.systemPackages = [ pkgs.proton-vpn ];
+  environment.systemPackages = [pkgs.proton-vpn];
 }
