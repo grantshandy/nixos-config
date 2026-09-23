@@ -21,4 +21,10 @@
   documentation.enable = false;
   environment.defaultPackages = lib.mkForce [];
   environment.systemPackages = with pkgs; [vim htop git];
+
+  services.openssh.settings = {
+    PasswordAuthentication = lib.mkForce false;
+    KbdInteractiveAuthentication = lib.mkForce false;
+    PermitRootLogin = lib.mkForce "no";
+  };
 }
