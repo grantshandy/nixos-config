@@ -8,9 +8,6 @@
   modulesPath,
   ...
 }: {
-  # ADD/CHANGE ME:
-  networking.hostName = "lenovo";
-
   imports = [(modulesPath + "/installer/scan/not-detected.nix")];
 
   boot.initrd.availableKernelModules = ["nvme" "xhci_pci" "usb_storage" "sd_mod"];

@@ -4,7 +4,7 @@
   pkgs-unstable,
   ...
 }: {
-  dconf.settings."org/gnome/shell".favorite-apps = ["dev.zed.Zed.desktop"];
+  desktop.favoriteApps = ["dev.zed.Zed.desktop"];
 
   programs.zed-editor = {
     enable = true;

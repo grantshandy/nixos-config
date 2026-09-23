@@ -1,6 +1,6 @@
 {
-  userConfig,
   pkgs,
+  config,
   ...
 }: {
   home.packages = with pkgs; [
@@ -75,7 +75,7 @@
 
   programs.git = {
     enable = true;
-    settings.user = userConfig.git;
+    settings.user = config.identity.git;
   };
 
   programs.gh = {

@@ -1,5 +1,5 @@
 {
-  userConfig,
+  config,
   pkgs,
   ...
 }: let
@@ -10,13 +10,12 @@ in {
   ##############################################################
   users.groups.media = {};
   users.users.navidrome.extraGroups = ["media"];
-  users.users.${userConfig.user.name}.extraGroups = ["media"];
+  users.users.${config.identity.user.name}.extraGroups = ["media"];
 
-  # Declarative permissions handled entirely by NixOS
   systemd.tmpfiles.rules = [
     "d /media 0755 root root - -"
     "d ${musicDir} 2775 navidrome media - -"
-    "d ${musicDir}/.beets 2775 ${userConfig.user.name} media - -"
+    "d ${musicDir}/.beets 2775 ${config.identity.user.name} media - -"
   ];
 
   systemd.services.media-acl-init = {
@@ -35,17 +34,6 @@ in {
     requires = ["media-acl-init.service"];
   };
 
-  services.tailscale = {
-    enable = true;
-    openFirewall = true;
-    extraUpFlags = [
-      "--accept-dns=false"
-    ];
-  };
-
-
-  networking.firewall.trustedInterfaces = ["tailscale0"];
-
   services.navidrome = {
     enable = true;
     settings = {
@@ -57,7 +45,7 @@ in {
     };
   };
 
-  environment.systemPackages = with pkgs; [mp3gain nicotine-plus navidrome];
+  environment.systemPackages = [pkgs.nicotine-plus];
 
   networking.firewall = {
     enable = true;
@@ -87,8 +75,8 @@ in {
 
           fetchart = {
             auto = true;
-            sources = [ "filesystem" "coverart" "itunes" "amazon" "albumart" ];
-            cover_names = [ "cover" "front" "folder" ];
+            sources = ["filesystem" "coverart" "itunes" "amazon" "albumart"];
+            cover_names = ["cover" "front" "folder"];
             maxwidth = 1200;
             minwidth = 320;
             cover_format = "jpg";

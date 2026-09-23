@@ -1,9 +1,0 @@
-system = "x86_64-linux"
-
-[user]
-name = "grant"
-description = "Grant Handy"
-
-[git]
-name = "grantshandy"
-email = "granthandy@proton.me"

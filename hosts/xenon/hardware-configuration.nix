@@ -8,9 +8,6 @@
   modulesPath,
   ...
 }: {
-  # ADD/CHANGE ME:
-  networking.hostName = "xenon";
-
   imports = [
     (modulesPath + "/installer/scan/not-detected.nix")
   ];

@@ -3,16 +3,12 @@
   pkgs,
   pkgs-unstable,
   lib,
-  userConfig,
+  config,
   ...
 }: {
   imports = [
     ./wallpapers
-    ./ko.nix
-    ./dev.nix
   ];
-
-  services.gnome-korean-ime.enable = true;
 
   # Enable the desktop environment and display manager
   services.displayManager.gdm.enable = true;
@@ -71,7 +67,7 @@
 
   # set GDM profile photo
   system.activationScripts.script.text = let
-    name = userConfig.user.name;
+    name = config.identity.user.name;
     face = "cat.jpg";
   in ''
     mkdir -p /var/lib/AccountsService/users
@@ -139,11 +135,6 @@
           dynamic-workspaces = true;
           edge-tiling = true;
         };
-
-        "org/gnome/shell".favorite-apps = [
-          "org.gnome.Nautilus.desktop"
-          "org.gnome.Ptyxis.desktop"
-        ];
       };
 
       # Remove annoying printing configuration desktop entry

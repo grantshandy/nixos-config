@@ -1,21 +1,22 @@
 {
   inputs,
-  userConfig,
+  config,
   pkgs,
   ...
 }: let
-  config = fromTOML (builtins.readFile ./config.toml);
+  fx = config.identity.firefox;
 in {
   imports = [
     ./local-search-shortcuts.nix
   ];
 
-  dconf.settings."org/gnome/shell".favorite-apps = ["firefox.desktop"];
+  desktop.favoriteApps = ["firefox.desktop"];
 
   services.local-search-shortcuts = {
     enable = true;
     firefoxSearch = true;
-    inherit (config) engines default;
+    engines = fx.searchEngines;
+    default = fx.defaultEngine;
   };
 
   programs.firefox = {
@@ -49,8 +50,8 @@ in {
       };
 
       ExtensionSettings =
-        config.extensions
-        |> map (name: inputs.firefox-addons.packages.${userConfig.system}.${name})
+        fx.extensions
+        |> map (name: inputs.firefox-addons.packages.${pkgs.system}.${name})
         |> map (ext: {
           name = ext.addonId;
           value = {
@@ -119,9 +120,9 @@ in {
         force = true;
         settings = [
           {
-            name = "User Added";
+            name = "NixOS Managed";
             toolbar = true;
-            bookmarks = config.bookmarks;
+            bookmarks = fx.bookmarks;
           }
         ];
       };
