@@ -6,7 +6,9 @@
 }: {
   imports = [
     ./hardware-configuration.nix
+    ./usb-hdd.nix
     ./headscale.nix
+    ./navidrome.nix
   ];
 
   time.timeZone = "America/Denver";

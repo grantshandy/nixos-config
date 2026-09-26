@@ -3,7 +3,6 @@
     ./hardware-configuration.nix
     ../../modules/nixos/bootloader-systemd.nix
     ../../modules/nixos/desktop
-    ../../modules/nixos/navidrome.nix
     ../../modules/nixos/soulseek.nix
   ];
 

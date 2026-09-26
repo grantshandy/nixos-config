@@ -3,47 +3,26 @@
   pkgs,
   ...
 }: let
-  musicDir = "/media/music";
+  musicDir = "/mnt/media/music";
 in {
-  ##############################################################
-  ## Shared Media Group & Permissions
-  ##############################################################
-  users.groups.media = {};
   users.users.navidrome.extraGroups = ["media"];
-  users.users.${config.identity.user.name}.extraGroups = ["media"];
 
   systemd.tmpfiles.rules = [
-    "d /media 0755 root root - -"
     "d ${musicDir} 2775 navidrome media - -"
     "d ${musicDir}/.beets 2775 ${config.identity.user.name} media - -"
   ];
 
-  systemd.services.media-acl-init = {
-    description = "Apply recursive default ACL for media group under ${musicDir}";
-    wantedBy = ["multi-user.target"];
-    before = ["navidrome.service"];
-    after = ["local-fs.target"];
-    serviceConfig.Type = "oneshot";
-    script = ''
-      ${pkgs.findutils}/bin/find ${musicDir} -type d -exec ${pkgs.coreutils}/bin/chmod 2775 {} +
-      ${pkgs.findutils}/bin/find ${musicDir} -type f -exec ${pkgs.coreutils}/bin/chmod 0664 {} +
-      ${pkgs.acl}/bin/setfacl -R -m u::rwx,g:media:rwx -d -m u::rwx,g:media:rwx ${musicDir}
-    '';
-  };
-
-  systemd.services.navidrome = {
-    after = ["media-acl-init.service"];
-    requires = ["media-acl-init.service"];
-  };
+  systemd.services.navidrome.serviceConfig.RequiresMountsFor = [ musicDir ];
 
   services.navidrome = {
     enable = true;
     openFirewall = true;
     settings = {
-      MusicFolder = musicDir;
       Address = "0.0.0.0";
+      Port = 4533;
+      MusicFolder = musicDir;
       Scanner.PurgeMissing = "always";
-      CoverArtPriority = "cover.*,folder.*,front.*";
+      CoverArtPriority = "cover.*,folder.*,front.*,embedded";
       BaseUrl = "/music";
     };
   };

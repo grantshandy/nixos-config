@@ -11,6 +11,7 @@
   secrets_dir = "/var/secrets";
   headscale_key_path = "${secrets_dir}/headscale_api_key";
   headplane_cookie_path = "${secrets_dir}/headplane_cookie_secret";
+  headplane_agent_authkey_path = "${secrets_dir}/headplane_agent_authkey";
   server_authkey_path = "${secrets_dir}/tailscale_authkey";
   headplane_port = 8000;
   headscale_port = 8080;
@@ -96,9 +97,12 @@ in {
       integration.agent = {
         enabled = true;
         host_name = "headplane-agent";
+        pre_authkey_path = headplane_agent_authkey_path;
       };
     };
   };
+
+  systemd.services.headplane.environment.COOKIE_SECURE = "false";
 
   systemd.tmpfiles.rules = [
     "d ${secrets_dir} 0700 ${config.services.headscale.user} ${config.services.headscale.group} -"
@@ -147,6 +151,12 @@ in {
       if [ ! -f ${server_authkey_path} ]; then
         key=$("$hs" preauthkeys create --user "$(default_user_id)" --reusable --expiration 3650d)
         printf '%s' "$key" > ${server_authkey_path}
+      fi
+
+      # Reusable key for the Headplane agent (separate from the server's own key)
+      if [ ! -f ${headplane_agent_authkey_path} ]; then
+        key=$("$hs" preauthkeys create --user "$(default_user_id)" --reusable --expiration 3650d)
+        printf '%s' "$key" > ${headplane_agent_authkey_path}
       fi
 
       chown -R ${config.services.headscale.user}:${config.services.headscale.group} ${secrets_dir}

@@ -17,10 +17,27 @@
       uboot.enable = true;
     };
   };
+
   boot = {
     kernelPackages = lib.mkForce pkgs.linuxPackages;
     kernelParams = ["module_blacklist=vc4,v3d"];
   };
+
+  fileSystems."/mnt/media" = {
+    device = "/dev/disk/by-uuid/ffb3b356-8c16-4d31-9a27-5a71e275769c";
+    fsType = "ext4";
+    options = [
+      "noatime"
+      "nofail"
+      "x-systemd.device-timeout=10"
+    ];
+  };
+
+  users.groups.media = {};
+  users.users.${config.identity.user.name}.extraGroups = [ "media" ];
+  systemd.tmpfiles.rules = [
+    "z /mnt/media 2775 root media -"
+  ];
 
   sdImage.populateRootCommands = ''
     mkdir -p ./files/boot
