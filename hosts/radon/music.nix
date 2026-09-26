@@ -22,7 +22,7 @@ in {
       Port = 4533;
       MusicFolder = musicDir;
       Scanner.PurgeMissing = "always";
-      CoverArtPriority = "cover.*,folder.*,front.*,embedded";
+      CoverArtPriority = "embedded,cover.*,folder.*,front.*";
       BaseUrl = "/music";
     };
   };
