@@ -15,10 +15,6 @@
   headplane_port = 8000;
   headscale_port = 8080;
 in {
-  disabledModules = [ "services/networking/headplane.nix" ];
-  imports = [ inputs.headplane.nixosModules.headplane ];
-  nixpkgs.overlays = [ inputs.headplane.overlays.default ];
-
   networking = {
     hosts = {
       "127.0.0.1" = [dns];
@@ -87,6 +83,7 @@ in {
 
   services.headplane = {
     enable = true;
+    package = pkgs-unstable.headplane;
     settings = {
       headscale.url = "http://127.0.0.1:${toString headscale_port}";
 

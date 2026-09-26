@@ -28,11 +28,6 @@
       url = "github:NixOS/nixos-hardware/master";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    headplane = {
-      url = "github:tale/headplane/v0.7.1";
-      inputs.nixpkgs.follows = "nixpkgs-unstable";
-    };
   };
 
   outputs = inputs @ {flake-parts, ...}:
