@@ -25,7 +25,9 @@ in {
     after = ["local-fs.target"];
     serviceConfig.Type = "oneshot";
     script = ''
-      ${pkgs.acl}/bin/setfacl -R -m g:media:rwx -d -m g:media:rwx ${musicDir}
+      ${pkgs.findutils}/bin/find ${musicDir} -type d -exec ${pkgs.coreutils}/bin/chmod 2775 {} +
+      ${pkgs.findutils}/bin/find ${musicDir} -type f -exec ${pkgs.coreutils}/bin/chmod 0664 {} +
+      ${pkgs.acl}/bin/setfacl -R -m u::rwx,g:media:rwx -d -m u::rwx,g:media:rwx ${musicDir}
     '';
   };
 
@@ -56,9 +58,10 @@ in {
           directory = musicDir;
           library = "${musicDir}/.beets/library.db";
 
-          # Force beets to write imported files with group write access
-          permfile = "0664";
-          permdir = "0775";
+          permissions = {
+            file = "664";
+            dir = "2775";
+          };
 
           import = {
             move = true;
