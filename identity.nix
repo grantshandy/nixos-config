@@ -3,8 +3,6 @@
     dns = "summerhillnet.duckdns.org";
   };
 
-  identity.stateVersion = "26.05";
-
   identity.user = {
     name = "grant";
     description = "Grant Handy";

@@ -31,5 +31,5 @@
     packages = with pkgs; [git];
   };
 
-  system.stateVersion = config.identity.stateVersion;
+  system.stateVersion = config.configuration.stateVersion;
 }

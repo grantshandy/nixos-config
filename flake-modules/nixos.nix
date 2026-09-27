@@ -18,6 +18,7 @@
             network.hosts = hostsRegistry;
           }
           ../modules/options.nix
+          inputs.self.nixosModules.stateVersion
           ../modules/nixos/base.nix
           ../modules/nixos/network-base.nix
           ../identity.nix

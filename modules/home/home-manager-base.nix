@@ -18,7 +18,7 @@
     users.${config.identity.user.name} = {
       home.username = config.identity.user.name;
       home.homeDirectory = "/home/${config.identity.user.name}";
-      home.stateVersion = config.identity.stateVersion;
+      home.stateVersion = config.configuration.stateVersion;
     };
   };
 }

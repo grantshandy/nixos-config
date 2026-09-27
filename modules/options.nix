@@ -1,4 +1,9 @@
 {lib, ...}: {
+  options.configuration.stateVersion = lib.mkOption {
+    type = lib.types.str;
+    description = "Compatibility version shared by NixOS and Home Manager.";
+  };
+
   options.identity = {
     user = {
       name = lib.mkOption {type = lib.types.str;};
@@ -91,5 +96,4 @@
   };
 
   options.identity.homelab.dns = lib.mkOption {type = lib.types.str;};
-  options.identity.stateVersion = lib.mkOption {type = lib.types.str;};
 }

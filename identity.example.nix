@@ -1,8 +1,6 @@
 {
   identity = {
     homelab.dns = "example.duckdns.org";
-    stateVersion = "26.05";
-
     user = {
       name = "alice";
       description = "Alice Example";
