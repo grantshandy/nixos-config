@@ -32,7 +32,6 @@
     };
 
     userSettings = {
-      disable_ai = true;
       vim_mode = true;
       relative_line_numbers = "enabled";
       git.inline_blame.enabled = false;
@@ -40,8 +39,8 @@
       collaboration_panel.button = false;
 
       node = {
-        path = "${pkgs.nodejs}/bin/node";
-        npm_path = "${pkgs.nodejs}/bin/npm";
+        path = "node";
+        npm_path = "npm";
       };
 
       title_bar = {
