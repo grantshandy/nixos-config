@@ -10,6 +10,7 @@
     alejandra
     file
     tree
+    ripgrep
   ];
 
   programs.tmux = {
