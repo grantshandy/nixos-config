@@ -21,7 +21,7 @@
 
   documentation.enable = false;
   environment.defaultPackages = lib.mkForce [];
-  environment.systemPackages = with pkgs; [vim htop git];
+  environment.systemPackages = with pkgs; [vim htop git nodejs];
 
   services.openssh.settings = {
     PasswordAuthentication = lib.mkForce false;
