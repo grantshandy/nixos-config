@@ -4,6 +4,7 @@
   ...
 }: let
   musicDir = "/mnt/media/music";
+  navidromeDataDir = "/mnt/media/navidrome";
 in {
   users.users.navidrome.extraGroups = ["media"];
 
@@ -12,7 +13,10 @@ in {
     "d ${musicDir}/.beets 2775 ${config.identity.user.name} media - -"
   ];
 
-  systemd.services.navidrome.serviceConfig.RequiresMountsFor = [ musicDir ];
+  systemd.services.navidrome.unitConfig.RequiresMountsFor = [
+    musicDir
+    navidromeDataDir
+  ];
 
   services.navidrome = {
     enable = true;
@@ -21,6 +25,8 @@ in {
       Address = "0.0.0.0";
       Port = 4533;
       MusicFolder = musicDir;
+      DataFolder = navidromeDataDir;
+      CacheFolder = "${navidromeDataDir}/cache";
       Scanner.PurgeMissing = "always";
       CoverArtPriority = "embedded,cover.*,folder.*,front.*";
       BaseUrl = "/music";

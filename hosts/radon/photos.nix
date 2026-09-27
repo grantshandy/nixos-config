@@ -11,14 +11,9 @@
   immichPort = 2283;
   photosHost = "photos.${config.identity.homelab.dns}";
 in {
-  # The release channel still contains unsupported Immich 2.x.  Use the
-  # already-pinned unstable module and package, which currently provide the
-  # supported 3.x release, without allowing known-insecure packages globally.
   disabledModules = ["services/web-apps/immich.nix"];
   imports = ["${inputs.nixpkgs-unstable}/nixos/modules/services/web-apps/immich.nix"];
 
-  # The existing photo collection is an external library.  Keep it read-only so
-  # an Immich bug or compromised service cannot alter the originals.
   users.users.immich.extraGroups = ["media"];
 
   services.immich = {
@@ -29,9 +24,6 @@ in {
     openFirewall = false;
     mediaLocation = immichDataDir;
 
-    # Do not install or run the model server on this Raspberry Pi.  Disabling
-    # machine learning in Immich itself also prevents face/smart-search jobs
-    # from being queued against a server that is intentionally absent.
     machine-learning.enable = false;
     settings = {
       machineLearning.enabled = false;
