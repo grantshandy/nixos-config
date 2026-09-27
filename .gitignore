@@ -1,6 +1,4 @@
 result
 .direnv
-
-# Never commit plaintext credentials. Encrypted *.age files are tracked.
 secrets/*.txt
 hosts/*/*-token.txt
