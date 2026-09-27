@@ -8,6 +8,19 @@
       };
     };
 
+    ssh = {
+      userKeys = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [];
+        description = "Public SSH keys authorized for the primary user.";
+      };
+      hostKeys = lib.mkOption {
+        type = lib.types.attrsOf lib.types.str;
+        default = {};
+        description = "Public SSH host keys, keyed by host name.";
+      };
+    };
+
     git = {
       name = lib.mkOption {type = lib.types.str;};
       email = lib.mkOption {type = lib.types.str;};
@@ -78,9 +91,5 @@
   };
 
   options.identity.homelab.dns = lib.mkOption {type = lib.types.str;};
-  options.identity.user.sshKeys = lib.mkOption {
-    type = lib.types.listOf lib.types.str;
-    default = [];
-  };
   options.identity.stateVersion = lib.mkOption {type = lib.types.str;};
 }

@@ -54,8 +54,10 @@ in {
   services.duckdns = {
     enable = true;
     domains = [(lib.head (lib.splitString "." dns))];
-    tokenFile = ./duckdns-token.txt;
+    tokenFile = config.age.secrets.duckdns-token.path;
   };
+
+  age.secrets.duckdns-token.file = ../../secrets/duckdns-token.age;
 
   services.headscale = {
     enable = true;
