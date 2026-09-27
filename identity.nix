@@ -32,40 +32,16 @@
       "return-youtube-dislikes"
     ];
 
-    bookmarks = [
-      {
-        name = "Mail";
-        url = "https://mail.proton.me";
-      }
-      {
-        name = "Calendar";
-        url = "https://calendar.proton.me";
-      }
-      {
-        name = "Spotify";
-        url = "https://open.spotify.com";
-      }
-      {
-        name = "GitHub";
-        url = "https://github.com";
-      }
-      {
-        name = "NixOS Wiki";
-        url = "https://wiki.nixos.org/wiki/NixOS_Wiki";
-      }
-      {
-        name = "Papago";
-        url = "https://papago.naver.com";
-      }
-      {
-        name = "Canvas";
-        url = "https://utah.instructure.com";
-      }
-      {
-        name = "Thesaurus";
-        url = "https://www.powerthesaurus.org/";
-      }
-    ];
+    bookmarks = {
+      Mail = "https://mail.proton.me";
+      Calendar = "https://calendar.proton.me";
+      Spotify = "https://open.spotify.com";
+      GitHub = "https://github.com";
+      "NixOS Wiki" = "https://wiki.nixos.org/wiki/NixOS_Wiki";
+      Papago = "https://papago.naver.com";
+      Canvas = "https://utah.instructure.com";
+      Thesaurus = "https://www.powerthesaurus.org/";
+    };
 
     searchEngines = {
       homemanager = "https://home-manager-options.extranix.com/?query={s}&release=master";

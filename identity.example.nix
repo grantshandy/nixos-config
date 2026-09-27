@@ -24,12 +24,7 @@
         "ublock-origin"
         "darkreader"
       ];
-      bookmarks = [
-        {
-          name = "NixOS Wiki";
-          url = "https://wiki.nixos.org/wiki/NixOS_Wiki";
-        }
-      ];
+      bookmarks."NixOS Wiki" = "https://wiki.nixos.org/wiki/NixOS_Wiki";
       searchEngines = {
         homemanager = "https://home-manager-options.extranix.com/?query={s}&release=master";
       };

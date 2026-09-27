@@ -44,13 +44,9 @@
       };
 
       bookmarks = lib.mkOption {
-        type = lib.types.listOf (lib.types.submodule {
-          options = {
-            name = lib.mkOption {type = lib.types.str;};
-            url = lib.mkOption {type = lib.types.str;};
-          };
-        });
-        default = [];
+        type = lib.types.attrsOf lib.types.str;
+        default = {};
+        description = "Firefox bookmarks as name-to-URL pairs.";
       };
 
       searchEngines = lib.mkOption {

@@ -1,6 +1,7 @@
 {
   inputs,
   config,
+  lib,
   pkgs,
   ...
 }: let
@@ -122,7 +123,7 @@ in {
           {
             name = "NixOS Managed";
             toolbar = true;
-            bookmarks = fx.bookmarks;
+            bookmarks = lib.mapAttrsToList (name: url: {inherit name url;}) fx.bookmarks;
           }
         ];
       };
