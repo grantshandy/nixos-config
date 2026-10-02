@@ -1,10 +1,14 @@
 {
   config,
   pkgs,
+  utils,
   ...
 }: let
+  mediaMount = "/mnt/media";
   musicDir = "/mnt/media/music";
   navidromeDataDir = "/mnt/media/navidrome";
+  mediaMountUnit = "${utils.escapeSystemdPath mediaMount}.mount";
+  mediaDeviceUnit = "${utils.escapeSystemdPath config.fileSystems.${mediaMount}.device}.device";
 in {
   users.users.navidrome.extraGroups = ["media"];
 
@@ -13,10 +17,20 @@ in {
     "d ${musicDir}/.beets 2775 ${config.identity.user.name} media - -"
   ];
 
-  systemd.services.navidrome.unitConfig.RequiresMountsFor = [
-    musicDir
-    navidromeDataDir
-  ];
+  systemd.services.navidrome = {
+    # Starting the drive's device unit after a hot-plug starts Navidrome again.
+    wantedBy = [mediaDeviceUnit];
+    after = [mediaMountUnit];
+    bindsTo = [mediaMountUnit];
+    unitConfig.RequiresMountsFor = [
+      musicDir
+      navidromeDataDir
+    ];
+    serviceConfig = {
+      Restart = "on-failure";
+      RestartSec = "5s";
+    };
+  };
 
   services.navidrome = {
     enable = true;
