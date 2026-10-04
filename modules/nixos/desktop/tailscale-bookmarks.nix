@@ -10,7 +10,7 @@
     (name: h: name != thisHost && h.ssh.enable && h.tailscale.enable)
     config.network.hosts;
 
-  bookmarkFor = name: h: "sftp://${name}/home/${config.identity.user.name}/ ${name}";
+  bookmarkFor = name: h: "sftp://${name}:${toString h.ssh.port}/home/${config.identity.user.name}/ ${name}";
 
   sshMatchBlockFor = name: h: {
     hostname = "${name}.${tailnetDomain}";

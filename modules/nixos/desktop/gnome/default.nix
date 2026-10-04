@@ -164,5 +164,31 @@
         };
       }
     )
+
+    # enforce standard XDG bookmarks
+    ({config, ...}: let
+      excluded = [
+        "desktop"
+        "publishShare"
+        "publicShare"
+        "templates"
+      ];
+
+      xdgUserDirectories =
+        lib.filter builtins.isString
+        (lib.attrValues (removeAttrs config.xdg.userDirs excluded));
+    in {
+      xdg.userDirs = {
+        enable = true;
+        createDirectories = true;
+      };
+
+      xdg.configFile = {
+        "user-dirs.dirs".force = true;
+        "user-dirs.conf".force = true;
+      };
+
+      gtk.gtk3.bookmarks = map (directory: "file://${directory}") xdgUserDirectories;
+    })
   ];
 }
