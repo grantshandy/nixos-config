@@ -27,9 +27,14 @@ in {
   services.tailscale = lib.mkIf self.tailscale.enable {
     enable = lib.mkDefault true;
     openFirewall = lib.mkDefault true;
+
     extraUpFlags = lib.mkDefault [
       "--login-server=https://${config.identity.homelab.dns}"
-      "--accept-dns=false"
+      "--accept-dns=true"
+    ];
+
+    extraSetFlags = lib.mkDefault [
+      "--accept-dns=true"
     ];
   };
 
