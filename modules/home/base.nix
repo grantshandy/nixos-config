@@ -11,6 +11,7 @@
     tree
     ripgrep
     tldr
+    fastfetch
   ];
 
   programs.tmux = {
