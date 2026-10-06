@@ -13,7 +13,7 @@
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE/3ShunvZsf43FQUOBrZfquVTR1VEWrI6KbdfCoh71U grant@xenon"
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP59990ax7Hh7lz8nEKrSj5ka7XJLRGeBN1i7yo66Ztd grant@helium"
     ];
-    hostKeys.radon = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDskTTcyiRpEPJoKOAi7L8Bxv+BQBKjjDW6hz5ctWXOB";
+    hostKeys.radon = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEjjPwIi6YaqCNSnBv0GR4x7u66rCgehBUdSMR5DRKPf root@radon";
   };
 
   identity.git = {
