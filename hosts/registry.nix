@@ -12,7 +12,7 @@
     tailscale.enable = true;
   };
   radon = {
-    system = "aarch64-linux";
+    system = "x86_64-linux";
     ssh.enable = true;
     ssh.port = 22;
     tailscale.enable = true;

@@ -6,11 +6,11 @@
   home.packages = with pkgs; [
     nix-tree
     ascii
-    man-pages
     alejandra
     file
     tree
     ripgrep
+    tldr
   ];
 
   programs.tmux = {

@@ -7,6 +7,17 @@
     config.network.hosts.${config.networking.hostName}
     or (throw "host '${config.networking.hostName}' is missing from network.hosts");
 in {
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;
+    openFirewall = true;
+    publish = {
+      enable = true;
+      addresses = true;
+      workstation = true;
+    };
+  };
+
   services.openssh = lib.mkIf self.ssh.enable {
     enable = lib.mkDefault true;
     ports = lib.mkDefault [self.ssh.port];

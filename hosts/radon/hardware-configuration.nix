@@ -1,30 +1,31 @@
 {
-  inputs,
-  pkgs,
-  lib,
   config,
+  lib,
+  modulesPath,
   ...
 }: {
   imports = [
-    "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image.nix"
-    inputs.nixos-hardware.nixosModules.raspberry-pi-4
+    (modulesPath + "/installer/scan/not-detected.nix")
   ];
 
-  hardware = {
-    wirelessRegulatoryDatabase = true;
-    raspberry-pi.firmware = {
-      enable = true;
-      uboot.enable = true;
-    };
+  boot.initrd.availableKernelModules = ["nvme" "xhci_pci" "ahci" "usbhid" "usb_storage" "sd_mod"];
+  boot.initrd.kernelModules = [];
+  boot.kernelModules = ["kvm-amd"];
+  boot.extraModulePackages = [];
+
+  fileSystems."/" = {
+    device = "/dev/disk/by-label/nixos";
+    fsType = "ext4";
   };
 
-  boot = {
-    kernelPackages = lib.mkForce pkgs.linuxPackages;
-    kernelParams = ["module_blacklist=vc4,v3d"];
+  fileSystems."/boot" = {
+    device = "/dev/disk/by-label/boot";
+    fsType = "vfat";
+    options = ["fmask=0077" "dmask=0077"];
   };
 
   fileSystems."/mnt/media" = {
-    device = "/dev/disk/by-uuid/ffb3b356-8c16-4d31-9a27-5a71e275769c";
+    device = "/dev/disk/by-label/media";
     fsType = "ext4";
     options = [
       "noatime"
@@ -34,13 +35,15 @@
   };
 
   users.groups.media = {};
-  users.users.${config.identity.user.name}.extraGroups = [ "media" ];
+  users.users.${config.identity.user.name}.extraGroups = ["media"];
   systemd.tmpfiles.rules = [
     "z /mnt/media 2775 root media -"
   ];
 
-  sdImage.populateRootCommands = ''
-    mkdir -p ./files/boot
-    ${config.boot.loader.generic-extlinux-compatible.populateCmd} -c ${config.system.build.toplevel} -d ./files/boot
-  '';
+  swapDevices = [];
+
+  networking.useDHCP = lib.mkDefault true;
+
+  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+  hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 }
