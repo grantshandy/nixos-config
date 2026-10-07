@@ -11,11 +11,19 @@
   secrets_dir = "/var/secrets";
   headscale_key_path = "${secrets_dir}/headscale_api_key";
   headplane_cookie_path = "${secrets_dir}/headplane_cookie_secret";
-  headplane_agent_authkey_path = "${secrets_dir}/headplane_agent_authkey";
   server_authkey_path = "${secrets_dir}/tailscale_authkey";
   headplane_port = 8000;
   headscale_port = 8080;
 in {
+  disabledModules = [
+    "services/networking/headscale.nix"
+    "services/networking/headplane.nix"
+  ];
+  imports = [
+    "${inputs.nixpkgs-unstable}/nixos/modules/services/networking/headscale.nix"
+    "${inputs.nixpkgs-unstable}/nixos/modules/services/networking/headplane.nix"
+  ];
+
   networking = {
     hosts = {
       "127.0.0.1" = [dns];
@@ -24,7 +32,7 @@ in {
       allowedTCPPorts = [443];
       interfaces = {
         tailscale0.allowedTCPPorts = [headplane_port];
-        end0.allowedTCPPorts = [headplane_port];
+        enp8s0.allowedTCPPorts = [headplane_port];
       };
     };
   };
@@ -87,8 +95,12 @@ in {
   services.headplane = {
     enable = true;
     package = pkgs-unstable.headplane;
+    agent.package = pkgs-unstable.headplane-agent;
     settings = {
-      headscale.url = "http://127.0.0.1:${toString headscale_port}";
+      headscale = {
+        url = "http://127.0.0.1:${toString headscale_port}";
+        api_key_path = headscale_key_path;
+      };
 
       server = {
         host = "0.0.0.0";
@@ -99,12 +111,9 @@ in {
       integration.agent = {
         enabled = true;
         host_name = "headplane-agent";
-        pre_authkey_path = headplane_agent_authkey_path;
       };
     };
   };
-
-  systemd.services.headplane.environment.COOKIE_SECURE = "false";
 
   systemd.tmpfiles.rules = [
     "d ${secrets_dir} 0700 ${config.services.headscale.user} ${config.services.headscale.group} -"
@@ -153,12 +162,6 @@ in {
       if [ ! -f ${server_authkey_path} ]; then
         key=$("$hs" preauthkeys create --user "$(default_user_id)" --reusable --expiration 3650d)
         printf '%s' "$key" > ${server_authkey_path}
-      fi
-
-      # Reusable key for the Headplane agent (separate from the server's own key)
-      if [ ! -f ${headplane_agent_authkey_path} ]; then
-        key=$("$hs" preauthkeys create --user "$(default_user_id)" --reusable --expiration 3650d)
-        printf '%s' "$key" > ${headplane_agent_authkey_path}
       fi
 
       chown -R ${config.services.headscale.user}:${config.services.headscale.group} ${secrets_dir}
