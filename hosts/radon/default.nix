@@ -7,6 +7,9 @@
   imports = [
     ./hardware-configuration.nix
     ../../modules/nixos/bootloader-systemd.nix
+    ./headscale.nix
+    ./music.nix
+    ./photos.nix
   ];
 
   time.timeZone = "America/Denver";

@@ -24,9 +24,17 @@ in {
     openFirewall = false;
     mediaLocation = immichDataDir;
 
-    machine-learning.enable = false;
+    # Start with CPU inference; CUDA requires a compatible proprietary driver
+    # and inference libraries, not just an NVIDIA display adapter.
+    machine-learning.enable = true;
     settings = {
-      machineLearning.enabled = false;
+      machineLearning = {
+        enabled = true;
+        facialRecognition = {
+          enabled = true;
+          modelName = "buffalo_l";
+        };
+      };
       newVersionCheck.enabled = false;
       server.externalDomain = "https://${photosHost}";
     };
@@ -34,6 +42,11 @@ in {
 
   # Keep PostgreSQL and its VectorChord extension aligned with the Immich 3.x
   services.postgresql.package = pkgs-unstable.postgresql;
+
+  systemd.services.immich-machine-learning.serviceConfig = {
+    IOSchedulingClass = "idle";
+    Nice = 10;
+  };
 
   systemd.services.immich-server = {
     unitConfig.RequiresMountsFor = [photosDir immichDataDir];
