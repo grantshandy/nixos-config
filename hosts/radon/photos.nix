@@ -43,6 +43,14 @@ in {
   # Keep PostgreSQL and its VectorChord extension aligned with the Immich 3.x
   services.postgresql.package = pkgs-unstable.postgresql;
 
+  # Preserve enough memory for SSH and core system services if Immich has a
+  # transient spike. MemoryHigh throttles reclaim before MemoryMax is reached.
+  systemd.slices."system-immich".sliceConfig = {
+    MemoryHigh = "4G";
+    MemoryMax = "5G";
+    MemorySwapMax = "2G";
+  };
+
   systemd.services.immich-machine-learning.serviceConfig = {
     IOSchedulingClass = "idle";
     Nice = 10;

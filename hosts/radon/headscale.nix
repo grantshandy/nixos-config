@@ -50,9 +50,6 @@ in {
       auto_https disable_redirects
     '';
     virtualHosts.${dns}.extraConfig = ''
-      handle /music* {
-        reverse_proxy http://127.0.0.1:4533
-      }
       handle {
         reverse_proxy 127.0.0.1:${toString headscale_port}
       }

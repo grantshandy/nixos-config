@@ -10,8 +10,9 @@
 
   boot.initrd.availableKernelModules = ["nvme" "xhci_pci" "ahci" "usbhid" "usb_storage" "uas" "sd_mod"];
   boot.initrd.kernelModules = [];
-  boot.kernelModules = ["kvm-amd"];
+  # boot.kernelModules = ["kvm-amd"];
   boot.extraModulePackages = [];
+  boot.kernelParams = [ "processor.max_cstate=1" ];
 
   fileSystems."/" = {
     device = "/dev/disk/by-label/nixos";
@@ -34,7 +35,8 @@
     ];
   };
 
-  users.groups.media = {};
+  # Keep ownership stable for files stored on the persistent media drive.
+  users.groups.media.gid = 998;
   users.users.${config.identity.user.name}.extraGroups = ["media"];
   systemd.tmpfiles.rules = [
     "z /mnt/media 2775 root media -"
