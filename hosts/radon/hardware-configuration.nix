@@ -2,6 +2,7 @@
   config,
   lib,
   modulesPath,
+  pkgs,
   ...
 }: {
   imports = [
@@ -12,7 +13,14 @@
   boot.initrd.kernelModules = [];
   # boot.kernelModules = ["kvm-amd"];
   boot.extraModulePackages = [];
-  boot.kernelParams = [ "processor.max_cstate=1" ];
+
+  boot.kernelPackages = pkgs.linuxPackages_6_12;
+  boot.kernelParams = ["processor.max_cstate=1" "idle=nomwait"];
+
+  boot.kernel.sysctl = {
+    "kernel.softlockup_panic" = 1;
+    "kernel.panic" = 30;
+  };
 
   fileSystems."/" = {
     device = "/dev/disk/by-label/nixos";
