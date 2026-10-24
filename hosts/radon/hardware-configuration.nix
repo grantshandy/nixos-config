@@ -15,7 +15,7 @@
   boot.extraModulePackages = [];
 
   boot.kernelPackages = pkgs.linuxPackages_6_12;
-  boot.kernelParams = ["processor.max_cstate=1" "idle=nomwait"];
+  boot.kernelParams = ["processor.max_cstate=1" "idle=poll"];
 
   boot.kernel.sysctl = {
     "kernel.softlockup_panic" = 1;
