@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  utils,
   ...
 }: let
   tokenFile = ../../secrets/gitlab-runner-token.age;
@@ -12,7 +13,9 @@
   namespaceInterface = "${namespace}-peer";
   tunnelInterface = "${namespace}-vpn";
   runtimeDir = "/run/${namespace}";
-  runnerBuildDir = "/var/lib/gitlab-runner-builds";
+  mediaMount = "/mnt/media";
+  mediaMountUnit = "${utils.escapeSystemdPath mediaMount}.mount";
+  runnerBuildDir = "${mediaMount}/gitlab-runner-builds";
   vpnServer = "vpn.utah.edu";
 
   namespaceSetup = pkgs.writeShellApplication {
@@ -294,8 +297,9 @@ in
       # nixos-rebuild while no ephemeral SAML cookie exists.
       wantedBy = lib.mkForce [];
       requires = ["${namespace}-netns.service" "${namespace}-vpn.service"];
-      after = ["${namespace}-netns.service" "${namespace}-vpn.service"];
-      bindsTo = ["${namespace}-vpn.service"];
+      after = ["${namespace}-netns.service" "${namespace}-vpn.service" mediaMountUnit];
+      bindsTo = ["${namespace}-vpn.service" mediaMountUnit];
+      unitConfig.RequiresMountsFor = [runnerBuildDir];
       serviceConfig = {
         NetworkNamespacePath = "/run/netns/${namespace}";
         BindReadOnlyPaths = ["${runtimeDir}/resolv.conf:/etc/resolv.conf"];
