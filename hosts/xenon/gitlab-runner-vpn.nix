@@ -76,11 +76,16 @@
 
   command = pkgs.writeShellApplication {
     name = "uofu-runner-vpn";
-    runtimeInputs = [pkgs.openssh];
+    runtimeInputs = [pkgs.openssh pkgs.waypipe];
     text = ''
       case "''${1:-}" in
         renew)
-          exec ssh -Y radon uofu-ci-auth
+          exec waypipe \
+            --no-gpu \
+            --oneshot \
+            --ssh-bin=${lib.getExe pkgs.openssh} \
+            --remote-bin=${lib.getExe pkgs.waypipe} \
+            ssh radon uofu-ci-auth
           ;;
         status)
           exec ssh radon sudo -n uofu-ci-status

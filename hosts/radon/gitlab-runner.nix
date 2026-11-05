@@ -233,13 +233,8 @@ in
       authenticate
       submitAuth
       vpnStatus
-      pkgs.xauth
+      pkgs.waypipe
     ];
-
-    services.openssh.settings = {
-      X11Forwarding = true;
-      XAuthLocation = lib.getExe pkgs.xauth;
-    };
 
     systemd.tmpfiles.rules = [
       "d ${runtimeDir} 0700 root root -"
@@ -302,6 +297,9 @@ in
     };
 
     systemd.services.gitlab-runner = {
+      # Authentication explicitly starts the runner; do not fail boot or
+      # nixos-rebuild while no ephemeral SAML cookie exists.
+      wantedBy = lib.mkForce [];
       requires = ["${namespace}-netns.service" "${namespace}-vpn.service"];
       after = ["${namespace}-netns.service" "${namespace}-vpn.service"];
       bindsTo = ["${namespace}-vpn.service"];
