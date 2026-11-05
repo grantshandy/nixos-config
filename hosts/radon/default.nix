@@ -22,6 +22,24 @@
   };
   security.sudo.wheelNeedsPassword = false;
 
+  nix = {
+    gc = {
+      automatic = true;
+      dates = "weekly";
+      options = "--delete-older-than 14d";
+    };
+
+    settings = {
+      min-free = 10 * 1024 * 1024 * 1024;
+      max-free = 20 * 1024 * 1024 * 1024;
+    };
+
+    optimise = {
+      automatic = true;
+      dates = ["weekly"];
+    };
+  };
+
   documentation.enable = false;
   environment.defaultPackages = lib.mkForce [];
   environment.systemPackages = with pkgs; [vim htop git nodejs];
