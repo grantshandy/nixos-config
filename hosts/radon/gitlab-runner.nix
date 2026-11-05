@@ -110,6 +110,10 @@
       cookie="$(cat ${runtimeDir}/cookie)"
       os="$(cat ${runtimeDir}/os)"
 
+      # vpnc-script removes the underlay default route when a VPN session ends.
+      # Restore it before OpenConnect needs to contact the VPN gateway again.
+      ip route replace default via 10.203.0.1 dev ${namespaceInterface}
+
       printf '%s\n' "$cookie" | exec openconnect \
         --protocol=gp \
         --interface=${tunnelInterface} \
