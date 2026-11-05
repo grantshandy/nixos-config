@@ -5,6 +5,7 @@
 }: let
   tokenAvailable = builtins.pathExists ../../secrets/gitlab-runner-token.age;
   serviceName = "uofu-runner-vpn-monitor";
+  vpnServer = "vpn.utah.edu";
 
   monitor = pkgs.writeShellApplication {
     name = serviceName;
@@ -76,16 +77,19 @@
 
   command = pkgs.writeShellApplication {
     name = "uofu-runner-vpn";
-    runtimeInputs = [pkgs.openssh pkgs.waypipe];
+    runtimeInputs = [pkgs.gp-saml-gui pkgs.openssh];
     text = ''
       case "''${1:-}" in
         renew)
-          exec waypipe \
-            --no-gpu \
-            --oneshot \
-            --ssh-bin=${lib.getExe pkgs.openssh} \
-            --remote-bin=${lib.getExe pkgs.waypipe} \
-            ssh radon uofu-ci-auth
+          echo "Complete the University of Utah login in the local window."
+          auth="$(${lib.getExe pkgs.gp-saml-gui} -g --clientos Windows ${vpnServer})"
+          eval "$auth"
+          : "''${HOST:?Missing VPN host}"
+          : "''${USER:?Missing VPN user}"
+          : "''${COOKIE:?Missing VPN cookie}"
+          : "''${OS:?Missing VPN OS}"
+          printf '%s\n%s\n%s\n%s\n' "$HOST" "$USER" "$COOKIE" "$OS" |
+            ssh radon sudo -n uofu-ci-submit-auth
           ;;
         status)
           exec ssh radon sudo -n uofu-ci-status

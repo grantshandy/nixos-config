@@ -173,22 +173,6 @@
     '';
   };
 
-  authenticate = pkgs.writeShellApplication {
-    name = "${namespace}-auth";
-    runtimeInputs = with pkgs; [gp-saml-gui sudo];
-    text = ''
-      echo "Complete the University of Utah login in the forwarded window."
-      auth="$(${lib.getExe pkgs.gp-saml-gui} -g --clientos Windows ${vpnServer})"
-      eval "$auth"
-      : "''${HOST:?Missing VPN host}"
-      : "''${USER:?Missing VPN user}"
-      : "''${COOKIE:?Missing VPN cookie}"
-      : "''${OS:?Missing VPN OS}"
-      printf '%s\n%s\n%s\n%s\n' "$HOST" "$USER" "$COOKIE" "$OS" |
-        sudo ${lib.getExe submitAuth}
-    '';
-  };
-
   vpnStatus = pkgs.writeShellApplication {
     name = "${namespace}-status";
     runtimeInputs = with pkgs; [coreutils curl gnused iproute2 systemd];
@@ -230,10 +214,8 @@ in
     };
 
     environment.systemPackages = [
-      authenticate
       submitAuth
       vpnStatus
-      pkgs.waypipe
     ];
 
     systemd.tmpfiles.rules = [
@@ -291,7 +273,6 @@ in
         namespaceSetup
         vpnStart
         submitAuth
-        authenticate
         vpnStatus
       ];
     };
