@@ -7,6 +7,7 @@
     ./hardware-configuration.nix
     ../../modules/nixos/bootloader-systemd.nix
     ../../modules/nixos/desktop
+    ./gitlab-runner-vpn.nix
     # ../../modules/nixos/soulseek.nix
   ];
 
