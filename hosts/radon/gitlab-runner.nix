@@ -16,6 +16,10 @@
   mediaMount = "/mnt/media";
   mediaMountUnit = "${utils.escapeSystemdPath mediaMount}.mount";
   runnerBuildDir = "${mediaMount}/gitlab-runner-builds";
+  runnerCacheDir = "${mediaMount}/gitlab-runner-cache";
+  cargoTargetDir = "${runnerCacheDir}/auxq-cargo-target";
+  cargoHomeDir = "${runnerCacheDir}/auxq-cargo-home";
+  pnpmStoreDir = "${runnerCacheDir}/pnpm-store";
   vpnServer = "vpn.utah.edu";
 
   namespaceSetup = pkgs.writeShellApplication {
@@ -232,6 +236,10 @@ in
     systemd.tmpfiles.rules = [
       "d ${runtimeDir} 0700 root root -"
       "d ${runnerBuildDir} 0750 gitlab-runner gitlab-runner -"
+      "d ${runnerCacheDir} 0750 gitlab-runner gitlab-runner -"
+      "d ${cargoTargetDir} 0750 gitlab-runner gitlab-runner -"
+      "d ${cargoHomeDir} 0750 gitlab-runner gitlab-runner -"
+      "d ${pnpmStoreDir} 0750 gitlab-runner gitlab-runner -"
     ];
 
     systemd.services."${namespace}-netns" = {
@@ -276,9 +284,14 @@ in
         # StateDirectory is intentionally noexec; job workspaces must execute
         # pnpm launchers, Cargo build scripts, and compiled test binaries.
         buildsDir = runnerBuildDir;
-        environmentVariables.NIX_CONFIG = ''
-          experimental-features = nix-command flakes pipe-operators
-        '';
+        environmentVariables = {
+          NIX_CONFIG = ''
+            experimental-features = nix-command flakes pipe-operators
+          '';
+          AUXQ_CI_CARGO_TARGET_DIR = cargoTargetDir;
+          AUXQ_CI_CARGO_HOME = cargoHomeDir;
+          AUXQ_CI_PNPM_STORE_DIR = pnpmStoreDir;
+        };
       };
     };
 
@@ -299,7 +312,7 @@ in
       requires = ["${namespace}-netns.service" "${namespace}-vpn.service"];
       after = ["${namespace}-netns.service" "${namespace}-vpn.service" mediaMountUnit];
       bindsTo = ["${namespace}-vpn.service" mediaMountUnit];
-      unitConfig.RequiresMountsFor = [runnerBuildDir];
+      unitConfig.RequiresMountsFor = [runnerBuildDir runnerCacheDir];
       serviceConfig = {
         NetworkNamespacePath = "/run/netns/${namespace}";
         BindReadOnlyPaths = ["${runtimeDir}/resolv.conf:/etc/resolv.conf"];
