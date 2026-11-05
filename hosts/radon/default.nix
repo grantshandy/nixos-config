@@ -42,7 +42,7 @@
 
   documentation.enable = false;
   environment.defaultPackages = lib.mkForce [];
-  environment.systemPackages = with pkgs; [vim htop git nodejs];
+  environment.systemPackages = with pkgs; [vim htop btop git nodejs];
 
   # Send kernel messages directly over Ethernet so they survive a userspace or
   # root-filesystem stall. Xenon records these messages in its journal.
