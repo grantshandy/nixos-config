@@ -7,6 +7,7 @@
   imports = [
     ./hardware-configuration.nix
     ../../modules/nixos/bootloader-systemd.nix
+    ./gitlab-runner.nix
     ./headscale.nix
     ./music.nix
     ./photos.nix

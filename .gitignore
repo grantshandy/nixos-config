@@ -1,4 +1,5 @@
 result
 .direnv
 secrets/*.txt
+secrets/*.swp
 hosts/*/*-token.txt
