@@ -12,6 +12,7 @@
   namespaceInterface = "${namespace}-peer";
   tunnelInterface = "${namespace}-vpn";
   runtimeDir = "/run/${namespace}";
+  runnerBuildDir = "/var/lib/gitlab-runner-builds";
   vpnServer = "vpn.utah.edu";
 
   namespaceSetup = pkgs.writeShellApplication {
@@ -227,6 +228,7 @@ in
 
     systemd.tmpfiles.rules = [
       "d ${runtimeDir} 0700 root root -"
+      "d ${runnerBuildDir} 0750 gitlab-runner gitlab-runner -"
     ];
 
     systemd.services."${namespace}-netns" = {
@@ -268,6 +270,9 @@ in
         authenticationTokenConfigFile = config.age.secrets.gitlab-runner-token.path;
         executor = "shell";
         description = "radon-nix";
+        # StateDirectory is intentionally noexec; job workspaces must execute
+        # pnpm launchers, Cargo build scripts, and compiled test binaries.
+        buildsDir = runnerBuildDir;
         environmentVariables.NIX_CONFIG = ''
           experimental-features = nix-command flakes pipe-operators
         '';
