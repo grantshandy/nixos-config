@@ -287,6 +287,9 @@ in
       serviceConfig = {
         NetworkNamespacePath = "/run/netns/${namespace}";
         BindReadOnlyPaths = ["${runtimeDir}/resolv.conf:/etc/resolv.conf"];
+        # DynamicUser mounts StateDirectory with noexec by default, but shell
+        # jobs must execute tools and build scripts from the runner workspace.
+        ExecPaths = "/var/lib/gitlab-runner";
         Nice = 10;
         CPUWeight = 25;
         IOWeight = 25;
