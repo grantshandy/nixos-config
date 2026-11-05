@@ -218,6 +218,13 @@ in
       vpnStatus
     ];
 
+    users.groups.gitlab-runner = {};
+    users.users.gitlab-runner = {
+      isSystemUser = true;
+      group = "gitlab-runner";
+      home = "/var/lib/gitlab-runner";
+    };
+
     systemd.tmpfiles.rules = [
       "d ${runtimeDir} 0700 root root -"
     ];
@@ -287,13 +294,11 @@ in
       serviceConfig = {
         NetworkNamespacePath = "/run/netns/${namespace}";
         BindReadOnlyPaths = ["${runtimeDir}/resolv.conf:/etc/resolv.conf"];
-        # DynamicUser mounts StateDirectory with noexec by default, but shell
-        # jobs must execute tools and build scripts from the runner workspace.
-        # GitLab Runner resolves the state directory to its physical private path.
-        ExecPaths = [
-          "/var/lib/gitlab-runner"
-          "/var/lib/private/gitlab-runner"
-        ];
+        # DynamicUser mounts StateDirectory with noexec, which prevents shell
+        # jobs from running package-manager tools and Cargo build scripts.
+        DynamicUser = lib.mkForce false;
+        User = "gitlab-runner";
+        Group = "gitlab-runner";
         Nice = 10;
         CPUWeight = 25;
         IOWeight = 25;
