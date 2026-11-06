@@ -4,6 +4,7 @@
 }: let
   dns = config.identity.homelab.dns;
   authHost = "auth.${dns}";
+  cockpitHost = "cockpit.${dns}";
   headplaneHost = "headplane.${dns}";
   autheliaUser = config.services.authelia.instances.main.user;
   autheliaGroup = config.services.authelia.instances.main.group;
@@ -65,6 +66,10 @@ in {
       access_control = {
         default_policy = "deny";
         rules = [
+          {
+            domain = cockpitHost;
+            policy = "two_factor";
+          }
           {
             domain = headplaneHost;
             policy = "two_factor";
@@ -132,6 +137,14 @@ in {
   services.caddy.virtualHosts = {
     ${authHost}.extraConfig = ''
       reverse_proxy 127.0.0.1:9091
+    '';
+
+    ${cockpitHost}.extraConfig = ''
+      forward_auth 127.0.0.1:9091 {
+        uri /api/authz/forward-auth
+        copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
+      }
+      reverse_proxy 127.0.0.1:9090
     '';
 
     ${headplaneHost}.extraConfig = ''
