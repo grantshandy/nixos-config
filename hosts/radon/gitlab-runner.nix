@@ -18,7 +18,9 @@
   runnerBuildDir = "${mediaMount}/gitlab-runner-builds";
   runnerCacheDir = "${mediaMount}/gitlab-runner-cache";
   cargoTargetDir = "${runnerCacheDir}/auxq-cargo-target";
+  androidCargoTargetDir = "${runnerCacheDir}/auxq-android-cargo-target";
   cargoHomeDir = "${runnerCacheDir}/auxq-cargo-home";
+  gradleHomeDir = "${runnerCacheDir}/auxq-gradle-home";
   pnpmStoreDir = "${runnerCacheDir}/pnpm-store";
   vpnServer = "vpn.utah.edu";
 
@@ -242,7 +244,9 @@ in
       "d ${runnerBuildDir} 0750 gitlab-runner gitlab-runner -"
       "d ${runnerCacheDir} 0750 gitlab-runner gitlab-runner -"
       "d ${cargoTargetDir} 0750 gitlab-runner gitlab-runner -"
+      "d ${androidCargoTargetDir} 0750 gitlab-runner gitlab-runner -"
       "d ${cargoHomeDir} 0750 gitlab-runner gitlab-runner -"
+      "d ${gradleHomeDir} 0750 gitlab-runner gitlab-runner -"
       "d ${pnpmStoreDir} 0750 gitlab-runner gitlab-runner -"
     ];
 
@@ -293,7 +297,9 @@ in
             experimental-features = nix-command flakes pipe-operators
           '';
           AUXQ_CI_CARGO_TARGET_DIR = cargoTargetDir;
+          AUXQ_CI_ANDROID_CARGO_TARGET_DIR = androidCargoTargetDir;
           AUXQ_CI_CARGO_HOME = cargoHomeDir;
+          AUXQ_CI_GRADLE_HOME = gradleHomeDir;
           AUXQ_CI_PNPM_STORE_DIR = pnpmStoreDir;
         };
       };
