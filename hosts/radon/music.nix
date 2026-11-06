@@ -47,9 +47,9 @@ in {
 
   services.navidrome = {
     enable = true;
-    openFirewall = true;
+    openFirewall = false;
     settings = {
-      Address = "0.0.0.0";
+      Address = "127.0.0.1";
       Port = 4533;
       MusicFolder = musicDir;
       DataFolder = navidromeDataDir;
@@ -115,9 +115,13 @@ in {
       reverse_proxy 127.0.0.1:4533
     }
     handle /slskd {
-      redir /slskd/ 308
+      redir * /slskd/ 308
     }
     handle /slskd/* {
+      forward_auth 127.0.0.1:9091 {
+        uri /api/authz/forward-auth
+        copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
+      }
       reverse_proxy 127.0.0.1:${toString slskdWebPort}
     }
   '';

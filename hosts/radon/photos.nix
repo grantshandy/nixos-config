@@ -36,6 +36,21 @@ in {
         };
       };
       newVersionCheck.enabled = false;
+      oauth = {
+        enabled = true;
+        issuerUrl = "https://auth.${config.identity.homelab.dns}";
+        clientId = "immich";
+        clientSecret._secret = config.age.secrets.immich-oidc-client-secret.path;
+        tokenEndpointAuthMethod = "client_secret_post";
+        scope = "openid profile email";
+        signingAlgorithm = "RS256";
+        profileSigningAlgorithm = "none";
+        autoRegister = false;
+        autoLaunch = false;
+        buttonText = "Login with Authelia";
+        mobileOverrideEnabled = false;
+        mobileRedirectUri = "";
+      };
       server.externalDomain = "https://${photosHost}";
     };
   };

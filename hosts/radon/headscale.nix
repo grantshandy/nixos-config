@@ -28,13 +28,7 @@ in {
     hosts = {
       "127.0.0.1" = [dns];
     };
-    firewall = {
-      allowedTCPPorts = [443];
-      interfaces = {
-        tailscale0.allowedTCPPorts = [headplane_port];
-        enp8s0.allowedTCPPorts = [headplane_port];
-      };
-    };
+    firewall.allowedTCPPorts = [443];
   };
 
   services.tailscale.authKeyFile = server_authkey_path;
@@ -100,10 +94,17 @@ in {
       };
 
       server = {
-        host = "0.0.0.0";
+        host = "127.0.0.1";
         port = headplane_port;
-        cookie_secure = false;
+        cookie_secure = true;
         cookie_secret_path = headplane_cookie_path;
+        proxy_auth = {
+          enabled = true;
+          user_header = "Remote-User";
+          email_header = "Remote-Email";
+          name_header = "Remote-Name";
+          allowed_cidrs = ["127.0.0.1/32"];
+        };
       };
       integration.agent = {
         enabled = true;

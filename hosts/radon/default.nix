@@ -7,6 +7,7 @@
   imports = [
     ./hardware-configuration.nix
     ../../modules/nixos/bootloader-systemd.nix
+    ./auth.nix
     ./gitlab-runner.nix
     ./headscale.nix
     ./music.nix
@@ -21,6 +22,12 @@
     openssh.authorizedKeys.keys = config.identity.ssh.userKeys;
   };
   security.sudo.wheelNeedsPassword = false;
+
+  services.cockpit = {
+    enable = true;
+    port = 9090;
+    openFirewall = false;
+  };
 
   nix = {
     gc = {
