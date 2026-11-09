@@ -22,6 +22,10 @@
   cargoHomeDir = "${runnerCacheDir}/auxq-cargo-home";
   gradleHomeDir = "${runnerCacheDir}/auxq-gradle-home";
   pnpmStoreDir = "${runnerCacheDir}/pnpm-store";
+  nixRootDir = "${runnerCacheDir}/auxq-nix-root";
+  nixBuildDir = "${runnerCacheDir}/auxq-nix-build";
+  nixXdgCacheDir = "${runnerCacheDir}/auxq-nix-xdg-cache";
+  nixTmpDir = "${runnerCacheDir}/auxq-nix-tmp";
   vpnServer = "vpn.utah.edu";
 
   namespaceSetup = pkgs.writeShellApplication {
@@ -248,6 +252,10 @@ in
       "d ${cargoHomeDir} 0750 gitlab-runner gitlab-runner -"
       "d ${gradleHomeDir} 0750 gitlab-runner gitlab-runner -"
       "d ${pnpmStoreDir} 0750 gitlab-runner gitlab-runner -"
+      "d ${nixRootDir} 0750 gitlab-runner gitlab-runner -"
+      "d ${nixBuildDir} 0750 gitlab-runner gitlab-runner -"
+      "d ${nixXdgCacheDir} 0750 gitlab-runner gitlab-runner -"
+      "d ${nixTmpDir} 0750 gitlab-runner gitlab-runner -"
     ];
 
     systemd.services."${namespace}-netns" = {
@@ -301,6 +309,10 @@ in
           AUXQ_CI_CARGO_HOME = cargoHomeDir;
           AUXQ_CI_GRADLE_HOME = gradleHomeDir;
           AUXQ_CI_PNPM_STORE_DIR = pnpmStoreDir;
+          AUXQ_CI_NIX_ROOT = nixRootDir;
+          AUXQ_CI_NIX_BUILD_DIR = nixBuildDir;
+          AUXQ_CI_XDG_CACHE_HOME = nixXdgCacheDir;
+          AUXQ_CI_TMPDIR = nixTmpDir;
         };
       };
     };
@@ -332,7 +344,7 @@ in
         User = "gitlab-runner";
         Group = "gitlab-runner";
         Nice = 10;
-        CPUWeight = 25;
+        CPUWeight = 75;
         IOWeight = 25;
         OOMScoreAdjust = 500;
       };

@@ -35,7 +35,10 @@
   };
 
   # Caddy is Cockpit's only network entry point.
-  systemd.sockets.cockpit.listenStreams = lib.mkForce ["127.0.0.1:9090"];
+  systemd.sockets.cockpit.listenStreams = lib.mkForce [
+    ""
+    "127.0.0.1:9090"
+  ];
 
   nix = {
     gc = {

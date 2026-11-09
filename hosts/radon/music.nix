@@ -10,6 +10,7 @@
   beetsDataDir = "${musicDir}/.beets";
   beetsLibrary = "${beetsDataDir}/library.db";
   navidromeDataDir = "/mnt/media/navidrome";
+  navidromePort = 4533;
   slskdDir = "/mnt/media/slskd";
   slskdDownloadsDir = "${slskdDir}/downloads";
   slskdIncompleteDir = "${slskdDir}/incomplete";
@@ -18,6 +19,8 @@
   mediaMountUnit = "${utils.escapeSystemdPath mediaMount}.mount";
   mediaDeviceUnit = "${utils.escapeSystemdPath config.fileSystems.${mediaMount}.device}.device";
 in {
+  networking.firewall.interfaces.tailscale0.allowedTCPPorts = [navidromePort];
+
   users.users.navidrome.extraGroups = ["media"];
   users.users.slskd.extraGroups = ["media"];
 
@@ -49,8 +52,8 @@ in {
     enable = true;
     openFirewall = false;
     settings = {
-      Address = "127.0.0.1";
-      Port = 4533;
+      Address = "0.0.0.0";
+      Port = navidromePort;
       MusicFolder = musicDir;
       DataFolder = navidromeDataDir;
       CacheFolder = "${navidromeDataDir}/cache";
@@ -111,9 +114,6 @@ in {
   # These handlers are merged ahead of Headscale's catch-all route. The slskd
   # backend remains local-only; Caddy is its sole public HTTP entry point.
   services.caddy.virtualHosts.${config.identity.homelab.dns}.extraConfig = lib.mkBefore ''
-    handle /music* {
-      reverse_proxy 127.0.0.1:4533
-    }
     handle /slskd {
       redir * /slskd/ 308
     }
