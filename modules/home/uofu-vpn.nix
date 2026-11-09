@@ -30,6 +30,39 @@
       esac
     '';
   };
+
+  gui = pkgs.writeShellApplication {
+    name = "${serviceName}-gui";
+    runtimeInputs = [pkgs.systemd pkgs.zenity];
+    text = ''
+      state="$(systemctl --user is-active ${serviceName}.service || true)"
+
+      if [ "$state" = "inactive" ] || [ "$state" = "failed" ]; then
+        text="Status: disconnected"
+        action="Connect"
+        icon="network-vpn-disabled-symbolic"
+      else
+        text="Status: $state"
+        action="Disconnect"
+        icon="network-vpn-symbolic"
+      fi
+
+      # OK button = toggle the VPN, Cancel button = just close the window.
+      if zenity --question \
+          --title "University of Utah VPN" \
+          --text "$text" \
+          --icon "$icon" \
+          --ok-label "$action" \
+          --cancel-label "Close" \
+          --width 300; then
+        if [ "$action" = "Connect" ]; then
+          systemctl --user start ${serviceName}.service
+        else
+          systemctl --user stop ${serviceName}.service
+        fi
+      fi
+    '';
+  };
 in {
   options.services.uofu-vpn = {
     enable = lib.mkEnableOption "University of Utah GlobalProtect VPN helper";
@@ -42,7 +75,16 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = [command];
+    home.packages = [command gui];
+
+    xdg.desktopEntries.${serviceName} = {
+      name = "University of Utah VPN";
+      comment = "Connect or disconnect the University of Utah VPN";
+      exec = lib.getExe gui;
+      icon = "network-vpn";
+      terminal = false;
+      categories = ["Network"];
+    };
 
     systemd.user.services.${serviceName} = {
       Unit = {
