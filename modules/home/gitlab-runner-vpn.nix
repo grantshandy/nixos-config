@@ -103,27 +103,23 @@
   };
 in
   lib.mkIf tokenAvailable {
-    home-manager.sharedModules = [
-      {
-        home.packages = [command];
+    home.packages = [command];
 
-        systemd.user.services.${serviceName} = {
-          Unit.Description = "Check Radon's University VPN GitLab runner";
-          Service = {
-            Type = "oneshot";
-            ExecStart = lib.getExe monitor;
-          };
-        };
+    systemd.user.services.${serviceName} = {
+      Unit.Description = "Check Radon's University VPN GitLab runner";
+      Service = {
+        Type = "oneshot";
+        ExecStart = lib.getExe monitor;
+      };
+    };
 
-        systemd.user.timers.${serviceName} = {
-          Unit.Description = "Periodically check Radon's University VPN GitLab runner";
-          Timer = {
-            OnBootSec = "2m";
-            OnUnitActiveSec = "5m";
-            Persistent = true;
-          };
-          Install.WantedBy = ["timers.target"];
-        };
-      }
-    ];
+    systemd.user.timers.${serviceName} = {
+      Unit.Description = "Periodically check Radon's University VPN GitLab runner";
+      Timer = {
+        OnBootSec = "2m";
+        OnUnitActiveSec = "5m";
+        Persistent = true;
+      };
+      Install.WantedBy = ["timers.target"];
+    };
   }

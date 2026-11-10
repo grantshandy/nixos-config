@@ -1,7 +1,4 @@
-{
-  config,
-  ...
-}: let
+{config, ...}: let
   dns = config.identity.homelab.dns;
   authHost = "auth.${dns}";
   cockpitHost = "cockpit.${dns}";

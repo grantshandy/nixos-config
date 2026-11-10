@@ -7,8 +7,8 @@
     ./hardware-configuration.nix
     ../../modules/nixos/bootloader-systemd.nix
     ../../modules/nixos/desktop
-    ./gitlab-runner-vpn.nix
-    # ../../modules/nixos/soulseek.nix
+    ./presentation-hotspot.nix
+    ./bluetooth-receiver.nix
   ];
 
   # networking.networkmanager.wifi.backend = "iwd";

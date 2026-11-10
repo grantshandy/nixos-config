@@ -4,8 +4,8 @@
   pkgs,
   ...
 }: let
-  cfg = config.services.uofu-vpn;
-  serviceName = "uofu-vpn";
+  cfg = config.services.globalprotect-vpn;
+  serviceName = "globalprotect-vpn";
 
   command = pkgs.writeShellApplication {
     name = serviceName;
@@ -33,7 +33,7 @@
 
   gui = pkgs.writeShellApplication {
     name = "${serviceName}-gui";
-    runtimeInputs = [pkgs.systemd pkgs.zenity];
+    runtimeInputs = [pkgs.systemd pkgs.zenity pkgs.coreutils pkgs.gnugrep];
     text = ''
       state="$(systemctl --user is-active ${serviceName}.service || true)"
 
@@ -64,13 +64,17 @@
     '';
   };
 in {
-  options.services.uofu-vpn = {
-    enable = lib.mkEnableOption "University of Utah GlobalProtect VPN helper";
+  options.services.globalprotect-vpn = {
+    enable = lib.mkEnableOption "Enable GlobalProtect VPN helper";
 
     server = lib.mkOption {
       type = lib.types.str;
-      default = "vpn.utah.edu";
       description = "GlobalProtect gateway to connect to.";
+    };
+
+    name = lib.mkOption {
+      type = lib.types.str;
+      description = "Name of this VPN";
     };
   };
 
@@ -78,8 +82,8 @@ in {
     home.packages = [command gui];
 
     xdg.desktopEntries.${serviceName} = {
-      name = "University of Utah VPN";
-      comment = "Connect or disconnect the University of Utah VPN";
+      name = "${cfg.name} VPN";
+      comment = "Connect or disconnect the ${cfg.name} VPN";
       exec = lib.getExe gui;
       icon = "network-vpn";
       terminal = false;
@@ -88,7 +92,7 @@ in {
 
     systemd.user.services.${serviceName} = {
       Unit = {
-        Description = "University of Utah GlobalProtect VPN";
+        Description = "${cfg.name} GlobalProtect VPN";
         After = ["graphical-session.target" "network-online.target"];
       };
 

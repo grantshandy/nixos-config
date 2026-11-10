@@ -1,7 +1,17 @@
 {config, ...}: {
-  imports = [./firefox ./zed ./beeper.nix ./uofu-vpn.nix];
+  imports = [
+    ./firefox
+    ./zed
+    ./beeper.nix
+    ./globalprotect-vpn.nix
+    ./gitlab-runner-vpn.nix
+  ];
 
-  services.uofu-vpn.enable = true;
+  services.globalprotect-vpn = {
+    enable = true;
+    name = "University of Utah";
+    server = "vpn.utah.edu";
+  };
 
   desktop.favoriteApps = [
     "org.gnome.Nautilus.desktop"
