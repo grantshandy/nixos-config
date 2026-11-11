@@ -111,9 +111,14 @@ in {
     };
   };
 
-  # These handlers are merged ahead of Headscale's catch-all route. The slskd
-  # backend remains local-only; Caddy is its sole public HTTP entry point.
   services.caddy.virtualHosts.${config.identity.homelab.dns}.extraConfig = lib.mkBefore ''
+    handle /music {
+      redir * /music/ 308
+    }
+    handle /music/* {
+      reverse_proxy 127.0.0.1:${toString navidromePort}
+    }
+
     handle /slskd {
       redir * /slskd/ 308
     }
