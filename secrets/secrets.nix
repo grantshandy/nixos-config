@@ -10,5 +10,6 @@ in {
   "duckdns-token.age".publicKeys = ssh.userKeys ++ [ssh.hostKeys.radon];
   "gitlab-runner-token.age".publicKeys = ssh.userKeys ++ [ssh.hostKeys.radon];
   "immich-oidc-client-secret.age".publicKeys = ssh.userKeys ++ [ssh.hostKeys.radon];
+  "nix-cache-private-key.age".publicKeys = ssh.userKeys ++ [ssh.hostKeys.radon];
   "slskd-environment.age".publicKeys = ssh.userKeys ++ [ssh.hostKeys.radon];
 }
