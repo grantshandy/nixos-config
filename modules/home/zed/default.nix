@@ -79,6 +79,26 @@
         # tinymist.binary.path = lib.getExe pkgs.tinymist;
       };
 
+      language_models.ollama = {
+        api_url = "http://xenon:11434";
+        available_models = [
+          {
+            name = "qwen3.5:9b-q4_K_M";
+            display_name = "Qwen 3.5 9B";
+            max_tokens = 49152;
+            keep_alive = "30m";
+            supports_tools = true;
+            supports_images = true;
+            supports_thinking = true;
+          }
+        ];
+      };
+
+      agent.default_model = {
+        provider = "ollama";
+        model = "qwen3.5:9b-q4_K_M";
+      };
+
       dap.CodeLLDB.binary = "${pkgs.vscode-extensions.vadimcn.vscode-lldb}/share/vscode/extensions/vadimcn.vscode-lldb/adapter/codelldb";
     };
   };
