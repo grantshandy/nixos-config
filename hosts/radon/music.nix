@@ -22,7 +22,10 @@ in {
   networking.firewall.interfaces.tailscale0.allowedTCPPorts = [navidromePort];
 
   users.users.navidrome.extraGroups = ["media"];
-  users.users.slskd.extraGroups = ["media"];
+  users.users.slskd = {
+    extraGroups = ["media"];
+    home = "/var/lib/slskd";
+  };
 
   systemd.tmpfiles.rules = [
     "d ${musicDir} 2775 navidrome media - -"
