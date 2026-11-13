@@ -78,6 +78,9 @@ in {
     secretKeyFile = config.age.secrets.nix-cache-private-key.path;
   };
 
+  systemd.services.nix-serve.restartTriggers =
+    lib.mkIf thisHost.cache.enable [../../secrets/nix-cache-private-key.age];
+
   networking.firewall.interfaces.tailscale0.allowedTCPPorts =
     lib.mkIf thisHost.cache.enable [thisHost.cache.port];
 
