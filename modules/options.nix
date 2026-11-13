@@ -49,6 +49,12 @@
         description = "Firefox bookmarks as name-to-URL pairs.";
       };
 
+      homelabBookmarks = lib.mkOption {
+        type = lib.types.attrsOf lib.types.str;
+        default = {};
+        description = "Registry-derived homelab bookmarks as name-to-URL pairs.";
+      };
+
       searchEngines = lib.mkOption {
         type = lib.types.attrsOf lib.types.str;
         default = {};
@@ -85,6 +91,51 @@
         tailscale.enable = lib.mkOption {
           type = lib.types.bool;
           default = false;
+        };
+        cache = {
+          enable = lib.mkOption {
+            type = lib.types.bool;
+            default = false;
+            description = "Whether this host serves its Nix store to cache peers.";
+          };
+          priority = lib.mkOption {
+            type = lib.types.ints.positive;
+            default = 40;
+            description = "Binary cache priority; lower values are preferred.";
+          };
+          port = lib.mkOption {
+            type = lib.types.port;
+            default = 5000;
+            description = "Tailscale-only nix-serve port.";
+          };
+        };
+        firefox.enable = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = "Whether Firefox is enabled on this host.";
+        };
+        webServices = lib.mkOption {
+          type = lib.types.attrsOf (lib.types.submodule ({name, ...}: {
+            options = {
+              title = lib.mkOption {
+                type = lib.types.str;
+                default = name;
+                description = "Human-readable service name used for bookmarks.";
+              };
+              subdomain = lib.mkOption {
+                type = lib.types.nullOr lib.types.str;
+                default = null;
+                description = "Subdomain relative to identity.homelab.dns, or null for the apex domain.";
+              };
+              path = lib.mkOption {
+                type = lib.types.str;
+                default = "/";
+                description = "Absolute URL path for the service.";
+              };
+            };
+          }));
+          default = {};
+          description = "Public web services provided by this host.";
         };
       };
     });

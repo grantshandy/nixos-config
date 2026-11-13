@@ -1,6 +1,5 @@
 {config, ...}: {
   imports = [
-    ./firefox
     ./zed
     ./beeper.nix
     ./globalprotect-vpn.nix
