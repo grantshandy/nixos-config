@@ -89,6 +89,10 @@ in {
     virtualHosts = proxyVirtualHosts;
   };
 
+  # The peer proxies do not write file logs, so Nginx's default logrotate
+  # entry would only inspect an unused /var/log/nginx glob.
+  services.logrotate.settings.nginx.enable = false;
+
   nix.settings = {
     substituters = lib.mkBefore peerSubstituters;
     trusted-public-keys = lib.mkBefore [cachePublicKey];
