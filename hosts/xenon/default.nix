@@ -7,8 +7,8 @@
     ./hardware-configuration.nix
     ../../modules/nixos/bootloader-systemd.nix
     ../../modules/nixos/desktop
-    ./presentation-hotspot.nix
-    ./bluetooth-receiver.nix
+    # ./presentation-hotspot.nix
+    # ./bluetooth-receiver.nix
     ./qwen-llm.nix
   ];
 
