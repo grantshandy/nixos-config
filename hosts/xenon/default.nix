@@ -9,6 +9,7 @@
     ../../modules/nixos/desktop
     ./presentation-hotspot.nix
     ./bluetooth-receiver.nix
+    ./qwen-llm.nix
   ];
 
   # networking.networkmanager.wifi.backend = "iwd";

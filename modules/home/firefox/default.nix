@@ -119,13 +119,19 @@ in {
 
       bookmarks = {
         force = true;
-        settings = [
-          {
-            name = "NixOS Managed";
+        settings =
+          [
+            {
+              name = "NixOS Managed";
+              toolbar = true;
+              bookmarks = lib.mapAttrsToList (name: url: {inherit name url;}) fx.bookmarks;
+            }
+          ]
+          ++ lib.optional (fx.homelabBookmarks != {}) {
+            name = "Homelab";
             toolbar = true;
-            bookmarks = lib.mapAttrsToList (name: url: {inherit name url;}) fx.bookmarks;
-          }
-        ];
+            bookmarks = lib.mapAttrsToList (name: url: {inherit name url;}) fx.homelabBookmarks;
+          };
       };
 
       userChrome = let

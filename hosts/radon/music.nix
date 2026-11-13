@@ -111,6 +111,8 @@ in {
     };
   };
 
+  # These handlers are merged ahead of Headscale's catch-all route. The web
+  # backends remain off the public interface; Caddy is their public entry point.
   services.caddy.virtualHosts.${config.identity.homelab.dns}.extraConfig = lib.mkBefore ''
     handle /music {
       redir * /music/ 308

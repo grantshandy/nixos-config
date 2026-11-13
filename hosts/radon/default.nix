@@ -11,7 +11,6 @@
     ./gitlab-runner.nix
     ./headscale.nix
     ./music.nix
-    ./nix-cache.nix
     ./photos.nix
   ];
 
