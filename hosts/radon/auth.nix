@@ -73,7 +73,11 @@ in {
           }
           {
             domain = dns;
-            resources = ["^/slskd(/.*)?$"];
+            resources = [
+              "^/$"
+              "^/lidarr(/.*)?$"
+              "^/slskd(/.*)?$"
+            ];
             policy = "two_factor";
           }
         ];

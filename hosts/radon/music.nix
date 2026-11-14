@@ -6,34 +6,53 @@
   ...
 }: let
   mediaMount = "/mnt/media";
-  musicDir = "/mnt/media/music";
-  beetsDataDir = "${musicDir}/.beets";
-  beetsLibrary = "${beetsDataDir}/library.db";
-  navidromeDataDir = "/mnt/media/navidrome";
+  legacyMusicDir = "${mediaMount}/music";
+  lidarrDir = "${mediaMount}/lidarr";
+  lidarrConfigDir = "${lidarrDir}/config";
+  lidarrMusicDir = "${lidarrDir}/library";
+  lidarrDownloadsDir = "${lidarrDir}/downloads";
+  lidarrIncompleteDir = "${lidarrDir}/incomplete";
+  tubifarryDir = "${lidarrConfigDir}/plugins/TypNull/Tubifarry";
+  lidarrPort = 8686;
+  lidarrUid = 986;
+  navidromeDataDir = "${mediaMount}/navidrome";
   navidromePort = 4533;
-  slskdDir = "/mnt/media/slskd";
-  slskdDownloadsDir = "${slskdDir}/downloads";
-  slskdIncompleteDir = "${slskdDir}/incomplete";
+  slskdDir = "${mediaMount}/slskd";
   slskdWebPort = 5030;
   slskdListenPort = 55125;
   mediaMountUnit = "${utils.escapeSystemdPath mediaMount}.mount";
   mediaDeviceUnit = "${utils.escapeSystemdPath config.fileSystems.${mediaMount}.device}.device";
+
+  tubifarry = pkgs.fetchzip {
+    url = "https://github.com/TypNull/Tubifarry/releases/download/v2.3.1/Tubifarry-v2.3.1.net8.0.zip";
+    hash = "sha256-bBtEuplDHqLC1eNhjrZUQSSemkSR2VhfqpRRoCuK7zE=";
+    stripRoot = false;
+  };
 in {
   networking.firewall.interfaces.tailscale0.allowedTCPPorts = [navidromePort];
 
-  users.users.navidrome.extraGroups = ["media"];
-  users.users.slskd = {
-    extraGroups = ["media"];
-    home = "/var/lib/slskd";
+  users.users = {
+    lidarr = {
+      isSystemUser = true;
+      uid = lidarrUid;
+      group = "media";
+      home = lidarrConfigDir;
+    };
+    navidrome.extraGroups = ["media"];
+    slskd = {
+      extraGroups = ["media"];
+      home = "/var/lib/slskd";
+    };
   };
 
   systemd.tmpfiles.rules = [
-    "d ${musicDir} 2775 navidrome media - -"
-    "d ${beetsDataDir} 2775 ${config.identity.user.name} media - -"
-    "z ${beetsLibrary} 0664 ${config.identity.user.name} media - -"
+    "d ${legacyMusicDir} 2775 navidrome media - -"
     "d ${slskdDir} 2775 slskd media - -"
-    "d ${slskdDownloadsDir} 2775 slskd media - -"
-    "d ${slskdIncompleteDir} 2775 slskd media - -"
+    "d ${lidarrDir} 2775 lidarr media - -"
+    "d ${lidarrConfigDir} 2775 lidarr media - -"
+    "d ${lidarrMusicDir} 2775 lidarr media - -"
+    "d ${lidarrDownloadsDir} 2775 lidarr media - -"
+    "d ${lidarrIncompleteDir} 2775 lidarr media - -"
   ];
 
   systemd.services.navidrome = {
@@ -42,7 +61,7 @@ in {
     after = [mediaMountUnit];
     bindsTo = [mediaMountUnit];
     unitConfig.RequiresMountsFor = [
-      musicDir
+      legacyMusicDir
       navidromeDataDir
     ];
     serviceConfig = {
@@ -57,12 +76,70 @@ in {
     settings = {
       Address = "0.0.0.0";
       Port = navidromePort;
-      MusicFolder = musicDir;
+      MusicFolder = legacyMusicDir;
       DataFolder = navidromeDataDir;
       CacheFolder = "${navidromeDataDir}/cache";
       Scanner.PurgeMissing = "always";
       CoverArtPriority = "embedded,cover.*,folder.*,front.*";
       BaseUrl = "/music";
+    };
+  };
+
+  virtualisation.podman.enable = true;
+  virtualisation.oci-containers = {
+    backend = "podman";
+    containers.lidarr = {
+      image = "lscr.io/linuxserver/lidarr@sha256:605cc68b60c491e05014194ebba0f61b8eb424ae8f97f289eb715686b454e10c";
+      autoStart = true;
+      environment = {
+        PUID = toString lidarrUid;
+        PGID = "998";
+        UMASK = "002";
+        TZ = config.time.timeZone;
+        LIDARR__AUTH__METHOD = "External";
+        LIDARR__AUTH__REQUIRED = "Enabled";
+        LIDARR__SERVER__BINDADDRESS = "127.0.0.1";
+        LIDARR__SERVER__PORT = toString lidarrPort;
+        LIDARR__SERVER__URLBASE = "/lidarr";
+      };
+      volumes = [
+        "${lidarrConfigDir}:/config"
+        "${lidarrDir}:${lidarrDir}"
+      ];
+      extraOptions = ["--network=host"];
+    };
+  };
+
+  systemd.services.lidarr-tubifarry = {
+    description = "Install the pinned Tubifarry plugin for Lidarr";
+    before = ["podman-lidarr.service"];
+    after = [mediaMountUnit];
+    bindsTo = [mediaMountUnit];
+    unitConfig.RequiresMountsFor = [lidarrConfigDir];
+    serviceConfig.Type = "oneshot";
+    script = ''
+      install -d -m 0770 -o lidarr -g media ${tubifarryDir}
+      find ${tubifarryDir} -mindepth 1 -maxdepth 1 ! -name settings.resx -delete
+      cp -R ${tubifarry}/. ${tubifarryDir}/
+      chown -R lidarr:media ${tubifarryDir}
+      chmod -R u+rwX,g+rwX,o-rwx ${tubifarryDir}
+    '';
+  };
+
+  systemd.services.podman-lidarr = {
+    wantedBy = [mediaDeviceUnit];
+    requires = ["lidarr-tubifarry.service"];
+    after = [mediaMountUnit "lidarr-tubifarry.service" "slskd.service"];
+    bindsTo = [mediaMountUnit];
+    unitConfig.RequiresMountsFor = [
+      lidarrConfigDir
+      lidarrMusicDir
+      lidarrDownloadsDir
+      lidarrIncompleteDir
+    ];
+    serviceConfig = {
+      Restart = "on-failure";
+      RestartSec = "5s";
     };
   };
 
@@ -75,9 +152,9 @@ in {
     after = [mediaMountUnit];
     bindsTo = [mediaMountUnit];
     unitConfig.RequiresMountsFor = [
-      musicDir
-      slskdDownloadsDir
-      slskdIncompleteDir
+      legacyMusicDir
+      lidarrDownloadsDir
+      lidarrIncompleteDir
     ];
     serviceConfig.UMask = "0002";
   };
@@ -88,11 +165,12 @@ in {
     openFirewall = true;
     settings = {
       directories = {
-        downloads = slskdDownloadsDir;
-        incomplete = slskdIncompleteDir;
+        downloads = lidarrDownloadsDir;
+        incomplete = lidarrIncompleteDir;
       };
       shares = {
-        directories = ["[Music]${musicDir}"];
+        # Keep sharing the old library until the staged Lidarr import is verified.
+        directories = ["[Music]${legacyMusicDir}"];
         cache.retention = 60;
       };
       global = {
@@ -110,6 +188,8 @@ in {
         ip_address = "127.0.0.1";
         port = slskdWebPort;
         url_base = "/slskd";
+        # Caddy is the only entry point and requires an Authelia session.
+        authentication.disabled = true;
       };
     };
   };
@@ -124,6 +204,17 @@ in {
       reverse_proxy 127.0.0.1:${toString navidromePort}
     }
 
+    handle /lidarr {
+      redir * /lidarr/ 308
+    }
+    handle /lidarr/* {
+      forward_auth 127.0.0.1:9091 {
+        uri /api/authz/forward-auth
+        copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
+      }
+      reverse_proxy 127.0.0.1:${toString lidarrPort}
+    }
+
     handle /slskd {
       redir * /slskd/ 308
     }
@@ -135,42 +226,4 @@ in {
       reverse_proxy 127.0.0.1:${toString slskdWebPort}
     }
   '';
-
-  home-manager.sharedModules = [
-    ({...}: {
-      home.packages = [pkgs.imagemagick];
-
-      programs.beets = {
-        enable = true;
-        settings = {
-          directory = musicDir;
-          library = beetsLibrary;
-
-          permissions = {
-            file = "664";
-            dir = "2775";
-          };
-
-          import = {
-            move = true;
-            write = true;
-          };
-          plugins = ["fetchart" "embedart" "scrub" "musicbrainz" "replace" "replaygain" "permissions"];
-
-          fetchart = {
-            auto = true;
-            sources = ["filesystem" "coverart" "itunes" "amazon" "albumart"];
-            cover_names = ["cover" "front" "folder"];
-            maxwidth = 1200;
-            minwidth = 320;
-            cover_format = "jpg";
-            quality = 85;
-          };
-
-          embedart.auto = true;
-          replaygain.backend = "gstreamer";
-        };
-      };
-    })
-  ];
 }
