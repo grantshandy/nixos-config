@@ -1,14 +1,14 @@
 {inputs, ...}: {
   perSystem = {
     pkgs,
-    stdenv,
+    system,
     ...
   }: {
     formatter = pkgs.alejandra;
 
     devShells.default = pkgs.mkShell {
       packages = [
-        inputs.agenix.packages.${stdenv.hostPlatform.system}.default
+        inputs.agenix.packages.${system}.default
         pkgs.alejandra
         pkgs.git
       ];
