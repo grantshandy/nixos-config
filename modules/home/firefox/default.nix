@@ -143,6 +143,17 @@ in {
         };
       in ''
         @import "${theme}/theme/gnome-theme.css";
+
+        .urlbarView:not(:has(> .urlbarView-body-outer)) > .urlbarView-background {
+          background: var(--gnome-menu-background) !important;
+          border-radius: var(--gnome-popover-radius) !important;
+          clip-path: none !important;
+          inset: 0 !important;
+        }
+
+        .urlbarView:not(:has(> .urlbarView-body-outer)) > .urlbarView-results {
+          padding: var(--gnome-menu-padding) calc(var(--gnome-menu-padding) + 2px) !important;
+        }
       '';
     };
   };

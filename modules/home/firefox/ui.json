@@ -26,6 +26,7 @@
       "tabbrowser-tabs",
       "new-tab-button",
       "alltabs-button",
+      "smartwindow-group-tabs-button",
       "ai-window-toggle"
     ],
     "vertical-tabs": [],
@@ -40,7 +41,8 @@
     "78272b6fa58f4a1abaac99321d503a20_proton_me-browser-action",
     "_34daeb50-c2d2-4f14-886a-7160b24d66a4_-browser-action",
     "screenshot-button",
-    "ai-window-toggle"
+    "ai-window-toggle",
+    "smartwindow-group-tabs-button"
   ],
   "dirtyAreaCache": [
     "nav-bar",
@@ -50,6 +52,6 @@
     "toolbar-menubar",
     "PersonalToolbar"
   ],
-  "currentVersion": 26,
+  "currentVersion": 28,
   "newElementCount": 4
 }
