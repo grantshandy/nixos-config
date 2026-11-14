@@ -102,6 +102,16 @@
       RES="1920x1080"
     fi
 
+    # Mutter may emit queued MonitorsChanged signals after the layout has
+    # already settled. Avoid starting another GNOME background transition when
+    # the existing render already has the correct dimensions.
+    if [ "$MODE" = "reuse" ] \
+      && [ -f "$STATE_DIR/resolution" ] \
+      && [ "$(cat "$STATE_DIR/resolution")" = "$RES" ]; then
+      echo "Wallpaper already rendered at $RES; skipping"
+      exit 0
+    fi
+
     echo "Setting wallpaper to: $SOURCE ($RES)"
 
     # Force the plain jpeg/png decoder instead of letting ImageMagick
@@ -132,6 +142,7 @@
     gsettings set org.gnome.desktop.background picture-uri-dark "$URI"
 
     echo "$SOURCE" > "$STATE_DIR/source"
+    echo "$RES" > "$STATE_DIR/resolution"
 
     # Prune old renders (keep anything <1 min old so crossfades don't hit a missing file).
     find "$STATE_DIR" -maxdepth 1 -name 'wallpaper-*.jpg' \
@@ -150,10 +161,26 @@
           *) continue ;;
         esac
 
-        # Hotplugging usually emits a burst of signals; wait for it to settle.
-        while read -r -t 3 _; do :; done
+        # Docks can negotiate several temporary layouts many seconds apart.
+        # Changing the wallpaper during that process races GNOME Shell's
+        # background actor rebuild, so wait for a genuinely quiet period.
+        while read -r -t 15 _; do :; done
 
-        echo "Monitor layout changed, re-rendering wallpaper"
+        # Also require two matching DisplayConfig snapshots. This protects
+        # against a delayed layout change that did not arrive during the signal
+        # drain above.
+        PREVIOUS_RES=""
+        while true; do
+          CURRENT_RES="$(${lib.getExe cycleScript} resolution 2>/dev/null || true)"
+          if [ -n "$CURRENT_RES" ] && [ "$CURRENT_RES" = "$PREVIOUS_RES" ]; then
+            break
+          fi
+
+          PREVIOUS_RES="$CURRENT_RES"
+          sleep 3
+        done
+
+        echo "Monitor layout settled at $CURRENT_RES, re-rendering wallpaper"
         ${lib.getExe cycleScript} reuse || echo "cycle-wallpaper failed" >&2
       done
   '';
