@@ -14,7 +14,17 @@ in {
     environment = {
       OLLAMA_BASE_URL = "http://127.0.0.1:${toString config.services.ollama.port}";
       WEBUI_URL = "${webui.scheme}://xenon.ts.${config.identity.homelab.dns}:${toString webui.port}${webui.path}";
-      WEBUI_AUTH = "True";
+      # No-login mode shares one account with everyone who can reach the UI.
+      WEBUI_AUTH = "False";
+      ENABLE_PERSISTENT_CONFIG = "False";
+      DEFAULT_MODELS = "qwen3.5:9b-q4_K_M";
+      DEFAULT_MODEL_PARAMS = builtins.toJSON {
+        num_ctx = 49152;
+        keep_alive = "30m";
+      };
+      ENABLE_TITLE_GENERATION = "False";
+      ENABLE_TAGS_GENERATION = "False";
+      ENABLE_FOLLOW_UP_GENERATION = "False";
       SCARF_NO_ANALYTICS = "True";
       DO_NOT_TRACK = "True";
       ANONYMIZED_TELEMETRY = "False";
@@ -27,10 +37,13 @@ in {
     after = ["ollama.service"];
   };
 
-  # The module's closed cgroup device policy prevents ROCm 7.2 from discovering
-  # this GPU despite its generic DRM/KFD allow rules. Unix permissions and the
-  # render supplementary group still restrict device access.
-  systemd.services.ollama.serviceConfig.DevicePolicy = lib.mkForce "auto";
+  # With DeviceAllow entries, even "auto" installs a restrictive device filter.
+  # Clear both so ROCm can discover the GPU; Unix permissions and the render
+  # supplementary group still control access to the devices.
+  systemd.services.ollama.serviceConfig = {
+    DevicePolicy = lib.mkForce "auto";
+    DeviceAllow = lib.mkForce [];
+  };
 
   services.ollama = {
     enable = true;
