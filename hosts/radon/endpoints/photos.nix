@@ -26,8 +26,6 @@ in {
     openFirewall = false;
     mediaLocation = immichDataDir;
 
-    # Start with CPU inference; CUDA requires a compatible proprietary driver
-    # and inference libraries, not just an NVIDIA display adapter.
     machine-learning.enable = true;
     settings = {
       machineLearning = {
@@ -40,7 +38,7 @@ in {
       newVersionCheck.enabled = false;
       oauth = {
         enabled = true;
-        issuerUrl = lib.removeSuffix "/" radonEndpoints.Authelia.url;
+        issuerUrl = (lib.head config.services.authelia.instances.main.settings.session.cookies).authelia_url;
         clientId = "immich";
         clientSecret._secret = config.age.secrets.immich-oidc-client-secret.path;
         tokenEndpointAuthMethod = "client_secret_post";

@@ -1,4 +1,5 @@
 {
+  config,
   lib,
   pkgs,
   radonEndpoints,
@@ -88,7 +89,7 @@
     </html>
   '';
 in {
-  services.caddy.virtualHosts.${radonEndpoints.Headscale.host}.extraConfig = lib.mkBefore ''
+  services.caddy.virtualHosts.${config.identity.homelab.dns}.extraConfig = lib.mkBefore ''
     handle / {
       forward_auth 127.0.0.1:9091 {
         uri /api/authz/forward-auth

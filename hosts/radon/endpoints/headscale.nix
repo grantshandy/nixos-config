@@ -4,11 +4,11 @@
   pkgs,
   pkgs-unstable,
   lib,
-  radonEndpoints,
   ...
 }: let
-  dns = radonEndpoints.Headscale.host;
-  base_url = lib.removeSuffix "/" radonEndpoints.Headscale.url;
+  dns = config.identity.homelab.dns;
+  base_url = "https://${dns}";
+  headplaneHost = "${config.network.hosts.radon.publicWebServices.Headplane.subdomain}.${dns}";
   secrets_dir = "/var/secrets";
   headscale_key_path = "${secrets_dir}/headscale_api_key";
   headplane_cookie_path = "${secrets_dir}/headplane_cookie_secret";
@@ -45,7 +45,7 @@ in {
       }
     '';
 
-    ${radonEndpoints.Headplane.host}.extraConfig = ''
+    ${headplaneHost}.extraConfig = ''
       redir / /admin/ 308
 
       forward_auth 127.0.0.1:9091 {

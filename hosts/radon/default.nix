@@ -14,7 +14,7 @@
       url = "https://${host}${service.path}";
       basePath = lib.removeSuffix "/" service.path;
     })
-  config.network.hosts.radon.webServices;
+  config.network.hosts.radon.publicWebServices;
 in {
   _module.args = {inherit radonMediaRoot radonEndpoints;};
 

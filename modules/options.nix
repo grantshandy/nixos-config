@@ -1,4 +1,29 @@
-{lib, ...}: {
+{lib, ...}: let
+  commonServiceOptions = {name, ...}: {
+    options = {
+      title = lib.mkOption {
+        type = lib.types.str;
+        default = name;
+        description = "Human-readable service name used for bookmarks.";
+      };
+      description = lib.mkOption {
+        type = lib.types.str;
+        default = "";
+        description = "Description displayed in the service directory.";
+      };
+      bookmark = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Whether to include this service in Firefox bookmarks.";
+      };
+      path = lib.mkOption {
+        type = lib.types.str;
+        default = "/";
+        description = "Absolute URL path for the service.";
+      };
+    };
+  };
+in {
   options.configuration.stateVersion = lib.mkOption {
     type = lib.types.str;
     description = "Compatibility version shared by NixOS and Home Manager.";
@@ -114,24 +139,10 @@
           default = false;
           description = "Whether Firefox is enabled on this host.";
         };
-        webServices = lib.mkOption {
-          type = lib.types.attrsOf (lib.types.submodule ({name, ...}: {
+        publicWebServices = lib.mkOption {
+          type = lib.types.attrsOf (lib.types.submodule {
+            imports = [commonServiceOptions];
             options = {
-              title = lib.mkOption {
-                type = lib.types.str;
-                default = name;
-                description = "Human-readable service name used for bookmarks.";
-              };
-              description = lib.mkOption {
-                type = lib.types.str;
-                default = "";
-                description = "Description displayed in the service directory.";
-              };
-              bookmark = lib.mkOption {
-                type = lib.types.bool;
-                default = true;
-                description = "Whether to include this service in Firefox bookmarks.";
-              };
               showInDirectory = lib.mkOption {
                 type = lib.types.bool;
                 default = true;
@@ -147,15 +158,28 @@
                 default = null;
                 description = "Subdomain relative to identity.homelab.dns, or null for the apex domain.";
               };
-              path = lib.mkOption {
-                type = lib.types.str;
-                default = "/";
-                description = "Absolute URL path for the service.";
-              };
             };
-          }));
+          });
           default = {};
           description = "Public web services provided by this host.";
+        };
+        privateWebServices = lib.mkOption {
+          type = lib.types.attrsOf (lib.types.submodule {
+            imports = [commonServiceOptions];
+            options = {
+              scheme = lib.mkOption {
+                type = lib.types.str;
+                default = "http";
+                description = "URL scheme for the private service.";
+              };
+              port = lib.mkOption {
+                type = lib.types.port;
+                description = "Required port for the private service on the host's Tailscale address.";
+              };
+            };
+          });
+          default = {};
+          description = "Private web services at <scheme>://<host>.ts.<identity.homelab.dns>:<port><path>.";
         };
       };
     });

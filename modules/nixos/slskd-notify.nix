@@ -8,7 +8,7 @@
   thisHost =
     config.network.hosts.${thisHostName}
     or (throw "host '${thisHostName}' is missing from network.hosts");
-  serverHosts = lib.filterAttrs (_: host: host.webServices ? slskd) config.network.hosts;
+  serverHosts = lib.filterAttrs (_: host: host.publicWebServices ? slskd) config.network.hosts;
   serverHostNames = lib.attrNames serverHosts;
   serverHostName =
     if lib.length serverHostNames == 1
@@ -184,7 +184,7 @@ in {
         }
         {
           assertion = !serverEnabled || thisHostName == serverHostName;
-          message = "the host running slskd must advertise it in network.hosts.<name>.webServices";
+          message = "the host running slskd must advertise it in network.hosts.<name>.publicWebServices";
         }
       ];
     }

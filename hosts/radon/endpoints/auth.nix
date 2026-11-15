@@ -5,6 +5,8 @@
   ...
 }: let
   dns = config.identity.homelab.dns;
+  authHost = "auth.${dns}";
+  authUrl = "https://${authHost}";
   autheliaUser = config.services.authelia.instances.main.user;
   autheliaGroup = config.services.authelia.instances.main.group;
 in {
@@ -98,7 +100,7 @@ in {
         cookies = [
           {
             domain = dns;
-            authelia_url = lib.removeSuffix "/" radonEndpoints.Authelia.url;
+            authelia_url = authUrl;
             default_redirection_url = lib.removeSuffix "/" radonEndpoints.Headplane.url;
             same_site = "lax";
           }
@@ -143,7 +145,7 @@ in {
     };
   };
 
-  services.caddy.virtualHosts.${radonEndpoints.Authelia.host}.extraConfig = ''
+  services.caddy.virtualHosts.${authHost}.extraConfig = ''
     reverse_proxy 127.0.0.1:9091
   '';
 }

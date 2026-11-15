@@ -24,6 +24,11 @@
       priority = 20;
     };
     firefox.enable = true;
+    privateWebServices.OpenWebUI = {
+      title = "Open WebUI";
+      description = "Local AI chat";
+      port = 8080;
+    };
   };
   radon = {
     system = "x86_64-linux";
@@ -36,7 +41,7 @@
       enable = true;
       priority = 10;
     };
-    webServices = {
+    publicWebServices = {
       Immich = {
         title = "Photos";
         description = "Immich photo library";
@@ -63,15 +68,6 @@
       Lidarr = {
         description = "Music collection management";
         path = "/lidarr/";
-      };
-      Authelia = {
-        subdomain = "auth";
-        bookmark = false;
-        showInDirectory = false;
-      };
-      Headscale = {
-        bookmark = false;
-        showInDirectory = false;
       };
     };
   };

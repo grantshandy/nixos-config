@@ -1,8 +1,32 @@
 {
+  config,
   lib,
   pkgs,
   ...
-}: {
+}: let
+  webui = config.network.hosts.xenon.privateWebServices.OpenWebUI;
+in {
+  services.open-webui = {
+    enable = true;
+    host = "0.0.0.0";
+    port = webui.port;
+    openFirewall = false;
+    environment = {
+      OLLAMA_BASE_URL = "http://127.0.0.1:${toString config.services.ollama.port}";
+      WEBUI_URL = "${webui.scheme}://xenon.ts.${config.identity.homelab.dns}:${toString webui.port}${webui.path}";
+      WEBUI_AUTH = "True";
+      SCARF_NO_ANALYTICS = "True";
+      DO_NOT_TRACK = "True";
+      ANONYMIZED_TELEMETRY = "False";
+    };
+  };
+
+  networking.firewall.interfaces.tailscale0.allowedTCPPorts = [webui.port];
+  systemd.services.open-webui = {
+    wants = ["ollama.service"];
+    after = ["ollama.service"];
+  };
+
   # The module's closed cgroup device policy prevents ROCm 7.2 from discovering
   # this GPU despite its generic DRM/KFD allow rules. Unix permissions and the
   # render supplementary group still restrict device access.
