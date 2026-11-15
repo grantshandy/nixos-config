@@ -2,10 +2,12 @@
   config,
   lib,
   pkgs,
+  radonMediaRoot,
+  radonEndpoints,
   utils,
   ...
 }: let
-  mediaMount = "/mnt/media";
+  mediaMount = radonMediaRoot;
   legacyMusicDir = "${mediaMount}/music";
   lidarrDir = "${mediaMount}/lidarr";
   lidarrConfigDir = "${lidarrDir}/config";
@@ -81,7 +83,7 @@ in {
       CacheFolder = "${navidromeDataDir}/cache";
       Scanner.PurgeMissing = "always";
       CoverArtPriority = "embedded,cover.*,folder.*,front.*";
-      BaseUrl = "/music";
+      BaseUrl = radonEndpoints.Navidrome.basePath;
     };
   };
 
@@ -100,7 +102,7 @@ in {
         LIDARR__AUTH__REQUIRED = "Enabled";
         LIDARR__SERVER__BINDADDRESS = "127.0.0.1";
         LIDARR__SERVER__PORT = toString lidarrPort;
-        LIDARR__SERVER__URLBASE = "/lidarr";
+        LIDARR__SERVER__URLBASE = radonEndpoints.Lidarr.basePath;
       };
       volumes = [
         "${lidarrConfigDir}:/config"
@@ -143,7 +145,7 @@ in {
     };
   };
 
-  age.secrets.slskd-environment.file = ../../secrets/slskd-environment.age;
+  age.secrets.slskd-environment.file = ../../../secrets/slskd-environment.age;
 
   systemd.services.slskd = {
     # Stop slskd if the removable media drive disappears and restart it when
@@ -186,7 +188,7 @@ in {
       web = {
         ip_address = "127.0.0.1";
         port = slskdWebPort;
-        url_base = "/slskd";
+        url_base = radonEndpoints.slskd.basePath;
         # Caddy is the only entry point and requires an Authelia session.
         authentication.disabled = true;
       };
@@ -195,43 +197,61 @@ in {
 
   # These handlers are merged ahead of Headscale's catch-all route. The web
   # backends remain off the public interface; Caddy is their public entry point.
-  services.caddy.virtualHosts.${config.identity.homelab.dns}.extraConfig = lib.mkBefore ''
-    handle /music {
-      redir * /music/ 308
-    }
-    handle /music/* {
-      reverse_proxy 127.0.0.1:${toString navidromePort}
-    }
+  services.caddy.virtualHosts = lib.mkMerge [
+    {
+      ${radonEndpoints.Navidrome.host}.extraConfig = lib.mkBefore ''
+        ${lib.optionalString (radonEndpoints.Navidrome.basePath != "") ''
+          handle ${radonEndpoints.Navidrome.basePath} {
+            redir * ${radonEndpoints.Navidrome.path} 308
+          }
+        ''}
+            handle ${radonEndpoints.Navidrome.path}* {
+              reverse_proxy 127.0.0.1:${toString navidromePort}
+            }
 
-    handle /lidarr {
-      redir * /lidarr/ 308
+      '';
     }
-    handle /lidarr/* {
-      forward_auth 127.0.0.1:9091 {
-        uri /api/authz/forward-auth
-        # Keep Lidarr's API credentials out of the cloned auth request. The
-        # original request still reaches Lidarr with these values unchanged.
-        header_up -Authorization
-        header_up -X-Api-Key
-        header_up X-Forwarded-URI {http.request.uri.path}
-        copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
-      }
-      reverse_proxy 127.0.0.1:${toString lidarrPort}
-    }
+    {
+      ${radonEndpoints.Lidarr.host}.extraConfig = lib.mkBefore ''
+        ${lib.optionalString (radonEndpoints.Lidarr.basePath != "") ''
+          handle ${radonEndpoints.Lidarr.basePath} {
+            redir * ${radonEndpoints.Lidarr.path} 308
+          }
+        ''}
+            handle ${radonEndpoints.Lidarr.path}* {
+              forward_auth 127.0.0.1:9091 {
+                uri /api/authz/forward-auth
+                # Keep Lidarr's API credentials out of the cloned auth request. The
+                # original request still reaches Lidarr with these values unchanged.
+                header_up -Authorization
+                header_up -X-Api-Key
+                header_up X-Forwarded-URI {http.request.uri.path}
+                copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
+              }
+              reverse_proxy 127.0.0.1:${toString lidarrPort}
+            }
 
-    handle /slskd {
-      redir * /slskd/ 308
+      '';
     }
-    handle /slskd/* {
-      forward_auth 127.0.0.1:9091 {
-        uri /api/authz/forward-auth
-        # slskd also uses bearer tokens and access_token query parameters for
-        # its API and SignalR connections. Only hide them from Authelia.
-        header_up -Authorization
-        header_up X-Forwarded-URI {http.request.uri.path}
-        copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
-      }
-      reverse_proxy 127.0.0.1:${toString slskdWebPort}
+    {
+      ${radonEndpoints.slskd.host}.extraConfig = lib.mkBefore ''
+        ${lib.optionalString (radonEndpoints.slskd.basePath != "") ''
+          handle ${radonEndpoints.slskd.basePath} {
+            redir * ${radonEndpoints.slskd.path} 308
+          }
+        ''}
+            handle ${radonEndpoints.slskd.path}* {
+              forward_auth 127.0.0.1:9091 {
+                uri /api/authz/forward-auth
+                # slskd also uses bearer tokens and access_token query parameters for
+                # its API and SignalR connections. Only hide them from Authelia.
+                header_up -Authorization
+                header_up X-Forwarded-URI {http.request.uri.path}
+                copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
+              }
+              reverse_proxy 127.0.0.1:${toString slskdWebPort}
+            }
+      '';
     }
-  '';
+  ];
 }

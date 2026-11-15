@@ -1,39 +1,41 @@
-{config, ...}: let
+{
+  config,
+  lib,
+  radonEndpoints,
+  ...
+}: let
   dns = config.identity.homelab.dns;
-  authHost = "auth.${dns}";
-  cockpitHost = "cockpit.${dns}";
-  headplaneHost = "headplane.${dns}";
   autheliaUser = config.services.authelia.instances.main.user;
   autheliaGroup = config.services.authelia.instances.main.group;
 in {
   age.secrets = {
     authelia-jwt-secret = {
-      file = ../../secrets/authelia-jwt-secret.age;
+      file = ../../../secrets/authelia-jwt-secret.age;
       owner = autheliaUser;
       group = autheliaGroup;
     };
     authelia-storage-encryption-key = {
-      file = ../../secrets/authelia-storage-encryption-key.age;
+      file = ../../../secrets/authelia-storage-encryption-key.age;
       owner = autheliaUser;
       group = autheliaGroup;
     };
     authelia-oidc-hmac-secret = {
-      file = ../../secrets/authelia-oidc-hmac-secret.age;
+      file = ../../../secrets/authelia-oidc-hmac-secret.age;
       owner = autheliaUser;
       group = autheliaGroup;
     };
     authelia-oidc-private-key = {
-      file = ../../secrets/authelia-oidc-private-key.age;
+      file = ../../../secrets/authelia-oidc-private-key.age;
       owner = autheliaUser;
       group = autheliaGroup;
     };
     authelia-users = {
-      file = ../../secrets/authelia-users.age;
+      file = ../../../secrets/authelia-users.age;
       owner = autheliaUser;
       group = autheliaGroup;
     };
     immich-oidc-client-secret = {
-      file = ../../secrets/immich-oidc-client-secret.age;
+      file = ../../../secrets/immich-oidc-client-secret.age;
       owner = config.services.immich.user;
       group = config.services.immich.group;
     };
@@ -64,20 +66,26 @@ in {
         default_policy = "deny";
         rules = [
           {
-            domain = cockpitHost;
+            domain = radonEndpoints.Cockpit.host;
             policy = "two_factor";
           }
           {
-            domain = headplaneHost;
+            domain = radonEndpoints.Headplane.host;
             policy = "two_factor";
           }
           {
             domain = dns;
-            resources = [
-              "^/$"
-              "^/lidarr(/.*)?$"
-              "^/slskd(/.*)?$"
-            ];
+            resources = ["^/$"];
+            policy = "two_factor";
+          }
+          {
+            domain = radonEndpoints.Lidarr.host;
+            resources = ["^${lib.escapeRegex radonEndpoints.Lidarr.basePath}(/.*)?$"];
+            policy = "two_factor";
+          }
+          {
+            domain = radonEndpoints.slskd.host;
+            resources = ["^${lib.escapeRegex radonEndpoints.slskd.basePath}(/.*)?$"];
             policy = "two_factor";
           }
         ];
@@ -90,8 +98,8 @@ in {
         cookies = [
           {
             domain = dns;
-            authelia_url = "https://${authHost}";
-            default_redirection_url = "https://${headplaneHost}";
+            authelia_url = lib.removeSuffix "/" radonEndpoints.Authelia.url;
+            default_redirection_url = lib.removeSuffix "/" radonEndpoints.Headplane.url;
             same_site = "lax";
           }
         ];
@@ -116,8 +124,8 @@ in {
           require_pkce = true;
           pkce_challenge_method = "S256";
           redirect_uris = [
-            "https://photos.${dns}/auth/login"
-            "https://photos.${dns}/user-settings"
+            "${radonEndpoints.Immich.url}auth/login"
+            "${radonEndpoints.Immich.url}user-settings"
             "app.immich:///oauth-callback"
           ];
           scopes = [
@@ -135,28 +143,7 @@ in {
     };
   };
 
-  services.caddy.virtualHosts = {
-    ${authHost}.extraConfig = ''
-      reverse_proxy 127.0.0.1:9091
-    '';
-
-    ${cockpitHost}.extraConfig = ''
-      forward_auth 127.0.0.1:9091 {
-        uri /api/authz/forward-auth
-        header_up -Authorization
-        copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
-      }
-      reverse_proxy 127.0.0.1:9090
-    '';
-
-    ${headplaneHost}.extraConfig = ''
-      redir / /admin/ 308
-
-      forward_auth 127.0.0.1:9091 {
-        uri /api/authz/forward-auth
-        copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
-      }
-      reverse_proxy 127.0.0.1:8000
-    '';
-  };
+  services.caddy.virtualHosts.${radonEndpoints.Authelia.host}.extraConfig = ''
+    reverse_proxy 127.0.0.1:9091
+  '';
 }

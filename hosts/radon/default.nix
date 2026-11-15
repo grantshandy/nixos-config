@@ -3,15 +3,31 @@
   lib,
   pkgs,
   ...
-}: {
+}: let
+  radonMediaRoot = "/mnt/media";
+  radonEndpoints = lib.mapAttrs (_: service: let
+    host = "${lib.optionalString (service.subdomain != null) "${service.subdomain}."}${config.identity.homelab.dns}";
+  in
+    service
+    // {
+      inherit host;
+      url = "https://${host}${service.path}";
+      basePath = lib.removeSuffix "/" service.path;
+    })
+  config.network.hosts.radon.webServices;
+in {
+  _module.args = {inherit radonMediaRoot radonEndpoints;};
+
   imports = [
     ./hardware-configuration.nix
     ../../modules/nixos/bootloader-systemd.nix
-    ./auth.nix
     ./gitlab-runner.nix
-    ./headscale.nix
-    ./music.nix
-    ./photos.nix
+    ./endpoints/auth.nix
+    ./endpoints/cockpit.nix
+    ./endpoints/directory.nix
+    ./endpoints/headscale.nix
+    ./endpoints/music.nix
+    ./endpoints/photos.nix
   ];
 
   time.timeZone = "America/Denver";
@@ -23,22 +39,13 @@
   };
   security.sudo.wheelNeedsPassword = false;
 
-  services.cockpit = {
+  services.caddy = {
     enable = true;
-    port = 9090;
-    openFirewall = false;
-    settings.WebService = {
-      Origins = lib.mkForce "https://cockpit.${config.identity.homelab.dns}";
-      ProtocolHeader = "X-Forwarded-Proto";
-      AllowUnencrypted = true;
-    };
+    globalConfig = ''
+      auto_https disable_redirects
+    '';
   };
-
-  # Caddy is Cockpit's only network entry point.
-  systemd.sockets.cockpit.listenStreams = lib.mkForce [
-    ""
-    "127.0.0.1:9090"
-  ];
+  networking.firewall.allowedTCPPorts = [443];
 
   nix = {
     gc = {

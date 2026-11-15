@@ -37,12 +37,42 @@
       priority = 10;
     };
     webServices = {
-      Immich.subdomain = "photos";
-      Navidrome.path = "/music/";
-      slskd.path = "/slskd/";
-      Cockpit.subdomain = "cockpit";
-      Headplane.subdomain = "headplane";
-      Lidarr.path = "/lidarr/";
+      Immich = {
+        title = "Photos";
+        description = "Immich photo library";
+        subdomain = "photos";
+        redirectPaths = ["/photos" "/photos/"];
+      };
+      Navidrome = {
+        title = "Music";
+        description = "Navidrome music library";
+        path = "/music/";
+      };
+      slskd = {
+        description = "Soulseek client";
+        path = "/slskd/";
+      };
+      Cockpit = {
+        description = "Server administration";
+        subdomain = "cockpit";
+      };
+      Headplane = {
+        description = "Tailnet administration";
+        subdomain = "headplane";
+      };
+      Lidarr = {
+        description = "Music collection management";
+        path = "/lidarr/";
+      };
+      Authelia = {
+        subdomain = "auth";
+        bookmark = false;
+        showInDirectory = false;
+      };
+      Headscale = {
+        bookmark = false;
+        showInDirectory = false;
+      };
     };
   };
 }

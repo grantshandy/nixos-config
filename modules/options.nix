@@ -122,6 +122,26 @@
                 default = name;
                 description = "Human-readable service name used for bookmarks.";
               };
+              description = lib.mkOption {
+                type = lib.types.str;
+                default = "";
+                description = "Description displayed in the service directory.";
+              };
+              bookmark = lib.mkOption {
+                type = lib.types.bool;
+                default = true;
+                description = "Whether to include this service in Firefox bookmarks.";
+              };
+              showInDirectory = lib.mkOption {
+                type = lib.types.bool;
+                default = true;
+                description = "Whether to include this service in the host's service directory.";
+              };
+              redirectPaths = lib.mkOption {
+                type = lib.types.listOf lib.types.str;
+                default = [];
+                description = "Apex-domain paths redirected to this service's public URL.";
+              };
               subdomain = lib.mkOption {
                 type = lib.types.nullOr lib.types.str;
                 default = null;

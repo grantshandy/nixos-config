@@ -11,7 +11,7 @@
           _: service:
             lib.nameValuePair service.title "https://${lib.optionalString (service.subdomain != null) "${service.subdomain}."}${config.identity.homelab.dns}${service.path}"
         )
-        host.webServices
+        (lib.filterAttrs (_: service: service.bookmark) host.webServices)
     ) (lib.attrValues config.network.hosts)
   );
 in

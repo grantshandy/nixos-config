@@ -3,6 +3,7 @@
   lib,
   pkgs,
   utils,
+  radonMediaRoot,
   ...
 }: let
   tokenFile = ../../secrets/gitlab-runner-token.age;
@@ -13,7 +14,7 @@
   namespaceInterface = "${namespace}-peer";
   tunnelInterface = "${namespace}-vpn";
   runtimeDir = "/run/${namespace}";
-  mediaMount = "/mnt/media";
+  mediaMount = radonMediaRoot;
   mediaMountUnit = "${utils.escapeSystemdPath mediaMount}.mount";
   runnerBuildDir = "${mediaMount}/gitlab-runner-builds";
   runnerCacheDir = "${mediaMount}/gitlab-runner-cache";

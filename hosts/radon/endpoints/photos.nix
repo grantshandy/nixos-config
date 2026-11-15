@@ -4,12 +4,14 @@
   lib,
   pkgs,
   pkgs-unstable,
+  radonMediaRoot,
+  radonEndpoints,
   ...
 }: let
-  photosDir = "/mnt/media/photos";
-  immichDataDir = "/mnt/media/immich";
+  photosDir = "${radonMediaRoot}/photos";
+  immichDataDir = "${radonMediaRoot}/immich";
   immichPort = 2283;
-  photosHost = "photos.${config.identity.homelab.dns}";
+  photosHost = radonEndpoints.Immich.host;
 in {
   disabledModules = ["services/web-apps/immich.nix"];
   imports = ["${inputs.nixpkgs-unstable}/nixos/modules/services/web-apps/immich.nix"];
@@ -38,7 +40,7 @@ in {
       newVersionCheck.enabled = false;
       oauth = {
         enabled = true;
-        issuerUrl = "https://auth.${config.identity.homelab.dns}";
+        issuerUrl = lib.removeSuffix "/" radonEndpoints.Authelia.url;
         clientId = "immich";
         clientSecret._secret = config.age.secrets.immich-oidc-client-secret.path;
         tokenEndpointAuthMethod = "client_secret_post";
@@ -51,7 +53,7 @@ in {
         mobileOverrideEnabled = false;
         mobileRedirectUri = "";
       };
-      server.externalDomain = "https://${photosHost}";
+      server.externalDomain = lib.removeSuffix "/" radonEndpoints.Immich.url;
     };
   };
 
@@ -84,10 +86,9 @@ in {
   };
 
   services.caddy.virtualHosts = {
-    ${config.identity.homelab.dns}.extraConfig = lib.mkBefore ''
-      redir /photos https://${photosHost}/ 308
-      redir /photos/ https://${photosHost}/ 308
-    '';
+    ${config.identity.homelab.dns}.extraConfig = lib.mkBefore (lib.concatMapStringsSep "\n"
+      (path: "redir ${path} ${radonEndpoints.Immich.url} 308")
+      radonEndpoints.Immich.redirectPaths);
 
     ${photosHost}.extraConfig = ''
       reverse_proxy 127.0.0.1:${toString immichPort}
