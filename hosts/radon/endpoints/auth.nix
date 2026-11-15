@@ -64,6 +64,19 @@ in {
         watch = false;
       };
 
+      webauthn = {
+        disable = false;
+        enable_passkey_login = false;
+        display_name = authHost;
+        attestation_conveyance_preference = "none";
+        timeout = "2 minutes";
+        selection_criteria = {
+          attachment = "";
+          discoverability = "preferred";
+          user_verification = "required";
+        };
+      };
+
       access_control = {
         default_policy = "deny";
         rules = [
