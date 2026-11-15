@@ -1,8 +1,10 @@
 {
   helium = {
     system = "x86_64-linux";
-    ssh.enable = true;
-    ssh.port = 4321;
+    ssh = {
+      enable = true;
+      port = 4321;
+    };
     tailscale.enable = true;
     cache = {
       enable = true;
@@ -12,8 +14,10 @@
   };
   xenon = {
     system = "x86_64-linux";
-    ssh.enable = true;
-    ssh.port = 4321;
+    ssh = {
+      enable = true;
+      port = 4321;
+    };
     tailscale.enable = true;
     cache = {
       enable = true;
@@ -23,8 +27,10 @@
   };
   radon = {
     system = "x86_64-linux";
-    ssh.enable = true;
-    ssh.port = 22;
+    ssh = {
+      enable = true;
+      port = 22;
+    };
     tailscale.enable = true;
     cache = {
       enable = true;
@@ -36,6 +42,7 @@
       slskd.path = "/slskd/";
       Cockpit.subdomain = "cockpit";
       Headplane.subdomain = "headplane";
+      Lidarr.path = "/lidarr/";
     };
   };
 }

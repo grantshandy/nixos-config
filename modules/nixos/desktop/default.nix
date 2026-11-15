@@ -4,6 +4,7 @@
     ./flatpak.nix
     ./korean.nix
     ./tailscale-bookmarks.nix
+    ./firefox.nix
   ];
   home-manager.sharedModules = [../../home/desktop.nix];
 

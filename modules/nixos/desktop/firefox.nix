@@ -16,6 +16,6 @@
   );
 in
   lib.mkIf self.firefox.enable {
-    home-manager.sharedModules = [../home/firefox];
+    home-manager.sharedModules = [../../home/firefox];
     home-manager.users.${config.identity.user.name}.identity.firefox.homelabBookmarks = homelabBookmarks;
   }

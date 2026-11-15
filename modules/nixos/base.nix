@@ -1,10 +1,13 @@
 {
   pkgs,
   config,
-  lib,
   ...
 }: {
-  imports = [./nix-cache-mesh.nix];
+  imports = [
+    ./network-base.nix
+    ./nix-cache-mesh.nix
+    ./slskd-notify.nix
+  ];
 
   i18n = let
     lc = "en_US.UTF-8";

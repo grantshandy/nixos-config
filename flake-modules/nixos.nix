@@ -20,9 +20,6 @@
           ../modules/options.nix
           inputs.self.nixosModules.stateVersion
           ../modules/nixos/base.nix
-          ../modules/nixos/network-base.nix
-          ../modules/nixos/slskd-notify.nix
-          ../modules/nixos/firefox.nix
           ../identity.nix
           inputs.home-manager.nixosModules.home-manager
           ../modules/home/home-manager-base.nix
