@@ -5,9 +5,24 @@
   radonEndpoints,
   ...
 }: let
-  directoryLinks = lib.concatMapStringsSep "\n" (service: ''
+  renderLinks = lib.concatMapStringsSep "\n" (service: ''
     <li><a href="${lib.escapeXML service.url}"><strong>${lib.escapeXML service.title}</strong><span>${lib.escapeXML service.description}</span></a></li>
-  '') (lib.attrValues (lib.filterAttrs (_: service: service.showInDirectory) radonEndpoints));
+  '');
+  directoryLinks = renderLinks (lib.attrValues (lib.filterAttrs (_: service: service.showInDirectory) radonEndpoints));
+  privateServices =
+    config.network.hosts
+    |> lib.filterAttrs (_: host: host.tailscale.enable)
+    |> lib.mapAttrsToList (
+      name: host:
+        host.privateWebServices
+        |> lib.mapAttrsToList (_: service:
+          service
+          // {
+            url = "${service.scheme}://${name}.ts.${config.identity.homelab.dns}:${toString service.port}${service.path}";
+          })
+    )
+    |> lib.concatLists;
+  privateDirectoryLinks = renderLinks privateServices;
   directoryPage = pkgs.writeTextDir "index.html" ''
     <!doctype html>
     <html lang="en">
@@ -38,6 +53,8 @@
             color: var(--text);
           }
           h1 { margin: 0; font-size: 2rem; line-height: 1.2; letter-spacing: -.02em; }
+          h2 { margin: 0; font-size: 1.4rem; }
+          hr { margin: 2.5rem 0; border: 0; border-top: 1px solid var(--border); }
           p { margin: .5rem 0 0; color: var(--muted); }
           ul {
             display: grid;
@@ -85,6 +102,16 @@
         <ul>
           ${directoryLinks}
         </ul>
+        ${lib.optionalString (privateServices != []) ''
+      <hr>
+      <section aria-labelledby="private-services">
+        <h2 id="private-services">Private services</h2>
+        <p>These services are only accessible on the Tailscale network.</p>
+        <ul>
+          ${privateDirectoryLinks}
+        </ul>
+      </section>
+    ''}
       </body>
     </html>
   '';
