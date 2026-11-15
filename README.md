@@ -21,9 +21,6 @@ Features:
 
 ## Repository layout
 
-Simplified from `tree -a -I '.git|.direnv|result|node_modules'`, with hidden tooling
-files omitted and wallpaper images and encrypted secrets grouped together.
-
 ```text
 .
 ├── flake.nix
