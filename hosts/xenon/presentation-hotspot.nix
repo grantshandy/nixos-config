@@ -24,7 +24,10 @@
   concurrent = true;
 
   hotspotInterface = "auxq-hotspot";
-  hotspotDevice = if concurrent then hotspotInterface else wifiInterface;
+  hotspotDevice =
+    if concurrent
+    then hotspotInterface
+    else wifiInterface;
   hotspotSsid = "AuxQ-Presentation";
   hotspotAddress = "10.42.0.1/24";
 
@@ -41,45 +44,45 @@
       case "$action" in
         up)
           ${lib.optionalString concurrent ''
-            upstream_connection="$(${pkgs.networkmanager}/bin/nmcli -g GENERAL.CONNECTION device show ${wifiInterface})"
+        upstream_connection="$(${pkgs.networkmanager}/bin/nmcli -g GENERAL.CONNECTION device show ${wifiInterface})"
 
-            # On a fresh installation an unrestricted saved profile can briefly attach
-            # to the new virtual interface. Move it to the physical interface first.
-            if [[ -z "$upstream_connection" || "$upstream_connection" == "--" ]]; then
-              misplaced_connection="$(${pkgs.networkmanager}/bin/nmcli -g GENERAL.CONNECTION device show ${hotspotInterface})"
-              if [[ -n "$misplaced_connection" && "$misplaced_connection" != "--" && "$misplaced_connection" != "${hotspotSsid}" ]]; then
-                ${pkgs.networkmanager}/bin/nmcli connection down "$misplaced_connection"
-                ${pkgs.networkmanager}/bin/nmcli connection modify "$misplaced_connection" connection.interface-name ${wifiInterface}
-                ${pkgs.networkmanager}/bin/nmcli connection up "$misplaced_connection" ifname ${wifiInterface}
-                upstream_connection="$misplaced_connection"
-              fi
-            fi
+        # On a fresh installation an unrestricted saved profile can briefly attach
+        # to the new virtual interface. Move it to the physical interface first.
+        if [[ -z "$upstream_connection" || "$upstream_connection" == "--" ]]; then
+          misplaced_connection="$(${pkgs.networkmanager}/bin/nmcli -g GENERAL.CONNECTION device show ${hotspotInterface})"
+          if [[ -n "$misplaced_connection" && "$misplaced_connection" != "--" && "$misplaced_connection" != "${hotspotSsid}" ]]; then
+            ${pkgs.networkmanager}/bin/nmcli connection down "$misplaced_connection"
+            ${pkgs.networkmanager}/bin/nmcli connection modify "$misplaced_connection" connection.interface-name ${wifiInterface}
+            ${pkgs.networkmanager}/bin/nmcli connection up "$misplaced_connection" ifname ${wifiInterface}
+            upstream_connection="$misplaced_connection"
+          fi
+        fi
 
-            if [[ -z "$upstream_connection" || "$upstream_connection" == "--" ]]; then
-              echo "${wifiInterface} must be connected before starting the concurrent hotspot" >&2
-              exit 1
-            fi
+        if [[ -z "$upstream_connection" || "$upstream_connection" == "--" ]]; then
+          echo "${wifiInterface} must be connected before starting the concurrent hotspot" >&2
+          exit 1
+        fi
 
-            # Prevent the upstream profile from attaching to the virtual AP interface
-            # on later boots. Do not pin a BSSID, so it can still roam normally.
-            ${pkgs.networkmanager}/bin/nmcli connection modify "$upstream_connection" connection.interface-name ${wifiInterface}
+        # Prevent the upstream profile from attaching to the virtual AP interface
+        # on later boots. Do not pin a BSSID, so it can still roam normally.
+        ${pkgs.networkmanager}/bin/nmcli connection modify "$upstream_connection" connection.interface-name ${wifiInterface}
 
-            channel="$(${pkgs.iw}/bin/iw dev ${wifiInterface} info | ${pkgs.gawk}/bin/awk '$1 == "channel" { print $2; exit }')"
-            if [[ -z "$channel" ]]; then
-              echo "Could not determine the channel used by ${wifiInterface}" >&2
-              exit 1
-            fi
+        channel="$(${pkgs.iw}/bin/iw dev ${wifiInterface} info | ${pkgs.gawk}/bin/awk '$1 == "channel" { print $2; exit }')"
+        if [[ -z "$channel" ]]; then
+          echo "Could not determine the channel used by ${wifiInterface}" >&2
+          exit 1
+        fi
 
-            if (( channel <= 14 )); then
-              band="bg"
-            else
-              band="a"
-            fi
+        if (( channel <= 14 )); then
+          band="bg"
+        else
+          band="a"
+        fi
 
-            ${pkgs.networkmanager}/bin/nmcli connection modify ${lib.escapeShellArg hotspotSsid} \
-              802-11-wireless.band "$band" \
-              802-11-wireless.channel "$channel"
-          ''}
+        ${pkgs.networkmanager}/bin/nmcli connection modify ${lib.escapeShellArg hotspotSsid} \
+          802-11-wireless.band "$band" \
+          802-11-wireless.channel "$channel"
+      ''}
           ${pkgs.networkmanager}/bin/nmcli connection up ${lib.escapeShellArg hotspotSsid}
           ;;
         down)
@@ -157,7 +160,6 @@ in {
     };
   };
 }
-
 # Once the phone is connected, open Developer options -> Wireless debugging.
 #
 #   adb pair 10.42.0.PHONE:PAIRING_PORT
@@ -166,3 +168,4 @@ in {
 #
 # `--no-audio` leaves playback on the phone/headphones. Use `--audio-dup` instead
 # when audio should play on both Android and the laptop.
+

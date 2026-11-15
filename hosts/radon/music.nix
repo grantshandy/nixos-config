@@ -29,6 +29,8 @@
     stripRoot = false;
   };
 in {
+  my.slskdNotify.server.enable = true;
+
   networking.firewall.interfaces.tailscale0.allowedTCPPorts = [navidromePort];
 
   users.users = {
@@ -61,7 +63,7 @@ in {
     after = [mediaMountUnit];
     bindsTo = [mediaMountUnit];
     unitConfig.RequiresMountsFor = [
-      legacyMusicDir
+      lidarrMusicDir
       navidromeDataDir
     ];
     serviceConfig = {
@@ -76,7 +78,7 @@ in {
     settings = {
       Address = "0.0.0.0";
       Port = navidromePort;
-      MusicFolder = legacyMusicDir;
+      MusicFolder = lidarrMusicDir;
       DataFolder = navidromeDataDir;
       CacheFolder = "${navidromeDataDir}/cache";
       Scanner.PurgeMissing = "always";
@@ -119,7 +121,7 @@ in {
     serviceConfig.Type = "oneshot";
     script = ''
       install -d -m 0770 -o lidarr -g media ${tubifarryDir}
-      find ${tubifarryDir} -mindepth 1 -maxdepth 1 ! -name settings.resx -delete
+      find ${tubifarryDir} -mindepth 1 -maxdepth 1 ! -name settings.resx -exec rm -rf -- {} +
       cp -R ${tubifarry}/. ${tubifarryDir}/
       chown -R lidarr:media ${tubifarryDir}
       chmod -R u+rwX,g+rwX,o-rwx ${tubifarryDir}
@@ -152,7 +154,7 @@ in {
     after = [mediaMountUnit];
     bindsTo = [mediaMountUnit];
     unitConfig.RequiresMountsFor = [
-      legacyMusicDir
+      lidarrMusicDir
       lidarrDownloadsDir
       lidarrIncompleteDir
     ];
@@ -169,8 +171,7 @@ in {
         incomplete = lidarrIncompleteDir;
       };
       shares = {
-        # Keep sharing the old library until the staged Lidarr import is verified.
-        directories = ["[Music]${legacyMusicDir}"];
+        directories = ["[Music]${lidarrMusicDir}"];
         cache.retention = 60;
       };
       global = {
@@ -210,6 +211,11 @@ in {
     handle /lidarr/* {
       forward_auth 127.0.0.1:9091 {
         uri /api/authz/forward-auth
+        # Keep Lidarr's API credentials out of the cloned auth request. The
+        # original request still reaches Lidarr with these values unchanged.
+        header_up -Authorization
+        header_up -X-Api-Key
+        header_up X-Forwarded-URI {http.request.uri.path}
         copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
       }
       reverse_proxy 127.0.0.1:${toString lidarrPort}
@@ -221,6 +227,10 @@ in {
     handle /slskd/* {
       forward_auth 127.0.0.1:9091 {
         uri /api/authz/forward-auth
+        # slskd also uses bearer tokens and access_token query parameters for
+        # its API and SignalR connections. Only hide them from Authelia.
+        header_up -Authorization
+        header_up X-Forwarded-URI {http.request.uri.path}
         copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
       }
       reverse_proxy 127.0.0.1:${toString slskdWebPort}
