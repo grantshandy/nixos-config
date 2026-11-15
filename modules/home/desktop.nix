@@ -1,6 +1,7 @@
 {config, ...}: {
   imports = [
     ./zed
+    ./firefox
     ./beeper.nix
     ./globalprotect-vpn.nix
     ./gitlab-runner-vpn.nix

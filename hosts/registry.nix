@@ -10,7 +10,6 @@
       enable = true;
       priority = 30;
     };
-    firefox.enable = true;
   };
   xenon = {
     system = "x86_64-linux";
@@ -23,7 +22,6 @@
       enable = true;
       priority = 20;
     };
-    firefox.enable = true;
     privateWebServices.OpenWebUI = {
       title = "Open WebUI";
       description = "Local AI chat";

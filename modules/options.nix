@@ -134,11 +134,7 @@ in {
             description = "Tailscale-only nix-serve port.";
           };
         };
-        firefox.enable = lib.mkOption {
-          type = lib.types.bool;
-          default = false;
-          description = "Whether Firefox is enabled on this host.";
-        };
+
         publicWebServices = lib.mkOption {
           type = lib.types.attrsOf (lib.types.submodule {
             imports = [commonServiceOptions];
