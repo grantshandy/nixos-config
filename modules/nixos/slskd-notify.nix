@@ -4,15 +4,32 @@
   pkgs,
   ...
 }: let
-  cfg = config.my.slskdNotify;
-  spoolDir = "/var/lib/slskd-notify";
+  thisHostName = config.networking.hostName;
+  thisHost =
+    config.network.hosts.${thisHostName}
+    or (throw "host '${thisHostName}' is missing from network.hosts");
+  serverHosts = lib.filterAttrs (_: host: host.webServices ? slskd) config.network.hosts;
+  serverHostNames = lib.attrNames serverHosts;
+  serverHostName =
+    if lib.length serverHostNames == 1
+    then lib.head serverHostNames
+    else throw "exactly one network host must advertise the slskd web service";
+  serverEnabled = config.services.slskd.enable;
+  clientEnabled = thisHost.tailscale.enable && config.services.displayManager.enable;
+
+  stateDirectory = "slskd-notify";
+  spoolDir = "/var/lib/${stateDirectory}";
   ntfyPort = 2586;
+  ntfyTopic = "slskd-uploads";
+  ntfyUrl = "http://${serverHostName}.ts.${config.identity.homelab.dns}:${toString ntfyPort}";
   idleSeconds = 45;
 
   uploadHook = pkgs.writeShellApplication {
     name = "slskd-upload-notify-hook";
-    runtimeInputs = with pkgs; [coreutils jq];
+    runtimeInputs = with pkgs; [coreutils jq util-linux];
     text = ''
+      logger --tag slskd-upload-notify "received UploadFileComplete event"
+
       line="$(${lib.getExe pkgs.jq} -e -c '
         . as $event
         | ($event.transfer.filename // $event.remoteFilename // $event.localFilename)
@@ -39,12 +56,13 @@
         "$(printf '%s' "$line" | jq -r .album)" \
         | sha256sum | cut -c1-20)"
       printf '%s\n' "$line" >> "${spoolDir}/$key.jsonl"
+      logger --tag slskd-upload-notify -- "spooled $key: $(printf '%s' "$line" | jq -r '"\(.song) from \(.album) — \(.bytes) bytes to \(.user)"')"
     '';
   };
 
   flushUploads = pkgs.writeShellApplication {
     name = "slskd-upload-notify-flush";
-    runtimeInputs = with pkgs; [coreutils curl jq];
+    runtimeInputs = with pkgs; [coreutils curl jq util-linux];
     text = ''
       cd ${spoolDir}
       now="$(date +%s)"
@@ -55,8 +73,9 @@
 
         sending="$file.sending"
         mv "$file" "$sending"
+        logger --tag slskd-upload-notify -- "publishing batch $sending after ${toString idleSeconds}s idle"
 
-        if jq -s --arg topic ${lib.escapeShellArg cfg.topic} '
+        if jq -s --arg topic ${lib.escapeShellArg ntfyTopic} '
           def human_size:
             if . >= 1073741824 then
               "\((. / 107374182.4 | round) / 10) GiB"
@@ -88,8 +107,9 @@
           | curl --fail --silent --show-error \
               --header 'Content-Type: application/json' \
               --data-binary @- \
-              ${lib.escapeShellArg cfg.url}
+              ${lib.escapeShellArg ntfyUrl}
         then
+          logger --tag slskd-upload-notify -- "published batch $sending"
           rm "$sending"
         else
           # Keep failed deliveries in the spool for the next timer tick.
@@ -105,7 +125,7 @@
     name = "slskd-upload-notify-subscribe";
     runtimeInputs = [pkgs.libnotify];
     text = ''
-      exec ${lib.getExe pkgs.python3} - ${lib.escapeShellArg "${cfg.url}/${cfg.topic}/json"} <<'PY'
+      exec ${lib.getExe pkgs.python3} - ${lib.escapeShellArg "${ntfyUrl}/${ntfyTopic}/json"} <<'PY'
       import json
       import os
       import pathlib
@@ -155,45 +175,26 @@
     '';
   };
 in {
-  options.my.slskdNotify = {
-    url = lib.mkOption {
-      type = lib.types.str;
-      default = "http://radon.ts.${config.identity.homelab.dns}:${toString ntfyPort}";
-      description = "Tailnet URL of the ntfy server used for slskd upload notifications.";
-    };
-
-    topic = lib.mkOption {
-      type = lib.types.str;
-      default = "slskd-uploads";
-      description = "ntfy topic used for slskd upload notifications.";
-    };
-
-    server.enable = lib.mkEnableOption "the slskd upload notification publisher and ntfy server";
-    client.enable = lib.mkEnableOption "desktop notifications for slskd uploads";
-  };
-
   config = lib.mkMerge [
     {
       assertions = [
         {
-          assertion =
-            !(cfg.server.enable || cfg.client.enable)
-            || config.network.hosts.${config.networking.hostName}.tailscale.enable;
-          message = "slskd upload notifications require Tailscale";
+          assertion = !serverEnabled || thisHost.tailscale.enable;
+          message = "slskd upload notifications require Tailscale on the slskd server";
+        }
+        {
+          assertion = !serverEnabled || thisHostName == serverHostName;
+          message = "the host running slskd must advertise it in network.hosts.<name>.webServices";
         }
       ];
     }
 
-    (lib.mkIf cfg.server.enable {
+    (lib.mkIf serverEnabled {
       networking.firewall.interfaces.tailscale0.allowedTCPPorts = [ntfyPort];
 
-      systemd.tmpfiles.rules = [
-        "d ${spoolDir} 0770 slskd slskd -"
-      ];
+      systemd.services.slskd.serviceConfig.StateDirectory = [stateDirectory];
 
-      systemd.services.slskd.serviceConfig.ReadWritePaths = [spoolDir];
-
-      services.slskd.settings.integrations.scripts.upload-notify = {
+      services.slskd.settings.integration.scripts.upload-notify = {
         on = ["UploadFileComplete"];
         run.executable = lib.getExe uploadHook;
       };
@@ -224,7 +225,7 @@ in {
       services.ntfy-sh = {
         enable = true;
         settings = {
-          base-url = cfg.url;
+          base-url = ntfyUrl;
           listen-http = "0.0.0.0:${toString ntfyPort}";
           cache-file = "/var/lib/ntfy-sh/cache.db";
           cache-duration = "7d";
@@ -233,9 +234,9 @@ in {
       };
     })
 
-    (lib.mkIf cfg.client.enable {
+    (lib.mkIf clientEnabled {
       systemd.user.services.slskd-notify = {
-        description = "Show slskd upload notifications from Radon";
+        description = "Show slskd upload notifications from ${serverHostName}";
         wantedBy = ["graphical-session.target"];
         partOf = ["graphical-session.target"];
         after = ["graphical-session.target"];

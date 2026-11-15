@@ -29,8 +29,6 @@
     stripRoot = false;
   };
 in {
-  my.slskdNotify.server.enable = true;
-
   networking.firewall.interfaces.tailscale0.allowedTCPPorts = [navidromePort];
 
   users.users = {
