@@ -6,7 +6,6 @@
 
   networking.useDHCP = true;
 
-  users.users.${config.identity.user.name}.openssh.authorizedKeys.keys = config.identity.ssh.userKeys;
   services.openssh.settings.PasswordAuthentication = false;
 
   # The base user has no declarative password. Keep the key-authenticated user

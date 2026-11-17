@@ -35,7 +35,6 @@ in {
   users.users.${config.identity.user.name} = {
     isNormalUser = true;
     extraGroups = ["wheel"];
-    openssh.authorizedKeys.keys = config.identity.ssh.userKeys;
   };
   security.sudo.wheelNeedsPassword = false;
 

@@ -37,6 +37,7 @@
       "wheel"
     ];
     packages = with pkgs; [git];
+    openssh.authorizedKeys.keys = config.identity.ssh.userKeys;
   };
 
   system.stateVersion = config.configuration.stateVersion;

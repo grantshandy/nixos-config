@@ -24,7 +24,7 @@
   zed = pkgs-unstable.zed-editor;
   accessible = self.ssh.enable && self.tailscale.enable;
 
-  waypipeFor = name: _:
+  waypipeFor = name: h:
     pkgs.writeShellApplication {
       name = "waypipe-${name}";
       runtimeInputs = [pkgs.waypipe pkgs.openssh];
@@ -33,7 +33,7 @@
           echo "Usage: waypipe-${name} <application> [args…]" >&2
           exit 1
         fi
-        exec waypipe ssh ${lib.escapeShellArg name} "$@"
+        exec waypipe ssh -p ${toString h.ssh.port} ${lib.escapeShellArg name} "$@"
       '';
     };
 
@@ -70,7 +70,10 @@ in {
 
       home.packages = lib.optionals self.tailscale.enable (lib.mapAttrsToList waypipeFor otherHosts);
       gtk.gtk3.bookmarks = lib.mkIf (self.tailscale.enable && config.gtk.enable) (lib.mapAttrsToList bookmarkFor otherHosts);
-      programs.ssh.matchBlocks = lib.mkIf self.tailscale.enable (lib.mapAttrs sshMatchBlockFor otherHosts);
+      programs.ssh = lib.mkIf self.tailscale.enable {
+        enable = true;
+        matchBlocks = lib.mapAttrs sshMatchBlockFor otherHosts;
+      };
       programs.zed-editor.userSettings.ssh_connections = lib.mkIf (self.tailscale.enable && config.programs.zed-editor.enable) (
         lib.mapAttrsToList (name: h: {
           host = name;
