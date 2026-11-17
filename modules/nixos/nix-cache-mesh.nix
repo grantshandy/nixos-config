@@ -23,7 +23,7 @@
 
   peerSubstituters =
     map (
-      peer: "http://127.0.0.1:${toString proxyPort}/${proxyPathFor peer}?priority=${toString peer.host.cache.priority}"
+      peer: "http://127.0.0.1:${toString proxyPort}/${proxyPathFor peer}"
     )
     peers;
 
