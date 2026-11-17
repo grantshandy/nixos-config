@@ -1,6 +1,7 @@
 {
   pkgs,
   config,
+  inputs,
   ...
 }: {
   imports = [
@@ -27,6 +28,10 @@
       "pipe-operators"
     ];
     auto-optimise-store = true;
+  };
+  nix.registry = {
+    nixpkgs.flake = inputs.nixpkgs;
+    nixpkgs-unstable.flake = inputs.nixpkgs-unstable;
   };
   documentation.nixos.enable = false;
 
