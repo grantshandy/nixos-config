@@ -20,6 +20,7 @@
 
   nixpkgs.config.allowUnfree = true;
   nix.settings = {
+    trusted-users = [config.identity.user.name];
     experimental-features = [
       "nix-command"
       "flakes"
@@ -39,6 +40,18 @@
     packages = with pkgs; [git];
     openssh.authorizedKeys.keys = config.identity.ssh.userKeys;
   };
+
+  security.sudo.extraRules = [
+    {
+      users = [config.identity.user.name];
+      commands = [
+        {
+          command = "ALL";
+          options = ["NOPASSWD"];
+        }
+      ];
+    }
+  ];
 
   system.stateVersion = config.configuration.stateVersion;
 }

@@ -117,6 +117,11 @@ in {
           type = lib.types.bool;
           default = false;
         };
+        deployment.buildOnTarget = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = "Whether Colmena builds this host's system profile on the target host.";
+        };
         remoteBuilder = {
           pull = lib.mkOption {
             type = lib.types.bool;

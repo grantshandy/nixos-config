@@ -36,6 +36,7 @@
   };
   krypton = {
     system = "x86_64-linux";
+    deployment.buildOnTarget = false;
     ssh = {
       enable = true;
       port = 22;
