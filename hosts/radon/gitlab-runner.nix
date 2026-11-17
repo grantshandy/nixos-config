@@ -564,7 +564,7 @@ in
         Group = "gitlab-runner";
         Nice = 10;
         CPUWeight = 75;
-        IOWeight = 25;
+        IOWeight = 50;
         OOMScoreAdjust = 500;
       };
     };
