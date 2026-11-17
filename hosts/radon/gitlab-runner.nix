@@ -271,7 +271,7 @@
         --volume ${containerNixDir}/store:/nix/store \
         --volume ${containerNixDir}/db:/nix/var/nix/db \
         ${nixImage} \
-        -euc 'command -v sh grep mkdir nix >/dev/null; nix store verify --no-contents'
+        -euc 'command -v sh grep mkdir nix >/dev/null; nix --extra-experimental-features nix-command store verify --all --no-contents --no-trust'
     '';
   };
 
