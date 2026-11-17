@@ -11,8 +11,10 @@
 
   namespace = "uofu-ci";
   hostInterface = "${namespace}-host";
+  hostAddress = "10.203.0.1";
   namespaceInterface = "${namespace}-peer";
   tunnelInterface = "${namespace}-vpn";
+  nixCacheProxyPort = 6000;
   runtimeDir = "/run/${namespace}";
   podmanRuntimeDir = "/run/${namespace}-podman";
   mediaMount = radonMediaRoot;
@@ -33,7 +35,10 @@
     graphroot = "${podmanDataDir}"
     runroot = "${podmanRunRoot}"
   '';
-  nixImage = "nixos/nix:latest";
+  nixImageDigest = "sha256:a3b3e3eb3883e5af5327757c5304c0093426a0d11c58a9056df46cfefe30319e";
+  nixImage = "nixos/nix@${nixImageDigest}";
+  nixSeedMarker = ".uofu-ci-store-db-seeded-${builtins.substring 7 12 nixImageDigest}";
+  legacyNixSeedMarker = ".uofu-ci-seeded-${builtins.substring 7 12 nixImageDigest}";
   cargoTargetDir = "${runnerCacheDir}/auxq-cargo-target";
   androidCargoTargetDir = "${runnerCacheDir}/auxq-android-cargo-target";
   cargoHomeDir = "${runnerCacheDir}/auxq-cargo-home";
@@ -42,6 +47,12 @@
   nixBuildDir = "${runnerCacheDir}/auxq-nix-build";
   nixXdgCacheDir = "${runnerCacheDir}/auxq-nix-xdg-cache";
   nixTmpDir = "${runnerCacheDir}/auxq-nix-tmp";
+  ciSubstituters =
+    config.nix.settings.substituters
+    |> map (lib.replaceStrings
+      ["http://127.0.0.1:${toString nixCacheProxyPort}"]
+      ["http://${hostAddress}:${toString nixCacheProxyPort}"]);
+  ciTrustedPublicKeys = config.nix.settings.trusted-public-keys;
   vpnServer = "vpn.utah.edu";
 
   namespaceSetup = pkgs.writeShellApplication {
@@ -59,7 +70,7 @@
           ip link add ${hostInterface} type veth peer name ${namespaceInterface}
           ip link set ${namespaceInterface} netns ${namespace}
 
-          ip address add 10.203.0.1/30 dev ${hostInterface}
+          ip address add ${hostAddress}/30 dev ${hostInterface}
           ip link set ${hostInterface} up
           ip -n ${namespace} link set lo up
           ip -n ${namespace} address add 10.203.0.2/30 dev ${namespaceInterface}
@@ -79,6 +90,7 @@
         chain forward {
           type filter hook forward priority filter; policy drop;
           ct state established,related accept
+          iifname "podman*" ip daddr ${hostAddress} tcp dport ${toString nixCacheProxyPort} accept
           iifname "podman*" oifname "podman*" accept
           oifname "${tunnelInterface}" accept
         }
@@ -226,16 +238,40 @@
         "''${podman[@]}" pull ${nixImage}
       fi
 
-      # Seed the bind mount once from the image so the container retains Nix
-      # itself when /nix is replaced by the persistent media-backed directory.
-      if [ ! -e ${containerNixDir}/.uofu-ci-seeded ]; then
-        find ${containerNixDir} -mindepth 1 -delete
-        "''${podman[@]}" run --rm \
-          --entrypoint /bin/sh \
-          --volume ${containerNixDir}:/ci-nix \
-          ${nixImage} \
-          -euc 'cp -a /nix/. /ci-nix/ && touch /ci-nix/.uofu-ci-seeded'
+      # Persist the store and its validity database without replacing all of
+      # /nix. A whole-/nix mount hides the image-owned profiles that provide
+      # sh and the basic tools GitLab Runner needs before the job can begin.
+      # Re-seed when the pinned image changes so its profile targets are
+      # guaranteed to exist in the persistent store.
+      if [ ! -e ${containerNixDir}/${nixSeedMarker} ]; then
+        if {
+          [ -e ${containerNixDir}/${legacyNixSeedMarker} ] ||
+          [ -e ${containerNixDir}/.uofu-ci-seeded ]
+        } && [ -d ${containerNixDir}/store ] && [ -d ${containerNixDir}/var/nix/db ]; then
+          # Migrate the previous whole-/nix layout without discarding its cache.
+          mv ${containerNixDir}/var/nix/db ${containerNixDir}/db
+          rm -rf ${containerNixDir}/var
+          touch ${containerNixDir}/${nixSeedMarker}
+        else
+          find ${containerNixDir} -mindepth 1 -delete
+          "''${podman[@]}" run --rm \
+            --entrypoint /bin/sh \
+            --volume ${containerNixDir}:/ci-nix \
+            ${nixImage} \
+            -euc '
+              cp -a /nix/store /ci-nix/store
+              cp -a /nix/var/nix/db /ci-nix/db
+              touch /ci-nix/${nixSeedMarker}
+            '
+        fi
       fi
+
+      "''${podman[@]}" run --rm \
+        --entrypoint /bin/sh \
+        --volume ${containerNixDir}/store:/nix/store \
+        --volume ${containerNixDir}/db:/nix/var/nix/db \
+        ${nixImage} \
+        -euc 'command -v sh grep mkdir nix >/dev/null; nix store verify --no-contents'
     '';
   };
 
@@ -278,6 +314,19 @@ in
       externalInterface = "enp8s0";
       internalInterfaces = [hostInterface];
     };
+
+    networking.firewall.interfaces.${hostInterface}.allowedTCPPorts = [nixCacheProxyPort];
+
+    # The mesh proxy normally listens only on the host's loopback interface.
+    # Expose it on the CI veth so containers can use it without access to the
+    # host network namespace or the host's other services.
+    services.nginx.virtualHosts.nix-cache-mesh.listen = lib.mkAfter [
+      {
+        addr = hostAddress;
+        port = nixCacheProxyPort;
+      }
+    ];
+    systemd.services.nginx.after = ["${namespace}-netns.service"];
 
     environment.systemPackages = [
       submitAuth
@@ -432,7 +481,10 @@ in
         dockerImage = nixImage;
         dockerPullPolicy = "if-not-present";
         dockerVolumes = [
-          "${containerNixDir}:/nix"
+          # Preserve the image's /nix profiles while sharing its expensive
+          # store contents and validity database across jobs on /mnt/media.
+          "${containerNixDir}/store:/nix/store"
+          "${containerNixDir}/db:/nix/var/nix/db"
           "${gitlabCacheDir}:${gitlabCacheDir}"
           "${cargoTargetDir}:${cargoTargetDir}"
           "${androidCargoTargetDir}:${androidCargoTargetDir}"
@@ -446,6 +498,9 @@ in
         environmentVariables = {
           NIX_CONFIG = ''
             experimental-features = nix-command flakes pipe-operators
+            substituters = ${lib.concatStringsSep " " ciSubstituters}
+            trusted-public-keys = ${lib.concatStringsSep " " ciTrustedPublicKeys}
+            fallback = true
             sandbox = false
             build-dir = ${nixBuildDir}
           '';
@@ -459,7 +514,8 @@ in
           AUXQ_CI_TMPDIR = nixTmpDir;
           XDG_CACHE_HOME = nixXdgCacheDir;
           TMPDIR = nixTmpDir;
-          PATH = "/root/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
+          # Do not override PATH here: runner variables are also injected into
+          # helper containers, and each image must retain its own tool paths.
           # Required by GitLab Runner when its Docker executor targets Podman.
           FF_NETWORK_PER_BUILD = "1";
         };
