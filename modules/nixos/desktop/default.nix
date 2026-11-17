@@ -3,7 +3,6 @@
     ./gnome
     ./flatpak.nix
     ./korean.nix
-    ./tailscale-bookmarks.nix
   ];
   home-manager.sharedModules = [
     ../../home/desktop.nix

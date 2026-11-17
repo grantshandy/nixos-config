@@ -5,6 +5,7 @@
 }: {
   imports = [
     ./network-base.nix
+    ./tailscale-bookmarks.nix
     ./nix-cache-mesh.nix
     ./slskd-notify.nix
   ];

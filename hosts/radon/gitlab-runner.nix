@@ -14,16 +14,31 @@
   namespaceInterface = "${namespace}-peer";
   tunnelInterface = "${namespace}-vpn";
   runtimeDir = "/run/${namespace}";
+  podmanRuntimeDir = "/run/${namespace}-podman";
   mediaMount = radonMediaRoot;
   mediaMountUnit = "${utils.escapeSystemdPath mediaMount}.mount";
   runnerBuildDir = "${mediaMount}/gitlab-runner-builds";
   runnerCacheDir = "${mediaMount}/gitlab-runner-cache";
+  gitlabCacheDir = "${runnerCacheDir}/gitlab";
+  podmanDataDir = "${runnerCacheDir}/podman";
+  podmanNetworkDir = "${podmanDataDir}/networks";
+  podmanTmpDir = "${runnerCacheDir}/podman-tmp";
+  containerNixDir = "${runnerCacheDir}/nix-container";
+  podmanSocket = "${podmanRuntimeDir}/podman.sock";
+  podmanRunRoot = "${podmanRuntimeDir}/storage";
+  podmanPackage = config.virtualisation.podman.package;
+  podmanStorageConfig = pkgs.writeText "${namespace}-storage.conf" ''
+    [storage]
+    driver = "overlay"
+    graphroot = "${podmanDataDir}"
+    runroot = "${podmanRunRoot}"
+  '';
+  nixImage = "nixos/nix:latest";
   cargoTargetDir = "${runnerCacheDir}/auxq-cargo-target";
   androidCargoTargetDir = "${runnerCacheDir}/auxq-android-cargo-target";
   cargoHomeDir = "${runnerCacheDir}/auxq-cargo-home";
   gradleHomeDir = "${runnerCacheDir}/auxq-gradle-home";
   pnpmStoreDir = "${runnerCacheDir}/pnpm-store";
-  nixRootDir = "${runnerCacheDir}/auxq-nix-root";
   nixBuildDir = "${runnerCacheDir}/auxq-nix-build";
   nixXdgCacheDir = "${runnerCacheDir}/auxq-nix-xdg-cache";
   nixTmpDir = "${runnerCacheDir}/auxq-nix-tmp";
@@ -58,6 +73,13 @@
           oifname "lo" accept
           ct state established,related accept
           meta skuid 0 oifname "${namespaceInterface}" accept
+          oifname "${tunnelInterface}" accept
+        }
+
+        chain forward {
+          type filter hook forward priority filter; policy drop;
+          ct state established,related accept
+          iifname "podman*" oifname "podman*" accept
           oifname "${tunnelInterface}" accept
         }
       }
@@ -179,8 +201,10 @@
       systemctl restart ${namespace}-vpn.service
       for _ in $(seq 1 30); do
         if ip -n ${namespace} link show ${tunnelInterface} >/dev/null 2>&1; then
+          systemctl restart ${namespace}-podman.service
+          systemctl restart ${namespace}-podman-setup.service
           systemctl restart gitlab-runner.service
-          echo "University VPN and GitLab Runner are active"
+          echo "University VPN, CI container runtime, and GitLab Runner are active"
           exit 0
         fi
         sleep 1
@@ -189,6 +213,29 @@
       echo "OpenConnect did not create ${tunnelInterface} within 30 seconds" >&2
       systemctl --no-pager --full status ${namespace}-vpn.service >&2 || true
       exit 1
+    '';
+  };
+
+  podmanSetup = pkgs.writeShellApplication {
+    name = "${namespace}-podman-setup";
+    runtimeInputs = [pkgs.coreutils pkgs.findutils podmanPackage];
+    text = ''
+      podman=(podman --remote --url unix://${podmanSocket})
+
+      if ! "''${podman[@]}" image inspect ${nixImage} >/dev/null 2>&1; then
+        "''${podman[@]}" pull ${nixImage}
+      fi
+
+      # Seed the bind mount once from the image so the container retains Nix
+      # itself when /nix is replaced by the persistent media-backed directory.
+      if [ ! -e ${containerNixDir}/.uofu-ci-seeded ]; then
+        find ${containerNixDir} -mindepth 1 -delete
+        "''${podman[@]}" run --rm \
+          --entrypoint /bin/sh \
+          --volume ${containerNixDir}:/ci-nix \
+          ${nixImage} \
+          -euc 'cp -a /nix/. /ci-nix/ && touch /ci-nix/.uofu-ci-seeded'
+      fi
     '';
   };
 
@@ -237,6 +284,8 @@ in
       vpnStatus
     ];
 
+    virtualisation.podman.enable = true;
+
     users.groups.gitlab-runner = {};
     users.users.gitlab-runner = {
       isSystemUser = true;
@@ -246,15 +295,21 @@ in
 
     systemd.tmpfiles.rules = [
       "d ${runtimeDir} 0700 root root -"
+      "d ${podmanRuntimeDir} 0750 root gitlab-runner -"
       "d ${runnerBuildDir} 0750 gitlab-runner gitlab-runner -"
       "d ${runnerCacheDir} 0750 gitlab-runner gitlab-runner -"
+      "d ${gitlabCacheDir} 0750 gitlab-runner gitlab-runner -"
+      "d ${podmanDataDir} 0700 root root -"
+      "d ${podmanNetworkDir} 0700 root root -"
+      "d ${podmanTmpDir} 0700 root root -"
+      "d ${containerNixDir} 0755 root root -"
       "d ${cargoTargetDir} 0750 gitlab-runner gitlab-runner -"
       "d ${androidCargoTargetDir} 0750 gitlab-runner gitlab-runner -"
       "d ${cargoHomeDir} 0750 gitlab-runner gitlab-runner -"
       "d ${gradleHomeDir} 0750 gitlab-runner gitlab-runner -"
       "d ${pnpmStoreDir} 0750 gitlab-runner gitlab-runner -"
-      "d ${nixRootDir} 0750 gitlab-runner gitlab-runner -"
-      "d ${nixBuildDir} 0750 gitlab-runner gitlab-runner -"
+      # The container runs Nix as root and creates temporary build directories here.
+      "d ${nixBuildDir} 0755 root root -"
       "d ${nixXdgCacheDir} 0750 gitlab-runner gitlab-runner -"
       "d ${nixTmpDir} 0750 gitlab-runner gitlab-runner -"
     ];
@@ -262,7 +317,7 @@ in
     systemd.services."${namespace}-netns" = {
       description = "Network namespace for University VPN CI traffic";
       wantedBy = ["multi-user.target"];
-      before = ["${namespace}-vpn.service" "gitlab-runner.service"];
+      before = ["${namespace}-vpn.service" "${namespace}-podman.service" "gitlab-runner.service"];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -273,6 +328,9 @@ in
 
     systemd.services."${namespace}-vpn" = {
       description = "University of Utah VPN for GitLab Runner";
+      # VPN authentication is ephemeral and must only be consumed by an
+      # explicit authentication renewal, not by nixos-rebuild activation.
+      restartIfChanged = false;
       requires = ["${namespace}-netns.service"];
       wants = ["network-online.target"];
       after = ["${namespace}-netns.service" "network-online.target"];
@@ -286,34 +344,124 @@ in
       };
     };
 
+    systemd.sockets."${namespace}-podman" = {
+      description = "Docker-compatible Podman API socket for GitLab CI";
+      requires = ["${namespace}-vpn.service"];
+      after = ["${namespace}-vpn.service"];
+      bindsTo = ["${namespace}-vpn.service"];
+      listenStreams = [podmanSocket];
+      socketConfig = {
+        SocketMode = "0660";
+        SocketUser = "root";
+        SocketGroup = "gitlab-runner";
+        RemoveOnStop = true;
+      };
+    };
+
+    systemd.services."${namespace}-podman" = {
+      description = "Media-backed Podman API service for GitLab CI";
+      restartIfChanged = false;
+      requires = [
+        "${namespace}-netns.service"
+        "${namespace}-vpn.service"
+        "${namespace}-podman.socket"
+      ];
+      after = [
+        "${namespace}-netns.service"
+        "${namespace}-vpn.service"
+        "${namespace}-podman.socket"
+        mediaMountUnit
+      ];
+      bindsTo = ["${namespace}-vpn.service" mediaMountUnit];
+      unitConfig.RequiresMountsFor = [podmanDataDir podmanTmpDir];
+      path = with pkgs; [iproute2 iptables kmod];
+      environment = {
+        CONTAINERS_STORAGE_CONF = podmanStorageConfig;
+        TMPDIR = podmanTmpDir;
+      };
+      serviceConfig = {
+        Type = "exec";
+        ExecStart = ''
+          ${podmanPackage}/bin/podman \
+            --root=${podmanDataDir} \
+            --runroot=${podmanRunRoot} \
+            --tmpdir=${podmanTmpDir} \
+            --storage-driver=overlay \
+            --network-config-dir=${podmanNetworkDir} \
+            system service --time=0
+        '';
+        NetworkNamespacePath = "/run/netns/${namespace}";
+        BindReadOnlyPaths = ["${runtimeDir}/resolv.conf:/etc/resolv.conf"];
+        Delegate = true;
+        KillMode = "mixed";
+        Restart = "on-failure";
+        RestartSec = "5s";
+        TimeoutStopSec = "30s";
+        TasksMax = "infinity";
+        LimitNOFILE = 1048576;
+      };
+    };
+
+    systemd.services."${namespace}-podman-setup" = {
+      description = "Prepare the persistent Nix CI container store";
+      restartIfChanged = false;
+      requires = ["${namespace}-podman.service"];
+      after = ["${namespace}-podman.service"];
+      bindsTo = [mediaMountUnit];
+      unitConfig.RequiresMountsFor = [containerNixDir];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = lib.getExe podmanSetup;
+        RemainAfterExit = true;
+        TimeoutStartSec = "15min";
+      };
+    };
+
     services.gitlab-runner = {
       enable = true;
       settings.concurrent = 1;
-      extraPackages = [
-        config.nix.package
-        pkgs.git
-      ];
-
       services.radon-nix = {
         authenticationTokenConfigFile = config.age.secrets.gitlab-runner-token.path;
-        executor = "shell";
-        description = "radon-nix";
-        # StateDirectory is intentionally noexec; job workspaces must execute
-        # pnpm launchers, Cargo build scripts, and compiled test binaries.
+        executor = "docker";
+        description = "radon-nix-container";
         buildsDir = runnerBuildDir;
+        registrationFlags = [
+          "--cache-dir ${gitlabCacheDir}"
+          "--docker-host unix://${podmanSocket}"
+        ];
+        dockerImage = nixImage;
+        dockerPullPolicy = "if-not-present";
+        dockerVolumes = [
+          "${containerNixDir}:/nix"
+          "${gitlabCacheDir}:${gitlabCacheDir}"
+          "${cargoTargetDir}:${cargoTargetDir}"
+          "${androidCargoTargetDir}:${androidCargoTargetDir}"
+          "${cargoHomeDir}:${cargoHomeDir}"
+          "${gradleHomeDir}:${gradleHomeDir}"
+          "${pnpmStoreDir}:${pnpmStoreDir}"
+          "${nixBuildDir}:${nixBuildDir}"
+          "${nixXdgCacheDir}:${nixXdgCacheDir}"
+          "${nixTmpDir}:${nixTmpDir}"
+        ];
         environmentVariables = {
           NIX_CONFIG = ''
             experimental-features = nix-command flakes pipe-operators
+            sandbox = false
+            build-dir = ${nixBuildDir}
           '';
           AUXQ_CI_CARGO_TARGET_DIR = cargoTargetDir;
           AUXQ_CI_ANDROID_CARGO_TARGET_DIR = androidCargoTargetDir;
           AUXQ_CI_CARGO_HOME = cargoHomeDir;
           AUXQ_CI_GRADLE_HOME = gradleHomeDir;
           AUXQ_CI_PNPM_STORE_DIR = pnpmStoreDir;
-          AUXQ_CI_NIX_ROOT = nixRootDir;
           AUXQ_CI_NIX_BUILD_DIR = nixBuildDir;
           AUXQ_CI_XDG_CACHE_HOME = nixXdgCacheDir;
           AUXQ_CI_TMPDIR = nixTmpDir;
+          XDG_CACHE_HOME = nixXdgCacheDir;
+          TMPDIR = nixTmpDir;
+          PATH = "/root/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
+          # Required by GitLab Runner when its Docker executor targets Podman.
+          FF_NETWORK_PER_BUILD = "1";
         };
       };
     };
@@ -323,24 +471,38 @@ in
       paths = [
         namespaceSetup
         vpnStart
+        podmanSetup
         submitAuth
         vpnStatus
       ];
     };
 
     systemd.services.gitlab-runner = {
-      # Authentication explicitly starts the runner; do not fail boot or
-      # nixos-rebuild while no ephemeral SAML cookie exists.
+      # Authentication explicitly starts the runner. Keep rebuild activation
+      # from restarting an active stack with an expired SAML cookie; the next
+      # authentication renewal restarts every service with the new generation.
       wantedBy = lib.mkForce [];
-      requires = ["${namespace}-netns.service" "${namespace}-vpn.service"];
-      after = ["${namespace}-netns.service" "${namespace}-vpn.service" mediaMountUnit];
-      bindsTo = ["${namespace}-vpn.service" mediaMountUnit];
+      restartIfChanged = false;
+      requires = [
+        "${namespace}-netns.service"
+        "${namespace}-vpn.service"
+        "${namespace}-podman.service"
+        "${namespace}-podman-setup.service"
+      ];
+      after = [
+        "${namespace}-netns.service"
+        "${namespace}-vpn.service"
+        "${namespace}-podman.service"
+        "${namespace}-podman-setup.service"
+        mediaMountUnit
+      ];
+      bindsTo = ["${namespace}-vpn.service" "${namespace}-podman.service" mediaMountUnit];
       unitConfig.RequiresMountsFor = [runnerBuildDir runnerCacheDir];
       serviceConfig = {
         NetworkNamespacePath = "/run/netns/${namespace}";
         BindReadOnlyPaths = ["${runtimeDir}/resolv.conf:/etc/resolv.conf"];
-        # DynamicUser mounts StateDirectory with noexec, which prevents shell
-        # jobs from running package-manager tools and Cargo build scripts.
+        # A stable account is required to access the dedicated Podman socket and
+        # the media-backed runner directories.
         DynamicUser = lib.mkForce false;
         User = "gitlab-runner";
         Group = "gitlab-runner";
