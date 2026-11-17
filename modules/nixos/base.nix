@@ -7,6 +7,7 @@
     ./network-base.nix
     ./tailscale-bookmarks.nix
     ./nix-cache-mesh.nix
+    ./remote-builders.nix
     ./slskd-notify.nix
   ];
 

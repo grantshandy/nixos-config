@@ -10,10 +10,13 @@
     or (throw "host '${thisHostName}' is missing from network.hosts");
 
   peers =
-    config.network.hosts
-    |> lib.filterAttrs (name: host: name != thisHostName && host.cache.enable)
-    |> lib.mapAttrsToList (name: host: {inherit name host;})
-    |> lib.sort (a: b: a.host.cache.priority < b.host.cache.priority);
+    if thisHost.cache.pull && thisHost.tailscale.enable
+    then
+      config.network.hosts
+      |> lib.filterAttrs (name: host: name != thisHostName && host.cache.push)
+      |> lib.mapAttrsToList (name: host: {inherit name host;})
+      |> lib.sort (a: b: a.host.cache.priority < b.host.cache.priority)
+    else [];
 
   proxyPortFor = peer: 6000 + peer.host.cache.priority;
 
@@ -66,12 +69,12 @@
     builtins.readFile ../../secrets/nix-cache-public-key
     |> lib.removeSuffix "\n";
 in {
-  age = {
+  age = lib.mkIf thisHost.cache.push {
     identityPaths = ["/etc/ssh/ssh_host_ed25519_key"];
     secrets.nix-cache-private-key.file = ../../secrets/nix-cache-private-key.age;
   };
 
-  services.nix-serve = lib.mkIf thisHost.cache.enable {
+  services.nix-serve = lib.mkIf thisHost.cache.push {
     enable = true;
     bindAddress = "0.0.0.0";
     port = thisHost.cache.port;
@@ -79,19 +82,19 @@ in {
   };
 
   systemd.services.nix-serve.restartTriggers =
-    lib.mkIf thisHost.cache.enable [../../secrets/nix-cache-private-key.age];
+    lib.mkIf thisHost.cache.push [../../secrets/nix-cache-private-key.age];
 
   networking.firewall.interfaces.tailscale0.allowedTCPPorts =
-    lib.mkIf thisHost.cache.enable [thisHost.cache.port];
+    lib.mkIf thisHost.cache.push [thisHost.cache.port];
 
-  services.nginx = {
+  services.nginx = lib.mkIf (peers != []) {
     enable = true;
     virtualHosts = proxyVirtualHosts;
   };
 
   # The peer proxies do not write file logs, so Nginx's default logrotate
   # entry would only inspect an unused /var/log/nginx glob.
-  services.logrotate.settings.nginx.enable = false;
+  services.logrotate.settings.nginx.enable = lib.mkIf (peers != []) false;
 
   nix.settings = {
     substituters = lib.mkBefore peerSubstituters;
@@ -104,8 +107,8 @@ in {
 
   assertions = [
     {
-      assertion = !thisHost.cache.enable || thisHost.tailscale.enable;
-      message = "A host serving the Nix cache must have Tailscale enabled.";
+      assertion = !(thisHost.cache.pull || thisHost.cache.push) || thisHost.tailscale.enable;
+      message = "A host pulling from or pushing a Nix cache must have Tailscale enabled.";
     }
   ];
 }

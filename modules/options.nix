@@ -117,16 +117,43 @@ in {
           type = lib.types.bool;
           default = false;
         };
-        cache = {
-          enable = lib.mkOption {
+        remoteBuilder = {
+          pull = lib.mkOption {
             type = lib.types.bool;
             default = false;
-            description = "Whether this host serves its Nix store to cache peers.";
+            description = "Whether this host sends all builds to registry-declared remote builders.";
+          };
+          push = lib.mkOption {
+            type = lib.types.bool;
+            default = false;
+            description = "Whether this host offers its build capacity to remote-build consumers.";
           };
           priority = lib.mkOption {
             type = lib.types.ints.positive;
             default = 40;
-            description = "Binary cache priority; lower values are preferred.";
+            description = "Remote-builder preference; lower values are preferred.";
+          };
+          maxJobs = lib.mkOption {
+            type = lib.types.ints.positive;
+            default = 1;
+            description = "Maximum concurrent jobs accepted by this remote builder.";
+          };
+        };
+        cache = {
+          pull = lib.mkOption {
+            type = lib.types.bool;
+            default = false;
+            description = "Whether this host consumes binary caches advertised by other hosts.";
+          };
+          push = lib.mkOption {
+            type = lib.types.bool;
+            default = false;
+            description = "Whether this host serves its Nix store as a binary cache.";
+          };
+          priority = lib.mkOption {
+            type = lib.types.ints.positive;
+            default = 40;
+            description = "Binary cache preference; lower values are preferred.";
           };
           port = lib.mkOption {
             type = lib.types.port;

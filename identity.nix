@@ -14,6 +14,7 @@
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP59990ax7Hh7lz8nEKrSj5ka7XJLRGeBN1i7yo66Ztd grant@helium"
     ];
     hostKeys = {
+      krypton = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICJmasqg4lanXXND8Ws6ZuynICoixLjh14uR0z5Pppvj root@krypton";
       radon = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEjjPwIi6YaqCNSnBv0GR4x7u66rCgehBUdSMR5DRKPf root@radon";
       xenon = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAeo58eXx9y4YGGJMVGyqqJhWn+NiRz32igHrwfWDLKa root@xenon";
       helium = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAQYJFEU5WI9L1/YHxpai37pINsj6iQHLH6HZc/U/BAi root@helium";

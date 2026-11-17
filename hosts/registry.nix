@@ -7,7 +7,8 @@
     };
     tailscale.enable = true;
     cache = {
-      enable = true;
+      pull = true;
+      push = true;
       priority = 30;
     };
   };
@@ -19,14 +20,29 @@
     };
     tailscale.enable = true;
     cache = {
-      enable = true;
+      pull = true;
+      push = true;
       priority = 20;
+    };
+    remoteBuilder = {
+      push = true;
+      priority = 10;
     };
     privateWebServices.OpenWebUI = {
       title = "Open WebUI";
       description = "Local AI chat";
       port = 8080;
     };
+  };
+  krypton = {
+    system = "x86_64-linux";
+    ssh = {
+      enable = true;
+      port = 22;
+    };
+    tailscale.enable = true;
+    cache.pull = true;
+    remoteBuilder.pull = true;
   };
   radon = {
     system = "x86_64-linux";
@@ -36,8 +52,13 @@
     };
     tailscale.enable = true;
     cache = {
-      enable = true;
+      pull = true;
+      push = true;
       priority = 10;
+    };
+    remoteBuilder = {
+      push = true;
+      priority = 20;
     };
     publicWebServices = {
       Immich = {

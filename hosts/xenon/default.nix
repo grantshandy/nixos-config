@@ -9,6 +9,7 @@
     ../../modules/nixos/desktop
     # ./presentation-hotspot.nix
     # ./bluetooth-receiver.nix
+    ./krypton-internet-sharing.nix
     ./local-llm.nix
   ];
 

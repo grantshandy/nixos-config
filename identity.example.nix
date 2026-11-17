@@ -10,7 +10,11 @@
       userKeys = [
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIReplaceWithYourPublicKey alice@example"
       ];
-      hostKeys.radon = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIReplaceWithRadonsPublicHostKey root@radon";
+      hostKeys = {
+        krypton = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIReplaceWithKryptonsPublicHostKey root@krypton";
+        radon = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIReplaceWithRadonsPublicHostKey root@radon";
+        xenon = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIReplaceWithXenonsPublicHostKey root@xenon";
+      };
     };
 
     git = {

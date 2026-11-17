@@ -23,11 +23,6 @@
     };
 
     nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
-
-    nixos-hardware = {
-      url = "github:NixOS/nixos-hardware/master";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs = inputs @ {flake-parts, ...}:
