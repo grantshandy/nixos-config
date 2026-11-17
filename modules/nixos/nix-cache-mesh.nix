@@ -18,29 +18,20 @@
       |> lib.sort (a: b: a.host.cache.priority < b.host.cache.priority)
     else [];
 
-  proxyPortFor = peer: 6000 + peer.host.cache.priority;
+  proxyPort = 6000;
+  proxyPathFor = peer: "${toString peer.host.cache.priority}-${peer.name}";
 
   peerSubstituters =
     map (
-      peer: "http://127.0.0.1:${toString (proxyPortFor peer)}?priority=${toString peer.host.cache.priority}"
+      peer: "http://127.0.0.1:${toString proxyPort}/${proxyPathFor peer}?priority=${toString peer.host.cache.priority}"
     )
     peers;
 
-  proxyVirtualHosts = builtins.listToAttrs (map (peer: {
-      name = "nix-cache-${peer.name}";
-      value = {
-        listen = [
-          {
-            addr = "127.0.0.1";
-            port = proxyPortFor peer;
-          }
-        ];
-        extraConfig = ''
-          access_log off;
-          error_log /dev/null crit;
-        '';
-        locations = {
-          "= /nix-cache-info" = {
+  proxyLocations =
+    builtins.listToAttrs (lib.concatMap (peer: [
+        {
+          name = "= /${proxyPathFor peer}/nix-cache-info";
+          value = {
             alias = pkgs.writeText "nix-cache-info-${peer.name}" ''
               StoreDir: /nix/store
               WantMassQuery: 1
@@ -48,8 +39,12 @@
             '';
             extraConfig = "default_type text/plain;";
           };
-          "/" = {
-            proxyPass = "http://${peer.name}:${toString peer.host.cache.port}";
+        }
+        {
+          name = "/${proxyPathFor peer}/";
+          value = {
+            # The trailing slash strips the identifying local proxy prefix.
+            proxyPass = "http://${peer.name}:${toString peer.host.cache.port}/";
             extraConfig = ''
               proxy_connect_timeout 500ms;
               proxy_read_timeout 5m;
@@ -59,11 +54,24 @@
               error_page 500 502 503 504 = @cache_miss;
             '';
           };
-          "@cache_miss".return = 404;
-        };
-      };
-    })
-    peers);
+        }
+      ])
+      peers)
+    // {"@cache_miss".return = 404;};
+
+  proxyVirtualHost = {
+    listen = [
+      {
+        addr = "127.0.0.1";
+        port = proxyPort;
+      }
+    ];
+    extraConfig = ''
+      access_log off;
+      error_log /dev/null crit;
+    '';
+    locations = proxyLocations;
+  };
 
   cachePublicKey =
     builtins.readFile ../../secrets/nix-cache-public-key
@@ -89,7 +97,7 @@ in {
 
   services.nginx = lib.mkIf (peers != []) {
     enable = true;
-    virtualHosts = proxyVirtualHosts;
+    virtualHosts.nix-cache-mesh = proxyVirtualHost;
   };
 
   # The peer proxies do not write file logs, so Nginx's default logrotate
