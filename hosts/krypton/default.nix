@@ -1,7 +1,10 @@
-{...}: {
+{modulesPath, ...}: {
   imports = [
+    (modulesPath + "/profiles/minimal.nix")
+    ../../modules/nixos/profiles/kiosk.nix
     ./hardware-configuration.nix
     ../../modules/nixos/bootloader-systemd.nix
+    ./windows-xp-vm.nix
   ];
 
   networking.useDHCP = true;

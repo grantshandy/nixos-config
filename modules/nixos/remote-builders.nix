@@ -38,6 +38,8 @@
       system = builder.host.system;
       maxJobs = builder.host.remoteBuilder.maxJobs;
       speedFactor = builderSpeedFactor builder.host;
+      # Registry-declared builders are intentionally beefy, multi-core hosts.
+      supportedFeatures = ["big-parallel"];
     })
     eligibleBuilders;
 

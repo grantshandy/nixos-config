@@ -15,20 +15,28 @@
     };
   };
 
-  modulesFor = name: [
-    {
-      networking.hostName = name;
-      network.hosts = hostsRegistry;
-    }
-    ../modules/options.nix
-    inputs.self.nixosModules.stateVersion
-    ../modules/nixos/base.nix
-    ../identity.nix
-    inputs.home-manager.nixosModules.home-manager
-    ../modules/home/home-manager-base.nix
-    inputs.agenix.nixosModules.default
-    ../hosts/${name}
-  ];
+  modulesFor = name: let
+    hostMeta = hostsRegistry.${name};
+  in
+    [
+      {
+        networking.hostName = name;
+        network.hosts = hostsRegistry;
+      }
+      ../modules/options.nix
+      inputs.self.nixosModules.stateVersion
+      ../modules/nixos/base.nix
+      ../identity.nix
+    ]
+    ++ lib.optionals (hostMeta.homeManager.enable or true) [
+      inputs.home-manager.nixosModules.home-manager
+      ../modules/home/home-manager-base.nix
+      ../modules/nixos/tailscale-bookmarks.nix
+    ]
+    ++ [
+      inputs.agenix.nixosModules.default
+      ../hosts/${name}
+    ];
 
   mkHost = name: hostMeta:
     lib.nixosSystem {
@@ -44,7 +52,7 @@
           targetHost = name;
           targetPort = hostMeta.ssh.port;
           targetUser = config.identity.user.name;
-          buildOnTarget = hostMeta.deployment.buildOnTarget or true;
+          buildOnTarget = true;
         };
       })
     ]

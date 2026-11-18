@@ -103,6 +103,11 @@ in {
           type = lib.types.str;
           default = "x86_64-linux";
         };
+        homeManager.enable = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = "Whether to manage the primary user's profile with Home Manager.";
+        };
         ssh = {
           enable = lib.mkOption {
             type = lib.types.bool;
@@ -116,11 +121,6 @@ in {
         tailscale.enable = lib.mkOption {
           type = lib.types.bool;
           default = false;
-        };
-        deployment.buildOnTarget = lib.mkOption {
-          type = lib.types.bool;
-          default = true;
-          description = "Whether Colmena builds this host's system profile on the target host.";
         };
         remoteBuilder = {
           pull = lib.mkOption {

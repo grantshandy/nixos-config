@@ -27,6 +27,7 @@
     remoteBuilder = {
       push = true;
       priority = 10;
+      maxJobs = 3;
     };
     privateWebServices.OpenWebUI = {
       title = "Open WebUI";
@@ -36,7 +37,7 @@
   };
   krypton = {
     system = "x86_64-linux";
-    deployment.buildOnTarget = false;
+    homeManager.enable = false;
     ssh = {
       enable = true;
       port = 22;
@@ -60,6 +61,7 @@
     remoteBuilder = {
       push = true;
       priority = 20;
+      maxJobs = 1;
     };
     publicWebServices = {
       Immich = {

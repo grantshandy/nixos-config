@@ -15,7 +15,7 @@
     then lib.head serverHostNames
     else throw "exactly one network host must advertise the slskd web service";
   serverEnabled = config.services.slskd.enable;
-  clientEnabled = thisHost.tailscale.enable && config.services.displayManager.enable;
+  clientEnabled = config.services.slskd-notify.client.enable;
 
   stateDirectory = "slskd-notify";
   spoolDir = "/var/lib/${stateDirectory}";
@@ -175,6 +175,8 @@
     '';
   };
 in {
+  options.services.slskd-notify.client.enable = lib.mkEnableOption "desktop slskd upload notifications";
+
   config = lib.mkMerge [
     {
       assertions = [
@@ -235,6 +237,13 @@ in {
     })
 
     (lib.mkIf clientEnabled {
+      assertions = [
+        {
+          assertion = thisHost.tailscale.enable && config.services.displayManager.enable;
+          message = "the slskd notification client requires Tailscale and a display manager";
+        }
+      ];
+
       systemd.user.services.slskd-notify = {
         description = "Show slskd upload notifications from ${serverHostName}";
         wantedBy = ["graphical-session.target"];
