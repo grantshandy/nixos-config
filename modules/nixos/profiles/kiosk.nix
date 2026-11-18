@@ -3,12 +3,11 @@
   lib,
   ...
 }: {
-  # Kiosks do not need the accessibility, discovery, or desktop audio services
-  # enabled by general graphical defaults. QEMU talks to ALSA directly.
+  # Kiosks do not need the accessibility or discovery services enabled by
+  # general graphical defaults. Individual kiosks select their audio stack.
   services = {
     speechd.enable = lib.mkForce false;
     orca.enable = lib.mkForce false;
-    pipewire.enable = lib.mkForce false;
     avahi = {
       enable = lib.mkForce false;
       nssmdns4 = lib.mkForce false;

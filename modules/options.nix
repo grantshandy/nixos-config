@@ -209,6 +209,24 @@ in {
           default = {};
           description = "Private web services at <scheme>://<host>.ts.<identity.homelab.dns>:<port><path>.";
         };
+        virtualMachines = lib.mkOption {
+          type = lib.types.attrsOf (lib.types.submodule ({name, ...}: {
+            options = {
+              title = lib.mkOption {
+                type = lib.types.str;
+                default = name;
+                description = "Human-readable virtual machine name.";
+              };
+              kioskClients = lib.mkOption {
+                type = lib.types.listOf lib.types.str;
+                default = [];
+                description = "Registry host names of kiosks allowed to launch this virtual machine.";
+              };
+            };
+          }));
+          default = {};
+          description = "Virtual machines hosted by this system, keyed by libvirt domain name.";
+        };
       };
     });
     default = {};

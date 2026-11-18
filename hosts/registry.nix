@@ -63,6 +63,10 @@
       priority = 20;
       maxJobs = 1;
     };
+    virtualMachines.windows-xp = {
+      title = "Windows XP";
+      kioskClients = ["krypton"];
+    };
     publicWebServices = {
       Immich = {
         title = "Photos";
