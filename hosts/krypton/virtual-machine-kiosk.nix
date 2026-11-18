@@ -17,7 +17,7 @@
         host.virtualMachines
         |> lib.mapAttrsToList (vmName: vm: {
           inherit hostName host vmName;
-          inherit (vm) title;
+          inherit (vm) audioRtpPort title vncPort;
         })
     )
     |> lib.concatLists
@@ -30,8 +30,14 @@
       hostName = "invalid";
       vmName = "invalid";
       title = "Invalid VM registry configuration";
+      audioRtpPort = 46000;
+      vncPort = 5901;
       host = {
         ssh.port = 22;
+        tailscale = {
+          enable = false;
+          ipv4 = null;
+        };
         virtualMachines = {};
       };
     };
@@ -46,10 +52,12 @@
     then remoteHostName
     else "[${remoteHostName}]:${toString vm.host.ssh.port}";
   libvirtUri = "qemu+ssh://${kioskUser}@${remoteHostName}:${toString vm.host.ssh.port}/system?keyfile=${sshIdentity}&known_hosts=${knownHosts}";
+  rtpSourceIp = config.network.hosts.${kioskHost}.tailscale.ipv4;
+  rtpSenderIp = vm.host.tailscale.ipv4 or null;
 
   launchVm = pkgs.writeShellApplication {
     name = "virtual-machine-kiosk";
-    runtimeInputs = [pkgs.coreutils pkgs.gnugrep pkgs.libvirt pkgs.openssh pkgs.virt-viewer];
+    runtimeInputs = [pkgs.coreutils pkgs.libvirt pkgs.netcat-openbsd pkgs.openssh pkgs.wlvncc];
     text = ''
       uri=${lib.escapeShellArg libvirtUri}
       domain=${lib.escapeShellArg vm.vmName}
@@ -76,19 +84,36 @@
           ;;
       esac
 
-      exec virt-viewer \
-        --connect "$uri" \
-        --wait \
-        --reconnect \
-        --full-screen \
-        --kiosk \
-        --kiosk-quit=on-disconnect \
-        "$domain"
+      ssh \
+        -N \
+        -T \
+        -o ExitOnForwardFailure=yes \
+        -L ${toString vm.vncPort}:127.0.0.1:${toString vm.vncPort} \
+        ${lib.escapeShellArg "${kioskUser}@${remoteHostName}"} &
+      tunnel_pid=$!
+
+      cleanup() {
+        kill "$tunnel_pid" 2>/dev/null || true
+        wait "$tunnel_pid" 2>/dev/null || true
+      }
+      trap cleanup EXIT INT TERM
+
+      for _ in $(seq 1 50); do
+        if nc -z 127.0.0.1 ${toString vm.vncPort}; then
+          break
+        fi
+        if ! kill -0 "$tunnel_pid" 2>/dev/null; then
+          echo "VNC SSH tunnel exited before becoming ready" >&2
+          exit 1
+        fi
+        sleep 0.1
+      done
+
+      wlvncc --no-decorations --shortcut-inhibit 127.0.0.1 ${toString vm.vncPort}
     '';
   };
 
   kioskSession = pkgs.writeShellScript "virtual-machine-kiosk-session" ''
-    export GDK_BACKEND=wayland
     exec ${lib.getExe pkgs.cage} -- ${lib.getExe launchVm}
   '';
 in {
@@ -105,6 +130,14 @@ in {
       assertion = vm.host.ssh.enable or false;
       message = "VM host '${vm.hostName}' must enable SSH.";
     }
+    {
+      assertion = rtpSourceIp != null;
+      message = "VM kiosk '${kioskHost}' needs a registry Tailscale IPv4 address for RTP audio.";
+    }
+    {
+      assertion = rtpSenderIp != null;
+      message = "VM host '${vm.hostName}' needs a registry Tailscale IPv4 address for RTP audio.";
+    }
   ];
 
   hardware.graphics.enable = true;
@@ -112,9 +145,43 @@ in {
   services.pipewire = {
     enable = true;
     alsa.enable = true;
-    pulse.enable = true;
+    extraConfig.pipewire."90-${vm.vmName}-rtp" = {
+      "context.modules" = [
+        {
+          name = "libpipewire-module-rtp-source";
+          args = {
+            "source.ip" = "0.0.0.0";
+            "source.port" = vm.audioRtpPort;
+            "node.always-process" = true;
+            "stream.may-pause" = false;
+            "audio.format" = "S16BE";
+            "audio.rate" = 48000;
+            "audio.channels" = 2;
+            "audio.position" = ["FL" "FR"];
+            "stream.props" = {
+              "media.class" = "Audio/Source";
+              "node.name" = "${vm.vmName}-rtp-source";
+              "node.description" = "${vm.title} RTP audio";
+            };
+          };
+        }
+      ];
+    };
   };
   security.rtkit.enable = true;
+
+  systemd.user.services.vm-rtp-audio = {
+    description = "Play the VM's PipeWire RTP audio stream";
+    wantedBy = ["default.target" "pipewire.service"];
+    after = ["pipewire.service" "wireplumber.service"];
+    wants = ["pipewire.service" "wireplumber.service"];
+    unitConfig.ConditionUser = kioskUser;
+    serviceConfig = {
+      ExecStart = "${lib.getExe' pkgs.pipewire "pw-loopback"} --name=${vm.vmName}-rtp-playback --capture=${vm.vmName}-rtp-source";
+      Restart = "always";
+      RestartSec = 1;
+    };
+  };
 
   users.users.${kioskUser} = {
     isSystemUser = true;
@@ -140,9 +207,7 @@ in {
     '';
   };
 
-  # virt-viewer opens separate SSH processes for its SPICE channels. Unlike the
-  # libvirt control connection, those processes do not inherit the URI's
-  # keyfile and known_hosts query parameters, so they use this per-user config.
+  # virsh and the VNC tunnel share this strict per-user SSH configuration.
   systemd.tmpfiles.rules = [
     "d ${kioskStateDir} 0700 ${kioskUser} ${kioskUser} -"
     "d ${kioskStateDir}/.ssh 0700 ${kioskUser} ${kioskUser} -"
@@ -166,7 +231,7 @@ in {
     '';
   };
 
-  # greetd creates a logind session, then Cage exposes only virt-viewer's SPICE
+  # greetd creates a logind session, then Cage exposes only wlvncc's Wayland
   # surface. If the viewer exits, greetd starts the kiosk session again.
   services.greetd = {
     enable = true;
@@ -186,6 +251,10 @@ in {
     wants = ["network-online.target"];
     requires = ["vm-kiosk-identity.service"];
     after = ["network-online.target" "vm-kiosk-identity.service"];
+    serviceConfig = {
+      Restart = "always";
+      RestartSec = 1;
+    };
   };
 
   boot = {

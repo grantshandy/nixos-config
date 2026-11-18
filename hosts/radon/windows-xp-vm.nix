@@ -13,8 +13,24 @@
       client: builtins.hasAttr client config.identity.ssh.hostKeys
     )
     vm.kioskClients;
+  kioskClientName =
+    if lib.length vm.kioskClients == 1
+    then lib.head vm.kioskClients
+    else "invalid";
+  kioskClient = config.network.hosts.${kioskClientName} or {};
+  rtpSourceIp = host.tailscale.ipv4 or null;
+  rtpDestinationIp = kioskClient.tailscale.ipv4 or null;
   vmStateDir = "/var/lib/libvirt/images/${vmName}";
   vmDisk = "${vmStateDir}/system.qcow2";
+
+  qxlXpDriver = pkgs.fetchzip {
+    url = "https://www.spice-space.org/download/windows/qxl/qxl-0.1-16/qxl_xp_x86.zip";
+    hash = "sha256-Le8+9vFBVjmqvwrpdfAJrr0GAleSpUCvWMVNmJbcdW0=";
+    stripRoot = false;
+  };
+  qxlXpDriverIso = pkgs.runCommand "qxl-xp-x86-driver.iso" {nativeBuildInputs = [pkgs.xorriso];} ''
+    xorrisofs -quiet -J -R -V QXL_XP_DRIVER -o "$out" ${qxlXpDriver}
+  '';
 
   domainXmlSource = pkgs.writeText "${vmName}-domain.xml" ''
     <domain type="kvm">
@@ -52,6 +68,12 @@
           <source file="${vmDisk}"/>
           <target dev="hda" bus="ide"/>
         </disk>
+        <disk type="file" device="cdrom">
+          <driver name="qemu" type="raw"/>
+          <source file="${qxlXpDriverIso}"/>
+          <target dev="hdc" bus="ide"/>
+          <readonly/>
+        </disk>
         <controller type="ide" index="0"/>
         <controller type="usb" index="0" model="piix3-uhci"/>
 
@@ -64,19 +86,25 @@
         <input type="keyboard" bus="ps2"/>
         <input type="tablet" bus="usb"/>
 
+        <graphics type="vnc" port="${toString vm.vncPort}" autoport="no" sharePolicy="allow-exclusive">
+          <listen type="address" address="127.0.0.1"/>
+          <audio id="1"/>
+        </graphics>
+        <!-- Retain SPICE as a recovery console while Krypton's kiosk uses VNC. -->
         <graphics type="spice" autoport="yes">
           <listen type="address" address="127.0.0.1"/>
           <image compression="auto_glz"/>
           <jpeg compression="auto"/>
           <zlib compression="auto"/>
-          <playback compression="on"/>
           <streaming mode="filter"/>
           <gl enable="no"/>
         </graphics>
         <video>
-          <model type="vga" vram="16384" heads="1" primary="yes"/>
+          <model type="qxl" ram="65536" vram="65536" vgamem="16384" heads="1" primary="yes"/>
         </video>
-        <audio id="1" type="spice"/>
+        <audio id="1" type="pipewire" runtimeDir="/run/pipewire">
+          <output name="${vmName}-rtp" streamName="${lib.escapeXML vm.title}" latency="20000"/>
+        </audio>
         <sound model="ac97">
           <audio id="1"/>
         </sound>
@@ -109,7 +137,42 @@ in {
     };
   };
 
+  services.pipewire = {
+    enable = true;
+    systemWide = true;
+    extraConfig.pipewire."90-${vmName}-rtp" = {
+      "context.modules" = [
+        {
+          name = "libpipewire-module-rtp-sink";
+          args = {
+            "source.ip" = rtpSourceIp;
+            "destination.ip" = rtpDestinationIp;
+            "destination.port" = vm.audioRtpPort;
+            "local.ifname" = "tailscale0";
+            "net.mtu" = 1200;
+            "sess.min-ptime" = 2;
+            "sess.max-ptime" = 10;
+            "rtp.framecount" = 240;
+            "sess.name" = vm.title;
+            "audio.format" = "S16BE";
+            "audio.rate" = 48000;
+            "audio.channels" = 2;
+            "audio.position" = ["FL" "FR"];
+            "stream.props" = {
+              "node.name" = "${vmName}-rtp";
+              "node.description" = "${vm.title} RTP audio";
+              "media.class" = "Audio/Sink";
+              "node.always-process" = true;
+            };
+          };
+        }
+      ];
+    };
+  };
+  security.rtkit.enable = true;
+
   users.users.${config.identity.user.name}.extraGroups = ["libvirtd"];
+  users.users.qemu-libvirtd.extraGroups = ["pipewire"];
   users.users.${kioskUser} = {
     isSystemUser = true;
     group = kioskUser;
@@ -117,14 +180,28 @@ in {
     shell = pkgs.bashInteractive;
     openssh.authorizedKeys.keys =
       map (
-        client: "restrict ${config.identity.ssh.hostKeys.${client}}"
+        client: ''no-agent-forwarding,no-pty,no-user-rc,no-X11-forwarding,permitopen="127.0.0.1:${toString vm.vncPort}" ${config.identity.ssh.hostKeys.${client}}''
       )
       kioskClientsWithHostKeys;
   };
   users.groups.${kioskUser} = {};
 
   assertions =
-    map (client: {
+    [
+      {
+        assertion = lib.length vm.kioskClients == 1;
+        message = "VM '${vmName}' needs exactly one kiosk client for unicast RTP audio.";
+      }
+      {
+        assertion = rtpSourceIp != null;
+        message = "VM host '${config.networking.hostName}' needs a registry Tailscale IPv4 address for RTP audio.";
+      }
+      {
+        assertion = rtpDestinationIp != null;
+        message = "VM kiosk '${kioskClientName}' needs a registry Tailscale IPv4 address for RTP audio.";
+      }
+    ]
+    ++ map (client: {
       assertion = builtins.hasAttr client config.identity.ssh.hostKeys;
       message = "VM kiosk client '${client}' needs an identity.ssh.hostKeys entry.";
     })

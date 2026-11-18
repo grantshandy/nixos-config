@@ -24,7 +24,7 @@
   gitlabCacheDir = "${runnerCacheDir}/gitlab";
   podmanDataDir = "${runnerCacheDir}/podman";
   podmanNetworkDir = "${podmanDataDir}/networks";
-  podmanTmpDir = "${runnerCacheDir}/podman-tmp";
+  podmanTmpDir = "${podmanRuntimeDir}/tmp";
   containerNixDir = "${runnerCacheDir}/nix-container";
   podmanSocket = "${podmanRuntimeDir}/podman.sock";
   podmanRunRoot = "${podmanRuntimeDir}/storage";
@@ -422,7 +422,7 @@ in
         mediaMountUnit
       ];
       bindsTo = ["${namespace}-vpn.service" mediaMountUnit];
-      unitConfig.RequiresMountsFor = [podmanDataDir podmanTmpDir];
+      unitConfig.RequiresMountsFor = [podmanDataDir];
       path = with pkgs; [iproute2 iptables kmod];
       environment = {
         CONTAINERS_STORAGE_CONF = podmanStorageConfig;

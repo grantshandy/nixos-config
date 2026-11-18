@@ -118,9 +118,16 @@ in {
             default = 22;
           };
         };
-        tailscale.enable = lib.mkOption {
-          type = lib.types.bool;
-          default = false;
+        tailscale = {
+          enable = lib.mkOption {
+            type = lib.types.bool;
+            default = false;
+          };
+          ipv4 = lib.mkOption {
+            type = lib.types.nullOr lib.types.str;
+            default = null;
+            description = "Stable Tailscale IPv4 address for direct host-to-host services.";
+          };
         };
         remoteBuilder = {
           pull = lib.mkOption {
@@ -221,6 +228,14 @@ in {
                 type = lib.types.listOf lib.types.str;
                 default = [];
                 description = "Registry host names of kiosks allowed to launch this virtual machine.";
+              };
+              vncPort = lib.mkOption {
+                type = lib.types.port;
+                description = "Loopback-only QEMU VNC port reached through an SSH tunnel.";
+              };
+              audioRtpPort = lib.mkOption {
+                type = lib.types.port;
+                description = "Unicast PipeWire RTP audio port on assigned kiosk clients.";
               };
             };
           }));

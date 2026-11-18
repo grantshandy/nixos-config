@@ -42,7 +42,10 @@
       enable = true;
       port = 22;
     };
-    tailscale.enable = true;
+    tailscale = {
+      enable = true;
+      ipv4 = "100.64.0.6";
+    };
     cache.pull = true;
     remoteBuilder.pull = true;
   };
@@ -52,7 +55,10 @@
       enable = true;
       port = 22;
     };
-    tailscale.enable = true;
+    tailscale = {
+      enable = true;
+      ipv4 = "100.64.0.1";
+    };
     cache = {
       pull = true;
       push = true;
@@ -66,6 +72,8 @@
     virtualMachines.windows-xp = {
       title = "Windows XP";
       kioskClients = ["krypton"];
+      vncPort = 5901;
+      audioRtpPort = 46000;
     };
     publicWebServices = {
       Immich = {
