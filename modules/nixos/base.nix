@@ -6,8 +6,7 @@
 }: {
   imports = [
     ./network-base.nix
-    ./nix-cache-mesh.nix
-    ./remote-builders.nix
+    ./build-cluster.nix
     ./slskd-notify.nix
   ];
 

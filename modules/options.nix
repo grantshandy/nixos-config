@@ -129,48 +129,54 @@ in {
             description = "Stable Tailscale IPv4 address for direct host-to-host services.";
           };
         };
-        remoteBuilder = {
-          pull = lib.mkOption {
-            type = lib.types.bool;
-            default = false;
-            description = "Whether this host sends all builds to registry-declared remote builders.";
+        buildCluster = {
+          cache.provide = {
+            enable = lib.mkOption {
+              type = lib.types.bool;
+              default = false;
+              description = "Whether this host publishes its Nix store to the build cluster.";
+            };
+            priority = lib.mkOption {
+              type = lib.types.ints.positive;
+              default = 40;
+              description = "Published cache preference; lower values are preferred.";
+            };
+            port = lib.mkOption {
+              type = lib.types.port;
+              default = 5000;
+              description = "Tailscale-only nix-serve port used by cache and builder providers.";
+            };
           };
-          push = lib.mkOption {
-            type = lib.types.bool;
-            default = false;
-            description = "Whether this host offers its build capacity to remote-build consumers.";
-          };
-          priority = lib.mkOption {
-            type = lib.types.ints.positive;
-            default = 40;
-            description = "Remote-builder preference; lower values are preferred.";
-          };
-          maxJobs = lib.mkOption {
-            type = lib.types.ints.positive;
-            default = 1;
-            description = "Maximum concurrent jobs accepted by this remote builder.";
-          };
-        };
-        cache = {
-          pull = lib.mkOption {
-            type = lib.types.bool;
-            default = false;
-            description = "Whether this host consumes binary caches advertised by other hosts.";
-          };
-          push = lib.mkOption {
-            type = lib.types.bool;
-            default = false;
-            description = "Whether this host serves its Nix store as a binary cache.";
-          };
-          priority = lib.mkOption {
-            type = lib.types.ints.positive;
-            default = 40;
-            description = "Binary cache preference; lower values are preferred.";
-          };
-          port = lib.mkOption {
-            type = lib.types.port;
-            default = 5000;
-            description = "Tailscale-only nix-serve port.";
+          builders = {
+            provide = {
+              enable = lib.mkOption {
+                type = lib.types.bool;
+                default = false;
+                description = "Whether this host accepts remote builds and publishes its resulting store paths.";
+              };
+              maxJobs = lib.mkOption {
+                type = lib.types.ints.positive;
+                default = 1;
+                description = "Maximum concurrent jobs accepted by this build provider.";
+              };
+              speedFactor = lib.mkOption {
+                type = lib.types.ints.positive;
+                default = 1;
+                description = "Relative provider speed used by the Nix scheduler; higher values are preferred.";
+              };
+            };
+            use = {
+              enable = lib.mkOption {
+                type = lib.types.bool;
+                default = false;
+                description = "Whether this host delegates builds to compatible build-cluster providers.";
+              };
+              localJobs = lib.mkOption {
+                type = lib.types.either lib.types.ints.unsigned (lib.types.enum ["auto"]);
+                default = 0;
+                description = "Maximum local build jobs while using providers; zero makes this host remote-only.";
+              };
+            };
           };
         };
 

@@ -6,10 +6,15 @@
       port = 4321;
     };
     tailscale.enable = true;
-    cache = {
-      pull = true;
-      push = true;
-      priority = 30;
+    buildCluster = {
+      cache.provide = {
+        enable = true;
+        priority = 30;
+      };
+      builders.use = {
+        enable = true;
+        localJobs = 1;
+      };
     };
   };
   xenon = {
@@ -19,15 +24,10 @@
       port = 4321;
     };
     tailscale.enable = true;
-    cache = {
-      pull = true;
-      push = true;
-      priority = 20;
-    };
-    remoteBuilder = {
-      push = true;
-      priority = 10;
+    buildCluster.builders.provide = {
+      enable = true;
       maxJobs = 3;
+      speedFactor = 100;
     };
     privateWebServices.OpenWebUI = {
       title = "Open WebUI";
@@ -46,8 +46,10 @@
       enable = true;
       ipv4 = "100.64.0.6";
     };
-    cache.pull = true;
-    remoteBuilder.pull = true;
+    buildCluster.builders.use = {
+      enable = true;
+      localJobs = 0;
+    };
   };
   radon = {
     system = "x86_64-linux";
@@ -59,15 +61,16 @@
       enable = true;
       ipv4 = "100.64.0.1";
     };
-    cache = {
-      pull = true;
-      push = true;
-      priority = 10;
-    };
-    remoteBuilder = {
-      push = true;
-      priority = 20;
-      maxJobs = 1;
+    buildCluster.builders = {
+      provide = {
+        enable = true;
+        maxJobs = 1;
+        speedFactor = 50;
+      };
+      use = {
+        enable = true;
+        localJobs = 1;
+      };
     };
     virtualMachines.windows-xp = {
       title = "Windows XP";

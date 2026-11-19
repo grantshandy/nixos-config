@@ -60,7 +60,7 @@ Features:
 │       ├── base.nix                   # Common packages, users, locale, and module imports
 │       ├── bootloader-systemd.nix     # systemd-boot configuration
 │       ├── network-base.nix           # SSH, Tailscale, Avahi, and firewall defaults
-│       ├── nix-cache-mesh.nix         # Nix binary caches shared between hosts
+│       ├── build-cluster.nix          # Remote workers and shared Nix caches
 │       ├── slskd-notify.nix           # Soulseek upload notifications across the tailnet
 │       └── desktop/
 │           ├── default.nix            # Desktop system and Home Manager module imports
