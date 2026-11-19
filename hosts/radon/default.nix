@@ -22,7 +22,6 @@ in {
     ./hardware-configuration.nix
     ../../modules/nixos/bootloader-systemd.nix
     ./gitlab-runner.nix
-    ./windows-xp-vm.nix
     ./endpoints/auth.nix
     ./endpoints/cockpit.nix
     ./endpoints/directory.nix

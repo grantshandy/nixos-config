@@ -46,6 +46,7 @@
 
   services.gnome.evolution-data-server.enable = lib.mkForce false;
   services.gnome.gnome-online-accounts.enable = false;
+  services.gnome.gnome-remote-desktop.enable = lib.mkForce false;
 
   # Various backend desktop services
   boot.plymouth.enable = true;

@@ -42,10 +42,7 @@
       enable = true;
       port = 22;
     };
-    tailscale = {
-      enable = true;
-      ipv4 = "100.64.0.6";
-    };
+    tailscale.enable = true;
     buildCluster.builders.use = {
       enable = true;
       localJobs = 0;
@@ -57,10 +54,7 @@
       enable = true;
       port = 22;
     };
-    tailscale = {
-      enable = true;
-      ipv4 = "100.64.0.1";
-    };
+    tailscale.enable = true;
     buildCluster.builders = {
       provide = {
         enable = true;
@@ -72,12 +66,7 @@
         localJobs = 1;
       };
     };
-    virtualMachines.windows-xp = {
-      title = "Windows XP";
-      kioskClients = ["krypton"];
-      vncPort = 5901;
-      audioRtpPort = 46000;
-    };
+
     publicWebServices = {
       Immich = {
         title = "Photos";

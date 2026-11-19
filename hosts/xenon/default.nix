@@ -7,7 +7,6 @@
     ./hardware-configuration.nix
     ../../modules/nixos/bootloader-systemd.nix
     ../../modules/nixos/desktop
-    ./remote-desktop.nix
     # ./presentation-hotspot.nix
     # ./bluetooth-receiver.nix
     ./local-llm.nix

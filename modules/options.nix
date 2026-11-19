@@ -118,16 +118,9 @@ in {
             default = 22;
           };
         };
-        tailscale = {
-          enable = lib.mkOption {
-            type = lib.types.bool;
-            default = false;
-          };
-          ipv4 = lib.mkOption {
-            type = lib.types.nullOr lib.types.str;
-            default = null;
-            description = "Stable Tailscale IPv4 address for direct host-to-host services.";
-          };
+        tailscale.enable = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
         };
         buildCluster = {
           cache.provide = {
@@ -221,32 +214,6 @@ in {
           });
           default = {};
           description = "Private web services at <scheme>://<host>.ts.<identity.homelab.dns>:<port><path>.";
-        };
-        virtualMachines = lib.mkOption {
-          type = lib.types.attrsOf (lib.types.submodule ({name, ...}: {
-            options = {
-              title = lib.mkOption {
-                type = lib.types.str;
-                default = name;
-                description = "Human-readable virtual machine name.";
-              };
-              kioskClients = lib.mkOption {
-                type = lib.types.listOf lib.types.str;
-                default = [];
-                description = "Registry host names of kiosks allowed to launch this virtual machine.";
-              };
-              vncPort = lib.mkOption {
-                type = lib.types.port;
-                description = "Loopback-only QEMU VNC port reached through an SSH tunnel.";
-              };
-              audioRtpPort = lib.mkOption {
-                type = lib.types.port;
-                description = "Unicast PipeWire RTP audio port on assigned kiosk clients.";
-              };
-            };
-          }));
-          default = {};
-          description = "Virtual machines hosted by this system, keyed by libvirt domain name.";
         };
       };
     });
