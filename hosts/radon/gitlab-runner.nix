@@ -25,6 +25,7 @@
   podmanDataDir = "${runnerCacheDir}/podman";
   podmanNetworkDir = "${podmanDataDir}/networks";
   podmanTmpDir = "${podmanRuntimeDir}/tmp";
+  legacyPodmanTmpDir = "${runnerCacheDir}/podman-tmp";
   containerNixDir = "${runnerCacheDir}/nix-container";
   podmanSocket = "${podmanRuntimeDir}/podman.sock";
   podmanRunRoot = "${podmanRuntimeDir}/storage";
@@ -35,6 +36,25 @@
     graphroot = "${podmanDataDir}"
     runroot = "${podmanRunRoot}"
   '';
+  podmanRuntimeSetup = pkgs.writeShellApplication {
+    name = "${namespace}-podman-runtime-setup";
+    runtimeInputs = [pkgs.coreutils];
+    text = ''
+      # Podman keeps this legacy tmpdir in its persistent database. Its alive
+      # marker survives reboots even though the current runroot is under /run.
+      if [[ -f ${legacyPodmanTmpDir}/alive ]] \
+        && ! cmp --silent /proc/sys/kernel/random/boot_id ${legacyPodmanTmpDir}/alive; then
+        rm -rf ${podmanRunRoot} ${legacyPodmanTmpDir}
+      fi
+
+      install -d -m 0750 -o root -g gitlab-runner ${podmanRuntimeDir}
+      install -d -m 0700 -o root -g root \
+        ${podmanDataDir} \
+        ${podmanNetworkDir} \
+        ${podmanRunRoot} \
+        ${podmanTmpDir}
+    '';
+  };
   nixImageDigest = "sha256:a3b3e3eb3883e5af5327757c5304c0093426a0d11c58a9056df46cfefe30319e";
   nixImage = "nixos/nix@${nixImageDigest}";
   nixSeedMarker = ".uofu-ci-store-db-seeded-${builtins.substring 7 12 nixImageDigest}";
@@ -346,7 +366,7 @@ in
       "d ${runtimeDir} 0700 root root -"
       "d ${podmanRuntimeDir} 0750 root gitlab-runner -"
       "d ${runnerBuildDir} 0750 gitlab-runner gitlab-runner -"
-      "d ${runnerCacheDir} 0750 gitlab-runner gitlab-runner -"
+      "d ${runnerCacheDir} 0750 root gitlab-runner -"
       "d ${gitlabCacheDir} 0750 gitlab-runner gitlab-runner -"
       "d ${podmanDataDir} 0700 root root -"
       "d ${podmanNetworkDir} 0700 root root -"
@@ -430,6 +450,7 @@ in
       };
       serviceConfig = {
         Type = "exec";
+        ExecStartPre = lib.getExe podmanRuntimeSetup;
         ExecStart = ''
           ${podmanPackage}/bin/podman \
             --root=${podmanDataDir} \
