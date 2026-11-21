@@ -59,9 +59,15 @@
       providers = ["radon"];
       localJobs = 0;
     };
-    publicWebServices.Headplane = {
-      description = "Tailnet administration";
-      subdomain = "headplane";
+    publicWebServices = {
+      Headplane = {
+        description = "Tailnet administration";
+        subdomain = "headplane";
+      };
+      Grafana = {
+        description = "Homelab monitoring";
+        subdomain = "monitor";
+      };
     };
   };
   radon = {

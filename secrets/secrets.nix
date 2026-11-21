@@ -9,6 +9,7 @@ in {
   "authelia-users.age".publicKeys = ssh.userKeys ++ [ssh.hostKeys.krypton];
   "duckdns-token.age".publicKeys = ssh.userKeys ++ [ssh.hostKeys.krypton];
   "gitlab-runner-token.age".publicKeys = ssh.userKeys ++ [ssh.hostKeys.radon];
+  "grafana-secret-key.age".publicKeys = ssh.userKeys ++ [ssh.hostKeys.krypton];
   "immich-oidc-client-secret.age".publicKeys = ssh.userKeys ++ [ssh.hostKeys.radon];
   "nix-cache-private-key.age".publicKeys = ssh.userKeys ++ builtins.attrValues ssh.hostKeys;
   "slskd-environment.age".publicKeys = ssh.userKeys ++ [ssh.hostKeys.radon];

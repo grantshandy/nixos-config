@@ -9,6 +9,7 @@
   authUrl = "https://${authHost}";
   headplaneHost = "${config.network.hosts.krypton.publicWebServices.Headplane.subdomain}.${dns}";
   headplaneUrl = "https://${headplaneHost}";
+  grafanaHost = "${config.network.hosts.krypton.publicWebServices.Grafana.subdomain}.${dns}";
   openWebuiHost = "${config.network.hosts.xenon.publicWebServices.OpenWebUI.subdomain}.${dns}";
   autheliaUser = config.services.authelia.instances.main.user;
   autheliaGroup = config.services.authelia.instances.main.group;
@@ -85,6 +86,10 @@ in {
           }
           {
             domain = headplaneHost;
+            policy = "two_factor";
+          }
+          {
+            domain = grafanaHost;
             policy = "two_factor";
           }
           {

@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  nodeExporterTextfileDir,
   pkgs,
   ...
 }: let
@@ -23,6 +24,53 @@
   ntfyTopic = "slskd-uploads";
   ntfyUrl = "http://${serverHostName}.ts.${config.identity.homelab.dns}:${toString ntfyPort}";
   idleSeconds = 45;
+
+  recordUploadMetric = pkgs.writeShellApplication {
+    name = "slskd-record-upload-metric";
+    runtimeInputs = with pkgs; [coreutils jq util-linux];
+    text = ''
+      bytes="''${1:-}"
+      state="${spoolDir}/upload-metrics.json"
+      lock="${spoolDir}/upload-metrics.lock"
+      output="${nodeExporterTextfileDir}/slskd.prom"
+
+      if [[ -n "$bytes" ]]; then
+        [[ "$bytes" =~ ^[0-9]+$ ]]
+      fi
+      exec 9>"$lock"
+      flock 9
+
+      if [[ -s "$state" ]]; then
+        current="$(cat "$state")"
+      else
+        current='{"files":0,"bytes":0}'
+      fi
+
+      if [[ -n "$bytes" ]]; then
+        next="$(jq --argjson bytes "$bytes" \
+          '.files = ((.files // 0) + 1) | .bytes = ((.bytes // 0) + $bytes)' \
+          <<<"$current")"
+      else
+        next="$current"
+      fi
+
+      state_tmp="$(mktemp --tmpdir=${spoolDir} .upload-metrics.json.XXXXXX)"
+      printf '%s\n' "$next" > "$state_tmp"
+      mv --force "$state_tmp" "$state"
+
+      metrics_tmp="$(mktemp --tmpdir=${nodeExporterTextfileDir} .slskd.prom.XXXXXX)"
+      printf '%s\n' \
+        '# HELP slskd_upload_files_total Number of completed slskd uploads.' \
+        '# TYPE slskd_upload_files_total counter' \
+        "slskd_upload_files_total $(jq --raw-output .files <<<"$next")" \
+        '# HELP slskd_upload_bytes_total Bytes sent by completed slskd uploads.' \
+        '# TYPE slskd_upload_bytes_total counter' \
+        "slskd_upload_bytes_total $(jq --raw-output .bytes <<<"$next")" \
+        > "$metrics_tmp"
+      chmod 0644 "$metrics_tmp"
+      mv --force "$metrics_tmp" "$output"
+    '';
+  };
 
   uploadHook = pkgs.writeShellApplication {
     name = "slskd-upload-notify-hook";
@@ -57,6 +105,10 @@
         | sha256sum | cut -c1-20)"
       printf '%s\n' "$line" >> "${spoolDir}/$key.jsonl"
       logger --tag slskd-upload-notify -- "spooled $key: $(printf '%s' "$line" | jq -r '"\(.song) from \(.album) — \(.bytes) bytes to \(.user)"')"
+
+      if ! ${lib.getExe recordUploadMetric} "$(printf '%s' "$line" | jq --raw-output .bytes)"; then
+        logger --tag slskd-upload-notify --priority warning "failed to update upload metrics"
+      fi
     '';
   };
 
@@ -194,7 +246,24 @@ in {
     (lib.mkIf serverEnabled {
       networking.firewall.interfaces.tailscale0.allowedTCPPorts = [ntfyPort];
 
-      systemd.services.slskd.serviceConfig.StateDirectory = [stateDirectory];
+      systemd.services.slskd.serviceConfig = {
+        StateDirectory = [stateDirectory];
+        ReadWritePaths = [nodeExporterTextfileDir];
+      };
+      users.users.slskd.extraGroups = ["node-exporter"];
+
+      systemd.services.slskd-upload-metrics-init = {
+        description = "Initialize slskd upload metrics for node_exporter";
+        wantedBy = ["multi-user.target"];
+        after = ["systemd-tmpfiles-setup.service"];
+        serviceConfig = {
+          Type = "oneshot";
+          User = "slskd";
+          Group = "slskd";
+          StateDirectory = [stateDirectory];
+          ExecStart = lib.getExe recordUploadMetric;
+        };
+      };
 
       services.slskd.settings.integration.scripts.upload-notify = {
         on = ["UploadFileComplete"];

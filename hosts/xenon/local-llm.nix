@@ -10,9 +10,38 @@
   contextLength = 16384;
   idleTimeoutSeconds = 15 * 60;
   modelName = "qwen3.6-35b-a3b-q4-k-m";
-  model = pkgs.fetchurl {
-    url = "https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/resolve/main/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf";
-    hash = "sha256-rA4sEYngVfqjbv82FYDnnFvW+Odr/7TOVH8WfVPjGmE=";
+  modelFileName = "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf";
+  modelDirectory = "/var/lib/llama-models";
+  modelPath = "${modelDirectory}/${modelFileName}";
+  modelUrl = "https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/resolve/main/${modelFileName}";
+  modelSha256 = "ac0e2c1189e055faa36eff361580e79c5bd6f8e76bffb4ce547f167d53e31a61";
+
+  provisionModel = pkgs.writeShellApplication {
+    name = "provision-llama-model";
+    runtimeInputs = [pkgs.coreutils pkgs.curl];
+    text = ''
+      destination=${lib.escapeShellArg modelPath}
+      partial="${lib.escapeShellArg modelPath}.part"
+      expected_hash=${lib.escapeShellArg modelSha256}
+
+      if [ -f "$destination" ] && printf '%s  %s\n' "$expected_hash" "$destination" | sha256sum --check --status; then
+        exit 0
+      fi
+
+      rm -f "$destination"
+      curl \
+        --fail \
+        --location \
+        --retry 5 \
+        --retry-all-errors \
+        --continue-at - \
+        --output "$partial" \
+        ${lib.escapeShellArg modelUrl}
+
+      printf '%s  %s\n' "$expected_hash" "$partial" | sha256sum --check --status
+      chmod 0644 "$partial"
+      mv -f "$partial" "$destination"
+    '';
   };
 in {
   services.open-webui = {
@@ -52,7 +81,7 @@ in {
     enable = true;
     package = pkgs.llama-cpp-rocm;
     modelsPreset.${modelName} = {
-      inherit model;
+      model = modelPath;
       load-on-startup = false;
     };
     host = "0.0.0.0";
@@ -95,11 +124,31 @@ in {
     ];
   };
 
-  # The RX 6600 is gfx1032, which ROCm can run using its supported gfx1030 target.
-  systemd.services.llama-cpp.serviceConfig = {
-    Environment = ["HSA_OVERRIDE_GFX_VERSION=10.3.0"];
-    SupplementaryGroups = ["render" "video"];
-    DevicePolicy = lib.mkForce "auto";
-    DeviceAllow = lib.mkForce [];
+  systemd.services.llama-model-provision = {
+    description = "Provision the llama.cpp model outside the Nix store";
+    wants = ["network-online.target"];
+    after = ["network-online.target"];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      StateDirectory = "llama-models";
+      StateDirectoryMode = "0755";
+      ExecStart = lib.getExe provisionModel;
+    };
+  };
+
+  # Do not start the API with a missing or unverified model. The provisioning
+  # unit becomes a no-op once the persistent file passes its pinned checksum.
+  systemd.services.llama-cpp = {
+    requires = ["llama-model-provision.service"];
+    after = ["llama-model-provision.service"];
+
+    # The RX 6600 is gfx1032, which ROCm can run using its supported gfx1030 target.
+    serviceConfig = {
+      Environment = ["HSA_OVERRIDE_GFX_VERSION=10.3.0"];
+      SupplementaryGroups = ["render" "video"];
+      DevicePolicy = lib.mkForce "auto";
+      DeviceAllow = lib.mkForce [];
+    };
   };
 }

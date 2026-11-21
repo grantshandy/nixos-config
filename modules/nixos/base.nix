@@ -7,6 +7,7 @@
   imports = [
     ./network-base.nix
     ./build-cluster.nix
+    ./monitoring-agent.nix
     ./slskd-notify.nix
   ];
 
@@ -40,7 +41,6 @@
       "networkmanager"
       "wheel"
     ];
-    packages = with pkgs; [git btop vim];
     openssh.authorizedKeys.keys = config.identity.ssh.userKeys;
   };
 

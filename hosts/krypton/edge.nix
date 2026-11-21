@@ -23,7 +23,7 @@
       copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
     }
   '';
-  radonCaddy = "http://radon.local:8080";
+  radonCaddy = "http://radon.ts.${dns}:8080";
   radonServices = config.network.hosts.radon.publicWebServices;
   radonEndpoints = lib.mapAttrs (_: service: let
     host = "${lib.optionalString (service.subdomain != null) "${service.subdomain}."}${dns}";

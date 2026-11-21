@@ -4,6 +4,9 @@
   ...
 }: {
   home.packages = with pkgs; [
+    git
+    btop
+    vim
     nix-tree
     ascii
     alejandra
