@@ -3,10 +3,20 @@
   lib,
   ...
 }: let
+  hostName = config.networking.hostName;
   self =
-    config.network.hosts.${config.networking.hostName}
-    or (throw "host '${config.networking.hostName}' is missing from network.hosts");
+    config.network.hosts.${hostName}
+    or (throw "host '${hostName}' is missing from network.hosts");
+  tailnetDnsHost = config.network.hosts.krypton;
+  acceptTailnetDns = self.tailscale.enable && hostName != "krypton";
 in {
+  assertions = [
+    {
+      assertion = !self.tailscale.enable || tailnetDnsHost.tailscale.ipv4 != null;
+      message = "The tailnet DNS host must have a stable Tailscale IPv4 address.";
+    }
+  ];
+
   services.avahi = {
     enable = true;
     nssmdns4 = true;
@@ -30,11 +40,11 @@ in {
 
     extraUpFlags = lib.mkDefault [
       "--login-server=https://${config.identity.homelab.dns}"
-      "--accept-dns=true"
+      "--accept-dns=${lib.boolToString acceptTailnetDns}"
     ];
 
     extraSetFlags = lib.mkDefault [
-      "--accept-dns=true"
+      "--accept-dns=${lib.boolToString acceptTailnetDns}"
     ];
   };
 

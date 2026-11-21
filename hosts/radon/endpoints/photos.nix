@@ -4,6 +4,7 @@
   lib,
   pkgs,
   pkgs-unstable,
+  radonCaddyHost,
   radonMediaRoot,
   radonEndpoints,
   ...
@@ -13,6 +14,12 @@
   immichPort = 2283;
   photosHost = radonEndpoints.Immich.host;
 in {
+  age.secrets.immich-oidc-client-secret = {
+    file = ../../../secrets/immich-oidc-client-secret.age;
+    owner = config.services.immich.user;
+    group = config.services.immich.group;
+  };
+
   disabledModules = ["services/web-apps/immich.nix"];
   imports = ["${inputs.nixpkgs-unstable}/nixos/modules/services/web-apps/immich.nix"];
 
@@ -38,7 +45,7 @@ in {
       newVersionCheck.enabled = false;
       oauth = {
         enabled = true;
-        issuerUrl = (lib.head config.services.authelia.instances.main.settings.session.cookies).authelia_url;
+        issuerUrl = "https://auth.${config.identity.homelab.dns}";
         clientId = "immich";
         clientSecret._secret = config.age.secrets.immich-oidc-client-secret.path;
         tokenEndpointAuthMethod = "client_secret_post";
@@ -84,11 +91,11 @@ in {
   };
 
   services.caddy.virtualHosts = {
-    ${config.identity.homelab.dns}.extraConfig = lib.mkBefore (lib.concatMapStringsSep "\n"
+    ${radonCaddyHost config.identity.homelab.dns}.extraConfig = lib.mkBefore (lib.concatMapStringsSep "\n"
       (path: "redir ${path} ${radonEndpoints.Immich.url} 308")
       radonEndpoints.Immich.redirectPaths);
 
-    ${photosHost}.extraConfig = ''
+    ${radonCaddyHost photosHost}.extraConfig = ''
       reverse_proxy 127.0.0.1:${toString immichPort}
     '';
   };

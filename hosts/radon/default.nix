@@ -5,6 +5,8 @@
   ...
 }: let
   radonMediaRoot = "/mnt/media";
+  radonCaddyPort = 8080;
+  radonCaddyHost = host: "http://${host}:${toString radonCaddyPort}";
   radonEndpoints = lib.mapAttrs (_: service: let
     host = "${lib.optionalString (service.subdomain != null) "${service.subdomain}."}${config.identity.homelab.dns}";
   in
@@ -16,16 +18,14 @@
     })
   config.network.hosts.radon.publicWebServices;
 in {
-  _module.args = {inherit radonMediaRoot radonEndpoints;};
+  _module.args = {inherit radonCaddyHost radonCaddyPort radonMediaRoot radonEndpoints;};
 
   imports = [
     ./hardware-configuration.nix
     ../../modules/nixos/bootloader-systemd.nix
     ./gitlab-runner.nix
-    ./endpoints/auth.nix
+    ./temporary-krypton-tls-forward.nix
     ./endpoints/cockpit.nix
-    ./endpoints/directory.nix
-    ./endpoints/headscale.nix
     ./endpoints/music.nix
     ./endpoints/photos.nix
   ];
@@ -38,13 +38,8 @@ in {
   };
   security.sudo.wheelNeedsPassword = false;
 
-  services.caddy = {
-    enable = true;
-    globalConfig = ''
-      auto_https disable_redirects
-    '';
-  };
-  networking.firewall.allowedTCPPorts = [443];
+  services.caddy.enable = true;
+  networking.firewall.interfaces.enp8s0.allowedTCPPorts = [radonCaddyPort];
 
   nix = {
     gc = {

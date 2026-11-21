@@ -40,20 +40,12 @@
   homelabBookmarks =
     config.network.hosts
     |> lib.mapAttrsToList (
-      name: host:
-        (host.publicWebServices
-          |> lib.filterAttrs (_: service: service.bookmark)
-          |> lib.mapAttrsToList (
-            _: service:
-              lib.nameValuePair service.title "https://${lib.optionalString (service.subdomain != null) "${service.subdomain}."}${config.identity.homelab.dns}${service.path}"
-          ))
-        ++ lib.optionals host.tailscale.enable (
-          host.privateWebServices
-          |> lib.filterAttrs (_: service: service.bookmark)
-          |> lib.mapAttrsToList (
-            _: service:
-              lib.nameValuePair service.title "${service.scheme}://${name}.${tailnetDomain}:${toString service.port}${service.path}"
-          )
+      _: host:
+        host.publicWebServices
+        |> lib.filterAttrs (_: service: service.bookmark)
+        |> lib.mapAttrsToList (
+          _: service:
+            lib.nameValuePair service.title "https://${lib.optionalString (service.subdomain != null) "${service.subdomain}."}${config.identity.homelab.dns}${service.path}"
         )
     )
     |> lib.concatLists

@@ -1,5 +1,6 @@
 {
   lib,
+  radonCaddyHost,
   radonEndpoints,
   ...
 }: {
@@ -20,12 +21,7 @@
     "127.0.0.1:9090"
   ];
 
-  services.caddy.virtualHosts.${radonEndpoints.Cockpit.host}.extraConfig = ''
-    forward_auth 127.0.0.1:9091 {
-      uri /api/authz/forward-auth
-      header_up -Authorization
-      copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
-    }
+  services.caddy.virtualHosts.${radonCaddyHost radonEndpoints.Cockpit.host}.extraConfig = ''
     reverse_proxy 127.0.0.1:9090
   '';
 }

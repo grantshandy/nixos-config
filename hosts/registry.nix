@@ -13,6 +13,7 @@
       };
       builders.use = {
         enable = true;
+        providers = ["xenon"];
         localJobs = 1;
       };
     };
@@ -24,14 +25,21 @@
       port = 4321;
     };
     tailscale.enable = true;
-    buildCluster.builders.provide = {
-      enable = true;
-      maxJobs = 3;
-      speedFactor = 100;
+    buildCluster = {
+      cache.provide = {
+        enable = true;
+        priority = 20;
+      };
+      builders.provide = {
+        enable = true;
+        maxJobs = 3;
+        speedFactor = 100;
+      };
     };
-    privateWebServices.OpenWebUI = {
+    publicWebServices.OpenWebUI = {
       title = "Open WebUI";
-      description = "Local AI chat";
+      description = "Local AI chat and coding assistant";
+      subdomain = "chat";
       port = 8080;
     };
   };
@@ -42,10 +50,18 @@
       enable = true;
       port = 22;
     };
-    tailscale.enable = true;
+    tailscale = {
+      enable = true;
+      ipv4 = "100.64.0.3";
+    };
     buildCluster.builders.use = {
       enable = true;
+      providers = ["radon"];
       localJobs = 0;
+    };
+    publicWebServices.Headplane = {
+      description = "Tailnet administration";
+      subdomain = "headplane";
     };
   };
   radon = {
@@ -55,15 +71,15 @@
       port = 22;
     };
     tailscale.enable = true;
-    buildCluster.builders = {
-      provide = {
+    buildCluster = {
+      cache.provide = {
+        enable = true;
+        priority = 10;
+      };
+      builders.provide = {
         enable = true;
         maxJobs = 1;
         speedFactor = 50;
-      };
-      use = {
-        enable = true;
-        localJobs = 1;
       };
     };
 
@@ -86,10 +102,6 @@
       Cockpit = {
         description = "Server administration";
         subdomain = "cockpit";
-      };
-      Headplane = {
-        description = "Tailnet administration";
-        subdomain = "headplane";
       };
       Lidarr = {
         description = "Music collection management";

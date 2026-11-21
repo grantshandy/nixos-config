@@ -3,6 +3,11 @@
     (modulesPath + "/profiles/minimal.nix")
     ./hardware-configuration.nix
     ../../modules/nixos/bootloader-systemd.nix
+    ./edge.nix
+    ./auth.nix
+    ./directory.nix
+    ./headscale.nix
+    ./blocky.nix
   ];
 
   networking.useDHCP = true;

@@ -40,7 +40,7 @@
       "networkmanager"
       "wheel"
     ];
-    packages = with pkgs; [git];
+    packages = with pkgs; [git btop vim];
     openssh.authorizedKeys.keys = config.identity.ssh.userKeys;
   };
 

@@ -14,8 +14,12 @@
   providers =
     config.network.hosts
     |> lib.filterAttrs (_: host: host.buildCluster.builders.provide.enable);
-  eligibleProviders =
+  selectedProviderNames = thisHost.buildCluster.builders.use.providers;
+  selectedProviders =
     providers
+    |> lib.filterAttrs (name: _: lib.elem name selectedProviderNames);
+  eligibleProviders =
+    selectedProviders
     |> lib.filterAttrs (name: host: name != thisHostName && host.system == thisHost.system)
     |> lib.mapAttrsToList (name: host: {inherit name host;})
     |> lib.sort (a: b: a.host.buildCluster.builders.provide.speedFactor > b.host.buildCluster.builders.provide.speedFactor);
@@ -29,7 +33,13 @@
   providersWithHostKeys = lib.filter (provider: hasHostKey provider.name) eligibleProviders;
   remoteUsersWithHostKeys =
     users
-    |> lib.filterAttrs (name: _: name != thisHostName && hasHostKey name);
+    |> lib.filterAttrs (
+      name: host:
+        name
+        != thisHostName
+        && hasHostKey name
+        && lib.elem thisHostName host.buildCluster.builders.use.providers
+    );
 
   buildMachines =
     map (provider: {
@@ -69,6 +79,24 @@
         Port ${toString provider.host.ssh.port}
     '')
     eligibleProviders;
+
+  unknownProviderNames =
+    lib.filter (name: !builtins.hasAttr name config.network.hosts) selectedProviderNames;
+  disabledProviderNames =
+    lib.filter (
+      name:
+        builtins.hasAttr name config.network.hosts
+        && !config.network.hosts.${name}.buildCluster.builders.provide.enable
+    )
+    selectedProviderNames;
+  selfProviderNames = lib.filter (name: name == thisHostName) selectedProviderNames;
+  incompatibleProviderNames =
+    lib.filter (
+      name:
+        builtins.hasAttr name providers
+        && config.network.hosts.${name}.system != thisHost.system
+    )
+    selectedProviderNames;
 
   providesBuilds = host: host.buildCluster.builders.provide.enable;
   usesBuilders = host: host.buildCluster.builders.use.enable;
@@ -117,9 +145,12 @@
         {
           name = "/${proxyPathFor peer}/";
           value = {
-            # The trailing slash strips the identifying local proxy prefix.
-            proxyPass = "http://${peer.name}:${toString peer.host.buildCluster.cache.provide.port}/";
+            # A variable defers DNS resolution until request time, so an offline
+            # cache peer cannot prevent Nginx from starting.
+            proxyPass = "http://$cache_peer:${toString peer.host.buildCluster.cache.provide.port}";
             extraConfig = ''
+              set $cache_peer ${builderHostName peer.name};
+              rewrite ^/${proxyPathFor peer}/(.*)$ /$1 break;
               proxy_connect_timeout 500ms;
               proxy_read_timeout 5m;
               proxy_buffering off;
@@ -171,6 +202,11 @@ in {
 
   services.nginx = lib.mkIf (peers != []) {
     enable = true;
+    resolver = {
+      addresses = ["100.100.100.100"];
+      valid = "30s";
+      ipv6 = false;
+    };
     virtualHosts.nix-cache-mesh = proxyVirtualHost;
   };
 
@@ -222,8 +258,36 @@ in {
         message = "A host using build-cluster providers must enable Tailscale and SSH.";
       }
       {
+        assertion = !(providesBuilds thisHost && usesBuilders thisHost);
+        message = "A build provider cannot use remote builders; providers must terminate distributed builds.";
+      }
+      {
+        assertion = !(usesBuilders thisHost) || selectedProviderNames != [];
+        message = "A host using the build cluster must select at least one provider.";
+      }
+      {
+        assertion = lib.length selectedProviderNames == lib.length (lib.unique selectedProviderNames);
+        message = "Build provider selections must not contain duplicates.";
+      }
+      {
+        assertion = unknownProviderNames == [];
+        message = "Unknown build providers selected by '${thisHostName}': ${lib.concatStringsSep ", " unknownProviderNames}.";
+      }
+      {
+        assertion = disabledProviderNames == [];
+        message = "Hosts selected by '${thisHostName}' that do not provide builds: ${lib.concatStringsSep ", " disabledProviderNames}.";
+      }
+      {
+        assertion = selfProviderNames == [];
+        message = "Host '${thisHostName}' cannot select itself as a build provider.";
+      }
+      {
+        assertion = incompatibleProviderNames == [];
+        message = "Build providers selected by '${thisHostName}' with an incompatible system: ${lib.concatStringsSep ", " incompatibleProviderNames}.";
+      }
+      {
         assertion = !(usesBuilders thisHost) || eligibleProviders != [];
-        message = "A host using the build cluster must have at least one provider for ${thisHost.system}.";
+        message = "A host using the build cluster must have at least one selected provider for ${thisHost.system}.";
       }
       {
         assertion = !(participates thisHost) || thisHost.tailscale.enable;

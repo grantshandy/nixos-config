@@ -118,9 +118,16 @@ in {
             default = 22;
           };
         };
-        tailscale.enable = lib.mkOption {
-          type = lib.types.bool;
-          default = false;
+        tailscale = {
+          enable = lib.mkOption {
+            type = lib.types.bool;
+            default = false;
+          };
+          ipv4 = lib.mkOption {
+            type = lib.types.nullOr lib.types.str;
+            default = null;
+            description = "Stable Tailscale IPv4 address for services referenced by other hosts.";
+          };
         };
         buildCluster = {
           cache.provide = {
@@ -164,6 +171,11 @@ in {
                 default = false;
                 description = "Whether this host delegates builds to compatible build-cluster providers.";
               };
+              providers = lib.mkOption {
+                type = lib.types.listOf lib.types.str;
+                default = [];
+                description = "Registry host names of the build providers this host may use.";
+              };
               localJobs = lib.mkOption {
                 type = lib.types.either lib.types.ints.unsigned (lib.types.enum ["auto"]);
                 default = 0;
@@ -187,6 +199,11 @@ in {
                 default = [];
                 description = "Apex-domain paths redirected to this service's public URL.";
               };
+              port = lib.mkOption {
+                type = lib.types.nullOr lib.types.port;
+                default = null;
+                description = "Optional backend port used by the edge proxy.";
+              };
               subdomain = lib.mkOption {
                 type = lib.types.nullOr lib.types.str;
                 default = null;
@@ -196,24 +213,6 @@ in {
           });
           default = {};
           description = "Public web services provided by this host.";
-        };
-        privateWebServices = lib.mkOption {
-          type = lib.types.attrsOf (lib.types.submodule {
-            imports = [commonServiceOptions];
-            options = {
-              scheme = lib.mkOption {
-                type = lib.types.str;
-                default = "http";
-                description = "URL scheme for the private service.";
-              };
-              port = lib.mkOption {
-                type = lib.types.port;
-                description = "Required port for the private service on the host's Tailscale address.";
-              };
-            };
-          });
-          default = {};
-          description = "Private web services at <scheme>://<host>.ts.<identity.homelab.dns>:<port><path>.";
         };
       };
     });

@@ -2,34 +2,33 @@
   config,
   lib,
   pkgs,
-  radonEndpoints,
   ...
 }: let
+  dns = config.identity.homelab.dns;
   renderLinks = lib.concatMapStringsSep "\n" (service: ''
     <li><a href="${lib.escapeXML service.url}"><strong>${lib.escapeXML service.title}</strong><span>${lib.escapeXML service.description}</span></a></li>
   '');
-  directoryLinks = renderLinks (lib.attrValues (lib.filterAttrs (_: service: service.showInDirectory) radonEndpoints));
-  privateServices =
+  publicServices =
     config.network.hosts
-    |> lib.filterAttrs (_: host: host.tailscale.enable)
-    |> lib.mapAttrsToList (
-      name: host:
-        host.privateWebServices
-        |> lib.mapAttrsToList (_: service:
-          service
-          // {
-            url = "${service.scheme}://${name}.ts.${config.identity.homelab.dns}:${toString service.port}${service.path}";
-          })
-    )
+    |> lib.mapAttrsToList (_: host:
+      host.publicWebServices
+      |> lib.filterAttrs (_: service: service.showInDirectory)
+      |> lib.mapAttrsToList (_: service: let
+        serviceHost = "${lib.optionalString (service.subdomain != null) "${service.subdomain}."}${dns}";
+      in
+        service
+        // {
+          url = "https://${serviceHost}${service.path}";
+        }))
     |> lib.concatLists;
-  privateDirectoryLinks = renderLinks privateServices;
+  directoryLinks = renderLinks publicServices;
   directoryPage = pkgs.writeTextDir "index.html" ''
     <!doctype html>
     <html lang="en">
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Radon services</title>
+        <title>Homelab services</title>
         <style>
           :root {
             color-scheme: light dark;
@@ -102,24 +101,16 @@
         <ul>
           ${directoryLinks}
         </ul>
-        ${lib.optionalString (privateServices != []) ''
-      <hr>
-      <section aria-labelledby="private-services">
-        <h2 id="private-services">Private services</h2>
-        <p>These services are only accessible on the Tailscale network.</p>
-        <ul>
-          ${privateDirectoryLinks}
-        </ul>
-      </section>
-    ''}
+
       </body>
     </html>
   '';
 in {
-  services.caddy.virtualHosts.${config.identity.homelab.dns}.extraConfig = lib.mkBefore ''
+  services.caddy.virtualHosts.${dns}.extraConfig = lib.mkBefore ''
     handle / {
       forward_auth 127.0.0.1:9091 {
         uri /api/authz/forward-auth
+        header_up X-Forwarded-Proto https
         copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
       }
       root * ${directoryPage}

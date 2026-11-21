@@ -38,7 +38,7 @@
   '';
   podmanRuntimeSetup = pkgs.writeShellApplication {
     name = "${namespace}-podman-runtime-setup";
-    runtimeInputs = [pkgs.coreutils];
+    runtimeInputs = [pkgs.coreutils pkgs.diffutils];
     text = ''
       # Podman keeps this legacy tmpdir in its persistent database. Its alive
       # marker survives reboots even though the current runroot is under /run.
@@ -346,7 +346,10 @@ in
         port = nixCacheProxyPort;
       }
     ];
-    systemd.services.nginx.after = ["${namespace}-netns.service"];
+    systemd.services.nginx = {
+      requires = ["${namespace}-netns.service"];
+      after = ["${namespace}-netns.service"];
+    };
 
     environment.systemPackages = [
       submitAuth
@@ -407,7 +410,12 @@ in
         Type = "simple";
         ExecStart = lib.getExe vpnStart;
         NetworkNamespacePath = "/run/netns/${namespace}";
-        Restart = "no";
+        # A SAML cookie can expire while Radon is down. Keep a transient
+        # authentication failure out of the failed-unit set during boot or
+        # activation; submitting fresh authentication restarts this unit
+        # immediately rather than waiting for the retry delay.
+        Restart = "on-failure";
+        RestartSec = "5min";
         KillMode = "mixed";
         TimeoutStopSec = "20s";
       };
@@ -415,9 +423,9 @@ in
 
     systemd.sockets."${namespace}-podman" = {
       description = "Docker-compatible Podman API socket for GitLab CI";
-      requires = ["${namespace}-vpn.service"];
-      after = ["${namespace}-vpn.service"];
-      bindsTo = ["${namespace}-vpn.service"];
+      # Socket units are ordered before basic.target. Depending on the VPN here
+      # creates sockets.target -> VPN -> basic.target -> sockets.target. Keep the
+      # socket passive; the activated Podman service enforces the VPN dependency.
       listenStreams = [podmanSocket];
       socketConfig = {
         SocketMode = "0660";

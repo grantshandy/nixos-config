@@ -7,40 +7,39 @@
   dns = config.identity.homelab.dns;
   authHost = "auth.${dns}";
   authUrl = "https://${authHost}";
+  headplaneHost = "${config.network.hosts.krypton.publicWebServices.Headplane.subdomain}.${dns}";
+  headplaneUrl = "https://${headplaneHost}";
+  openWebuiHost = "${config.network.hosts.xenon.publicWebServices.OpenWebUI.subdomain}.${dns}";
   autheliaUser = config.services.authelia.instances.main.user;
   autheliaGroup = config.services.authelia.instances.main.group;
 in {
   age.secrets = {
     authelia-jwt-secret = {
-      file = ../../../secrets/authelia-jwt-secret.age;
+      file = ../../secrets/authelia-jwt-secret.age;
       owner = autheliaUser;
       group = autheliaGroup;
     };
     authelia-storage-encryption-key = {
-      file = ../../../secrets/authelia-storage-encryption-key.age;
+      file = ../../secrets/authelia-storage-encryption-key.age;
       owner = autheliaUser;
       group = autheliaGroup;
     };
     authelia-oidc-hmac-secret = {
-      file = ../../../secrets/authelia-oidc-hmac-secret.age;
+      file = ../../secrets/authelia-oidc-hmac-secret.age;
       owner = autheliaUser;
       group = autheliaGroup;
     };
     authelia-oidc-private-key = {
-      file = ../../../secrets/authelia-oidc-private-key.age;
+      file = ../../secrets/authelia-oidc-private-key.age;
       owner = autheliaUser;
       group = autheliaGroup;
     };
     authelia-users = {
-      file = ../../../secrets/authelia-users.age;
+      file = ../../secrets/authelia-users.age;
       owner = autheliaUser;
       group = autheliaGroup;
     };
-    immich-oidc-client-secret = {
-      file = ../../../secrets/immich-oidc-client-secret.age;
-      owner = config.services.immich.user;
-      group = config.services.immich.group;
-    };
+
   };
 
   services.authelia.instances.main = {
@@ -85,7 +84,11 @@ in {
             policy = "two_factor";
           }
           {
-            domain = radonEndpoints.Headplane.host;
+            domain = headplaneHost;
+            policy = "two_factor";
+          }
+          {
+            domain = openWebuiHost;
             policy = "two_factor";
           }
           {
@@ -114,7 +117,7 @@ in {
           {
             domain = dns;
             authelia_url = authUrl;
-            default_redirection_url = lib.removeSuffix "/" radonEndpoints.Headplane.url;
+            default_redirection_url = headplaneUrl;
             same_site = "lax";
           }
         ];
@@ -159,6 +162,8 @@ in {
   };
 
   services.caddy.virtualHosts.${authHost}.extraConfig = ''
-    reverse_proxy 127.0.0.1:9091
+    reverse_proxy 127.0.0.1:9091 {
+      header_up X-Forwarded-Proto https
+    }
   '';
 }

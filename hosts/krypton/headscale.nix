@@ -8,7 +8,7 @@
 }: let
   dns = config.identity.homelab.dns;
   base_url = "https://${dns}";
-  headplaneHost = "${config.network.hosts.radon.publicWebServices.Headplane.subdomain}.${dns}";
+  headplaneHost = "${config.network.hosts.krypton.publicWebServices.Headplane.subdomain}.${dns}";
   secrets_dir = "/var/secrets";
   headscale_key_path = "${secrets_dir}/headscale_api_key";
   headplane_cookie_path = "${secrets_dir}/headplane_cookie_secret";
@@ -50,19 +50,12 @@ in {
 
       forward_auth 127.0.0.1:9091 {
         uri /api/authz/forward-auth
+        header_up X-Forwarded-Proto https
         copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
       }
       reverse_proxy 127.0.0.1:${toString headplane_port}
     '';
   };
-
-  services.duckdns = {
-    enable = true;
-    domains = [(lib.head (lib.splitString "." dns))];
-    tokenFile = config.age.secrets.duckdns-token.path;
-  };
-
-  age.secrets.duckdns-token.file = ../../../secrets/duckdns-token.age;
 
   services.headscale = {
     enable = true;
@@ -76,7 +69,7 @@ in {
       dns = {
         magic_dns = true;
         base_domain = "ts.${dns}";
-        nameservers.global = ["1.1.1.1"];
+        nameservers.global = [config.network.hosts.krypton.tailscale.ipv4];
       };
 
       database = {

@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  radonCaddyHost,
   radonMediaRoot,
   radonEndpoints,
   utils,
@@ -199,7 +200,7 @@ in {
   # backends remain off the public interface; Caddy is their public entry point.
   services.caddy.virtualHosts = lib.mkMerge [
     {
-      ${radonEndpoints.Navidrome.host}.extraConfig = lib.mkBefore ''
+      ${radonCaddyHost radonEndpoints.Navidrome.host}.extraConfig = lib.mkBefore ''
         ${lib.optionalString (radonEndpoints.Navidrome.basePath != "") ''
           handle ${radonEndpoints.Navidrome.basePath} {
             redir * ${radonEndpoints.Navidrome.path} 308
@@ -212,43 +213,26 @@ in {
       '';
     }
     {
-      ${radonEndpoints.Lidarr.host}.extraConfig = lib.mkBefore ''
+      ${radonCaddyHost radonEndpoints.Lidarr.host}.extraConfig = lib.mkBefore ''
         ${lib.optionalString (radonEndpoints.Lidarr.basePath != "") ''
           handle ${radonEndpoints.Lidarr.basePath} {
             redir * ${radonEndpoints.Lidarr.path} 308
           }
         ''}
             handle ${radonEndpoints.Lidarr.path}* {
-              forward_auth 127.0.0.1:9091 {
-                uri /api/authz/forward-auth
-                # Keep Lidarr's API credentials out of the cloned auth request. The
-                # original request still reaches Lidarr with these values unchanged.
-                header_up -Authorization
-                header_up -X-Api-Key
-                header_up X-Forwarded-URI {http.request.uri.path}
-                copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
-              }
               reverse_proxy 127.0.0.1:${toString lidarrPort}
             }
 
       '';
     }
     {
-      ${radonEndpoints.slskd.host}.extraConfig = lib.mkBefore ''
+      ${radonCaddyHost radonEndpoints.slskd.host}.extraConfig = lib.mkBefore ''
         ${lib.optionalString (radonEndpoints.slskd.basePath != "") ''
           handle ${radonEndpoints.slskd.basePath} {
             redir * ${radonEndpoints.slskd.path} 308
           }
         ''}
             handle ${radonEndpoints.slskd.path}* {
-              forward_auth 127.0.0.1:9091 {
-                uri /api/authz/forward-auth
-                # slskd also uses bearer tokens and access_token query parameters for
-                # its API and SignalR connections. Only hide them from Authelia.
-                header_up -Authorization
-                header_up X-Forwarded-URI {http.request.uri.path}
-                copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
-              }
               reverse_proxy 127.0.0.1:${toString slskdWebPort}
             }
       '';
