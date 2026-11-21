@@ -15,10 +15,10 @@
 
   bookmarkFor = name: h: "sftp://${name}:${toString h.ssh.port}/home/${config.identity.user.name}/ ${name}";
 
-  sshMatchBlockFor = name: h: {
-    hostname = "${name}.${tailnetDomain}";
-    port = h.ssh.port;
-    user = config.identity.user.name;
+  sshSettingsFor = name: h: {
+    HostName = "${name}.${tailnetDomain}";
+    Port = h.ssh.port;
+    User = config.identity.user.name;
   };
 
   zed = pkgs-unstable.zed-editor;
@@ -64,7 +64,23 @@ in {
       gtk.gtk3.bookmarks = lib.mkIf (self.tailscale.enable && config.gtk.enable) (lib.mapAttrsToList bookmarkFor otherHosts);
       programs.ssh = lib.mkIf self.tailscale.enable {
         enable = true;
-        matchBlocks = lib.mapAttrs sshMatchBlockFor otherHosts;
+        enableDefaultConfig = false;
+        settings =
+          {
+            "*" = {
+              ForwardAgent = false;
+              AddKeysToAgent = "no";
+              Compression = false;
+              ServerAliveInterval = 0;
+              ServerAliveCountMax = 3;
+              HashKnownHosts = false;
+              UserKnownHostsFile = "~/.ssh/known_hosts";
+              ControlMaster = "no";
+              ControlPath = "~/.ssh/master-%r@%n:%p";
+              ControlPersist = "no";
+            };
+          }
+          // lib.mapAttrs sshSettingsFor otherHosts;
       };
       programs.zed-editor.userSettings.ssh_connections = lib.mkIf (self.tailscale.enable && config.programs.zed-editor.enable) (
         lib.mapAttrsToList (name: h: {

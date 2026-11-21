@@ -52,7 +52,7 @@ in {
 
       ExtensionSettings =
         fx.extensions
-        |> map (name: inputs.firefox-addons.packages.${pkgs.system}.${name})
+        |> map (name: inputs.firefox-addons.packages.${pkgs.stdenv.hostPlatform.system}.${name})
         |> map (ext: {
           name = ext.addonId;
           value = {
