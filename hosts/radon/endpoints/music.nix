@@ -20,6 +20,63 @@
   lidarrUid = 986;
   navidromeDataDir = "${mediaMount}/navidrome";
   navidromePort = 4533;
+  navidromeBackgroundPort = 4534;
+  navidromeBackgroundPath = "${radonEndpoints.Navidrome.path}login-background";
+  wallpaperSourceDir = ../../../modules/nixos/desktop/gnome/wallpapers;
+  navidromeWallpapers = pkgs.runCommand "navidrome-login-wallpapers" {nativeBuildInputs = [pkgs.imagemagick];} ''
+    mkdir -p "$out"
+
+    for source in ${wallpaperSourceDir}/*; do
+      case "$source" in
+        *.jpg | *.jpeg) decoder=jpeg ;;
+        *.png) decoder=png ;;
+        *) continue ;;
+      esac
+
+      filename="$(basename "$source")"
+      magick "$decoder:$source" \
+        -auto-orient \
+        -strip \
+        -resize "1920x1080>" \
+        -quality 82 \
+        "$out/$filename"
+    done
+  '';
+  navidromeBackgroundServer = pkgs.writeShellScriptBin "navidrome-background-server" ''
+    exec ${lib.getExe pkgs.python3} ${pkgs.writeText "navidrome-background-server.py" ''
+      import secrets
+      import shutil
+      from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+      from pathlib import Path
+
+      wallpaper_dir = Path("${navidromeWallpapers}")
+      wallpapers = tuple(
+          path
+          for path in wallpaper_dir.iterdir()
+          if path.is_file() and path.suffix.lower() in {".jpg", ".jpeg", ".png"}
+      )
+
+      if not wallpapers:
+          raise RuntimeError(f"No wallpapers found in {wallpaper_dir}")
+
+      class BackgroundHandler(BaseHTTPRequestHandler):
+          def do_GET(self):
+              wallpaper = secrets.choice(wallpapers)
+              content_type = "image/png" if wallpaper.suffix.lower() == ".png" else "image/jpeg"
+              self.send_response(200)
+              self.send_header("Content-Type", content_type)
+              self.send_header("Content-Length", str(wallpaper.stat().st_size))
+              self.send_header("Cache-Control", "no-store")
+              self.end_headers()
+              with wallpaper.open("rb") as image:
+                  shutil.copyfileobj(image, self.wfile)
+
+          def log_message(self, format, *args):
+              return
+
+      ThreadingHTTPServer(("127.0.0.1", ${toString navidromeBackgroundPort}), BackgroundHandler).serve_forever()
+    ''}
+  '';
   slskdDir = "${mediaMount}/slskd";
   slskdWebPort = 5030;
   slskdListenPort = 55125;
@@ -61,7 +118,8 @@ in {
   systemd.services.navidrome = {
     # Starting the drive's device unit after a hot-plug starts Navidrome again.
     wantedBy = [mediaDeviceUnit];
-    after = [mediaMountUnit];
+    wants = ["navidrome-backgrounds.service"];
+    after = [mediaMountUnit "navidrome-backgrounds.service"];
     bindsTo = [mediaMountUnit];
     unitConfig.RequiresMountsFor = [
       lidarrMusicDir
@@ -70,6 +128,20 @@ in {
     serviceConfig = {
       Restart = "on-failure";
       RestartSec = "5s";
+    };
+  };
+
+  systemd.services.navidrome-backgrounds = {
+    description = "Serve random Navidrome login backgrounds";
+    serviceConfig = {
+      ExecStart = lib.getExe navidromeBackgroundServer;
+      DynamicUser = true;
+      Restart = "on-failure";
+      RestartSec = "5s";
+      NoNewPrivileges = true;
+      PrivateTmp = true;
+      ProtectHome = true;
+      ProtectSystem = "strict";
     };
   };
 
@@ -85,6 +157,7 @@ in {
       Scanner.PurgeMissing = "always";
       CoverArtPriority = "embedded,cover.*,folder.*,front.*";
       BaseUrl = radonEndpoints.Navidrome.basePath;
+      UILoginBackgroundUrl = "/login-background";
     };
   };
 
@@ -206,6 +279,10 @@ in {
             redir * ${radonEndpoints.Navidrome.path} 308
           }
         ''}
+            handle ${navidromeBackgroundPath} {
+              reverse_proxy 127.0.0.1:${toString navidromeBackgroundPort}
+            }
+
             handle ${radonEndpoints.Navidrome.path}* {
               reverse_proxy 127.0.0.1:${toString navidromePort}
             }
