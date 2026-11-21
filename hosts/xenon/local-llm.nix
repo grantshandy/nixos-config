@@ -8,6 +8,7 @@
   webuiHost = "${webui.subdomain}.${config.identity.homelab.dns}";
 
   contextLength = 16384;
+  idleTimeoutSeconds = 15 * 60;
   modelName = "qwen3.6-35b-a3b-q4-k-m";
   model = pkgs.fetchurl {
     url = "https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/resolve/main/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf";
@@ -68,6 +69,9 @@ in {
       "off"
       "--ctx-size"
       (toString contextLength)
+      # Unload the model and KV cache after being idle; the next request reloads them.
+      "--sleep-idle-seconds"
+      (toString idleTimeoutSeconds)
       "--flash-attn"
       "on"
       "--cache-type-k"

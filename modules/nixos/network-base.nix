@@ -8,7 +8,6 @@
     config.network.hosts.${hostName}
     or (throw "host '${hostName}' is missing from network.hosts");
   tailnetDnsHost = config.network.hosts.krypton;
-  acceptTailnetDns = self.tailscale.enable && hostName != "krypton";
 in {
   assertions = [
     {
@@ -40,11 +39,11 @@ in {
 
     extraUpFlags = lib.mkDefault [
       "--login-server=https://${config.identity.homelab.dns}"
-      "--accept-dns=${lib.boolToString acceptTailnetDns}"
+      "--accept-dns=true"
     ];
 
     extraSetFlags = lib.mkDefault [
-      "--accept-dns=${lib.boolToString acceptTailnetDns}"
+      "--accept-dns=true"
     ];
   };
 

@@ -10,9 +10,20 @@
         "https://cloudflare-dns.com/dns-query"
       ];
 
+      bootstrapDns = [
+        {
+          upstream = "https://dns.quad9.net/dns-query";
+          ips = ["9.9.9.9" "149.112.112.112"];
+        }
+        {
+          upstream = "https://cloudflare-dns.com/dns-query";
+          ips = ["1.1.1.1" "1.0.0.1"];
+        }
+      ];
+
       blocking = {
         denylists.ads = [
-          "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/pro.txt"
+          "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/pro-onlydomains.txt"
         ];
         clientGroupsBlock.default = ["ads"];
         blockType = "zeroIp";
