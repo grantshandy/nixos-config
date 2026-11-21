@@ -24,7 +24,6 @@ in {
     ./hardware-configuration.nix
     ../../modules/nixos/bootloader-systemd.nix
     ./gitlab-runner.nix
-    ./temporary-krypton-tls-forward.nix
     ./endpoints/cockpit.nix
     ./endpoints/music.nix
     ./endpoints/photos.nix
