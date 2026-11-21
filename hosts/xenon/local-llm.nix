@@ -51,13 +51,14 @@ in {
   services.llama-cpp = {
     enable = true;
     package = pkgs.llama-cpp-rocm;
-    inherit model;
+    modelsPreset.${modelName} = {
+      inherit model;
+      load-on-startup = false;
+    };
     host = "0.0.0.0";
     port = 8081;
     openFirewall = false;
     extraFlags = [
-      "--alias"
-      modelName
       "--no-mmproj"
       "--n-gpu-layers"
       "99"
