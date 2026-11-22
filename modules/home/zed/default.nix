@@ -86,7 +86,8 @@
           {
             name = "qwen3.6-35b-a3b-q4-k-m";
             display_name = "Qwen 3.6 35B A3B Q4_K_M";
-            max_tokens = 49152;
+            max_tokens = 65536;
+            max_output_tokens = 32768;
             supports_tools = true;
             supports_images = false;
             supports_thinking = true;
@@ -94,9 +95,15 @@
         ];
       };
 
-      agent.default_model = {
-        provider = "llama.cpp";
-        model = "qwen3.6-35b-a3b-q4-k-m";
+      agent = {
+        default_model = {
+          provider = "llama.cpp";
+          model = "qwen3.6-35b-a3b-q4-k-m";
+        };
+        auto_compact = {
+          enabled = true;
+          threshold = "90%";
+        };
       };
 
       dap.CodeLLDB.binary = "${pkgs.vscode-extensions.vadimcn.vscode-lldb}/share/vscode/extensions/vadimcn.vscode-lldb/adapter/codelldb";
