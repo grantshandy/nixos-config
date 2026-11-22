@@ -4,6 +4,7 @@
   pkgs,
   utils,
   radonMediaRoot,
+  nodeExporterTextfileDir,
   ...
 }: let
   tokenFile = ../../secrets/gitlab-runner-token.age;
@@ -325,6 +326,174 @@
       echo active
     '';
   };
+
+  runnerMetricsPort = 9252;
+
+  jobMetrics = pkgs.writeShellApplication {
+    name = "${namespace}-job-metrics";
+    runtimeInputs = with pkgs; [coreutils curl gawk jq];
+    text = ''
+      metrics_url="http://127.0.0.1:${toString runnerMetricsPort}/metrics"
+      socket="${podmanSocket}"
+      output="${nodeExporterTextfileDir}/gitlab-runner.prom"
+      interval=2
+
+      running=0
+      started=0
+      finished=0
+      job_id=""
+      labels=""
+      misses=0
+
+      # Resume the recorded timestamps so restarting this service does not look
+      # like a job boundary.
+      if [[ -r "$output" ]]; then
+        started="$(awk '$1 == "gitlab_runner_job_last_started_timestamp_seconds" { print $2 }' "$output")"
+        finished="$(awk '$1 == "gitlab_runner_job_last_finished_timestamp_seconds" { print $2 }' "$output")"
+      fi
+      [[ "$started" =~ ^[0-9]+$ ]] || started=0
+      [[ "$finished" =~ ^[0-9]+$ ]] || finished=0
+
+      write_metrics() {
+        local temporary
+        temporary="$(mktemp --tmpdir="${nodeExporterTextfileDir}" .gitlab-runner.prom.XXXXXX)"
+        {
+          printf '%s\n' \
+            '# HELP gitlab_runner_job_running Whether GitLab Runner is executing a job (1) or idle (0).' \
+            '# TYPE gitlab_runner_job_running gauge' \
+            "gitlab_runner_job_running $running" \
+            '# HELP gitlab_runner_job_last_started_timestamp_seconds Unix time the most recent GitLab Runner job started.' \
+            '# TYPE gitlab_runner_job_last_started_timestamp_seconds gauge' \
+            "gitlab_runner_job_last_started_timestamp_seconds $started" \
+            '# HELP gitlab_runner_job_last_finished_timestamp_seconds Unix time the most recent GitLab Runner job finished.' \
+            '# TYPE gitlab_runner_job_last_finished_timestamp_seconds gauge' \
+            "gitlab_runner_job_last_finished_timestamp_seconds $finished"
+          if [[ -n "$labels" ]]; then
+            printf '%s\n' \
+              '# HELP gitlab_runner_job_info The GitLab Runner job currently executing; absent when idle.' \
+              '# TYPE gitlab_runner_job_info gauge' \
+              "gitlab_runner_job_info{$labels} 1"
+          fi
+        } > "$temporary"
+        chmod 0644 "$temporary"
+        mv --force "$temporary" "$output"
+      }
+
+      # Prints 1 when the runner reports any active job, otherwise 0. An
+      # unreachable endpoint means the runner is stopped, so nothing is running.
+      sample() {
+        local body
+        if ! body="$(curl --silent --fail --max-time 5 "$metrics_url")"; then
+          echo 0
+          return
+        fi
+        awk '/^gitlab_runner_jobs[{ ]/ && $NF > 0 { found = 1 } END { print found + 0 }' <<<"$body"
+      }
+
+      podman_get() {
+        curl --silent --fail --max-time 5 --unix-socket "$socket" "$@"
+      }
+
+      # Prints "<job id> <container id>" for a container that belongs to the active
+      # job. Only the label list is read here, never container environments.
+      find_job() {
+        podman_get --get \
+          --data-urlencode 'filters={"label":["com.gitlab.gitlab-runner.managed=true"]}' \
+          http://localhost/containers/json \
+          | jq --raw-output '
+            map(select(.Labels["com.gitlab.gitlab-runner.type"] | . == "build" or . == "predefined"))
+            | first // empty
+            | "\(.Labels["com.gitlab.gitlab-runner.job.id"]) \(.Id)"
+          '
+      }
+
+      # Prints the gitlab_runner_job_info label set for one container. Only four CI
+      # variables are read from its environment; everything else is discarded.
+      job_labels() {
+        podman_get "http://localhost/containers/$1/json" | jq --raw-output '
+          def esc: gsub("\\\\"; "\\\\") | gsub("\""; "\\\"") | gsub("\n"; "\\n");
+          def ci($name):
+            (.Config.Env // [] | map(select(startswith($name + "="))) | first // "")
+            | sub("^[^=]*="; "")
+            | esc;
+          "job_id=\"\(ci("CI_JOB_ID"))\",job_name=\"\(ci("CI_JOB_NAME"))\",project=\"\(ci("CI_PROJECT_PATH"))\",pipeline_id=\"\(ci("CI_PIPELINE_ID"))\""
+        '
+      }
+
+      # Never leave a stale "running" sample behind when this service stops.
+      mark_idle() {
+        running=0
+        labels=""
+        write_metrics
+      }
+      trap mark_idle EXIT
+      trap 'exit 0' INT TERM
+
+      running="$(sample)"
+      write_metrics
+
+      while true; do
+        sleep "$interval"
+        current="$(sample)"
+        now="$(date +%s)"
+        changed=0
+
+        if [[ "$current" != "$running" ]]; then
+          changed=1
+          if [[ "$current" == 1 ]]; then
+            started="$now"
+            misses=0
+            echo "GitLab Runner job started at $now"
+          else
+            finished="$now"
+            job_id=""
+            labels=""
+            echo "GitLab Runner job finished at $now"
+          fi
+          running="$current"
+        fi
+
+        if [[ "$running" == 1 ]]; then
+          found="$(find_job || true)"
+          if [[ -n "$found" ]]; then
+            misses=0
+            if [[ "''${found%% *}" != "$job_id" ]]; then
+              # A different job id while the runner never went idle means the next
+              # job followed immediately; split the boundary here.
+              if [[ -n "$job_id" && "$job_id" != unknown ]]; then
+                finished="$now"
+                started="$now"
+              fi
+              job_id="''${found%% *}"
+              container="''${found#* }"
+              labels=""
+              if [[ "$container" =~ ^[0-9a-f]+$ ]]; then
+                labels="$(job_labels "$container" || true)"
+              fi
+              if [[ -z "$labels" ]]; then
+                labels="job_id=\"$job_id\",job_name=\"\",project=\"\",pipeline_id=\"\""
+              fi
+              echo "GitLab Runner job $job_id: $labels"
+              changed=1
+            fi
+          elif [[ -z "$job_id" ]]; then
+            # The job's containers usually appear within a few seconds. If they
+            # never do, publish it without details rather than not at all.
+            misses=$((misses + 1))
+            if [[ "$misses" -ge 15 ]]; then
+              job_id="unknown"
+              labels='job_id="unknown",job_name="",project="",pipeline_id=""'
+              changed=1
+            fi
+          fi
+        fi
+
+        if [[ "$changed" == 1 ]]; then
+          write_metrics
+        fi
+      done
+    '';
+  };
 in
   lib.mkIf tokenAvailable {
     age.secrets.gitlab-runner-token.file = tokenFile;
@@ -498,6 +667,9 @@ in
     services.gitlab-runner = {
       enable = true;
       settings.concurrent = 1;
+      # Loopback inside the CI namespace: reachable by the watcher below, but
+      # not by job containers. The same listener also serves /debug/pprof.
+      settings.listen_address = "127.0.0.1:${toString runnerMetricsPort}";
       services.radon-nix = {
         authenticationTokenConfigFile = config.age.secrets.gitlab-runner-token.path;
         executor = "docker";
@@ -560,6 +732,22 @@ in
         submitAuth
         vpnStatus
       ];
+    };
+
+    systemd.services."${namespace}-job-metrics" = {
+      description = "Export GitLab Runner job activity for node_exporter";
+      wantedBy = ["multi-user.target"];
+      requires = ["${namespace}-netns.service"];
+      after = ["${namespace}-netns.service" "systemd-tmpfiles-setup.service"];
+      serviceConfig = {
+        ExecStart = lib.getExe jobMetrics;
+        NetworkNamespacePath = "/run/netns/${namespace}";
+        DynamicUser = true;
+        SupplementaryGroups = ["node-exporter" "gitlab-runner"];
+        ReadWritePaths = [nodeExporterTextfileDir];
+        Restart = "always";
+        RestartSec = "5s";
+      };
     };
 
     systemd.services.gitlab-runner = {

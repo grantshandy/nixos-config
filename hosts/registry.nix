@@ -67,6 +67,7 @@
       Grafana = {
         description = "Homelab monitoring";
         subdomain = "monitor";
+        path = "/d/homelab-overview/";
       };
     };
   };

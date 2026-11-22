@@ -40,7 +40,6 @@ in {
       owner = autheliaUser;
       group = autheliaGroup;
     };
-
   };
 
   services.authelia.instances.main = {

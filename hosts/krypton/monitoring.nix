@@ -14,10 +14,15 @@
     |> lib.filterAttrs (_: host: host.tailscale.enable)
     |> lib.attrNames;
 
-  scrapeTargets = map (host: {
-    targets = ["${host}.ts.${dns}:9100"];
-    labels = {inherit host;};
-  }) monitoredHosts;
+  scrapeTargets =
+    map (host: {
+      targets = ["${host}.ts.${dns}:9100"];
+      labels = {inherit host;};
+    })
+    monitoredHosts;
+
+  ciJobScrapeTargets = lib.filter (target: target.labels.host == "radon") scrapeTargets;
+  llmScrapeTargets = lib.filter (target: target.labels.host == "xenon") scrapeTargets;
 
   dashboard = pkgs.writeTextDir "homelab-overview.json" (builtins.toJSON {
     uid = "homelab-overview";
@@ -48,12 +53,14 @@
           type = "prometheus";
           uid = "victoriametrics";
         };
-        targets = [{
-          refId = "A";
-          expr = "up{job=\"nodes\"}";
-          legendFormat = "{{host}}";
-          instant = true;
-        }];
+        targets = [
+          {
+            refId = "A";
+            expr = "up{job=\"nodes\"}";
+            legendFormat = "{{host}}";
+            instant = true;
+          }
+        ];
         options = {
           colorMode = "background";
           graphMode = "none";
@@ -119,11 +126,13 @@
           type = "prometheus";
           uid = "victoriametrics";
         };
-        targets = [{
-          refId = "A";
-          expr = "100 - (avg by (host) (rate(node_cpu_seconds_total{mode=\"idle\"}[$__rate_interval])) * 100)";
-          legendFormat = "{{host}}";
-        }];
+        targets = [
+          {
+            refId = "A";
+            expr = "100 - (avg by (host) (rate(node_cpu_seconds_total{mode=\"idle\"}[$__rate_interval])) * 100)";
+            legendFormat = "{{host}}";
+          }
+        ];
         fieldConfig = {
           defaults = {
             unit = "percent";
@@ -147,11 +156,13 @@
           type = "prometheus";
           uid = "victoriametrics";
         };
-        targets = [{
-          refId = "A";
-          expr = "100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)";
-          legendFormat = "{{host}}";
-        }];
+        targets = [
+          {
+            refId = "A";
+            expr = "100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)";
+            legendFormat = "{{host}}";
+          }
+        ];
         fieldConfig = {
           defaults = {
             unit = "percent";
@@ -176,11 +187,13 @@
           type = "prometheus";
           uid = "victoriametrics";
         };
-        targets = [{
-          refId = "A";
-          expr = "max by (host) (node_hwmon_temp_celsius{chip=~\"platform_coretemp_0|pci0000:00_0000:00:18_3\"})";
-          legendFormat = "{{host}}";
-        }];
+        targets = [
+          {
+            refId = "A";
+            expr = "max by (host) (node_hwmon_temp_celsius{chip=~\"platform_coretemp_0|pci0000:00_0000:00:18_3\"})";
+            legendFormat = "{{host}}";
+          }
+        ];
         fieldConfig = {
           defaults = {
             unit = "celsius";
@@ -220,11 +233,13 @@
           type = "prometheus";
           uid = "victoriametrics";
         };
-        targets = [{
-          refId = "A";
-          expr = "sum by (host) (rate(node_network_receive_bytes_total{device!~\"lo|tailscale0\"}[$__rate_interval]))";
-          legendFormat = "{{host}}";
-        }];
+        targets = [
+          {
+            refId = "A";
+            expr = "sum by (host) (rate(node_network_receive_bytes_total{device!~\"lo|tailscale0\"}[$__rate_interval]))";
+            legendFormat = "{{host}}";
+          }
+        ];
         fieldConfig = {
           defaults.unit = "Bps";
           overrides = [];
@@ -244,11 +259,13 @@
           type = "prometheus";
           uid = "victoriametrics";
         };
-        targets = [{
-          refId = "A";
-          expr = "sum by (host) (rate(node_network_transmit_bytes_total{device!~\"lo|tailscale0\"}[$__rate_interval]))";
-          legendFormat = "{{host}}";
-        }];
+        targets = [
+          {
+            refId = "A";
+            expr = "sum by (host) (rate(node_network_transmit_bytes_total{device!~\"lo|tailscale0\"}[$__rate_interval]))";
+            legendFormat = "{{host}}";
+          }
+        ];
         fieldConfig = {
           defaults.unit = "Bps";
           overrides = [];
@@ -270,11 +287,13 @@
           type = "prometheus";
           uid = "victoriametrics";
         };
-        targets = [{
-          refId = "A";
-          expr = "sum(rate(node_network_transmit_bytes_total{device=\"tailscale0\"}[$__rate_interval]))";
-          legendFormat = "tailnet throughput";
-        }];
+        targets = [
+          {
+            refId = "A";
+            expr = "sum(rate(node_network_transmit_bytes_total{device=\"tailscale0\"}[$__rate_interval]))";
+            legendFormat = "tailnet throughput";
+          }
+        ];
         fieldConfig = {
           defaults = {
             unit = "Bps";
@@ -285,7 +304,7 @@
       }
       {
         id = 6;
-        title = "Root filesystem usage";
+        title = "Filesystem usage";
         type = "timeseries";
         gridPos = {
           x = 0;
@@ -297,16 +316,19 @@
           type = "prometheus";
           uid = "victoriametrics";
         };
-        targets = [{
-          refId = "A";
-          expr = "100 * (1 - node_filesystem_avail_bytes{mountpoint=\"/\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!~\"tmpfs|overlay\"})";
-          legendFormat = "{{host}}";
-        }];
+        targets = [
+          {
+            refId = "A";
+            expr = "100 * (1 - node_filesystem_avail_bytes{mountpoint=~\"/|/mnt/media\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{mountpoint=~\"/|/mnt/media\",fstype!~\"tmpfs|overlay\"})";
+            legendFormat = "{{host}}: {{mountpoint}}";
+          }
+        ];
         fieldConfig = {
           defaults = {
             unit = "percent";
             min = 0;
             max = 100;
+            custom.spanNulls = true;
           };
           overrides = [];
         };
@@ -325,13 +347,18 @@
           type = "prometheus";
           uid = "victoriametrics";
         };
-        targets = [{
-          refId = "A";
-          expr = "nix_store_disk_bytes";
-          legendFormat = "{{host}}";
-        }];
+        targets = [
+          {
+            refId = "A";
+            expr = "nix_store_disk_bytes";
+            legendFormat = "{{host}}";
+          }
+        ];
         fieldConfig = {
-          defaults.unit = "bytes";
+          defaults = {
+            unit = "bytes";
+            custom.spanNulls = true;
+          };
           overrides = [];
         };
       }
@@ -413,30 +440,321 @@
                 id = "byFrameRefID";
                 options = "B";
               };
-              properties = [{
-                id = "unit";
-                value = "bytes";
-              }];
+              properties = [
+                {
+                  id = "unit";
+                  value = "bytes";
+                }
+              ];
             }
             {
               matcher = {
                 id = "byFrameRefID";
                 options = "D";
               };
-              properties = [{
-                id = "unit";
-                value = "bytes";
-              }];
+              properties = [
+                {
+                  id = "unit";
+                  value = "bytes";
+                }
+              ];
             }
             {
               matcher = {
                 id = "byFrameRefID";
                 options = "F";
               };
-              properties = [{
-                id = "unit";
-                value = "bytes";
-              }];
+              properties = [
+                {
+                  id = "unit";
+                  value = "bytes";
+                }
+              ];
+            }
+          ];
+        };
+      }
+      {
+        id = 13;
+        title = "Radon load during GitLab jobs";
+        description = "Radon CPU and memory usage. Shaded regions mark when GitLab Runner was executing a job.";
+        type = "timeseries";
+        interval = "5s";
+        gridPos = {
+          x = 0;
+          y = 46;
+          w = 24;
+          h = 9;
+        };
+        datasource = {
+          type = "prometheus";
+          uid = "victoriametrics";
+        };
+        # The shading query is first (refId A) so it is drawn behind the lines.
+        targets = [
+          {
+            refId = "A";
+            expr = "max_over_time(gitlab_runner_job_info{host=\"radon\",job=\"ci-jobs\"}[$__interval])";
+            legendFormat = "{{job_name}} #{{job_id}}";
+          }
+          {
+            refId = "B";
+            expr = "100 - (avg(rate(node_cpu_seconds_total{host=\"radon\",mode=\"idle\"}[$__rate_interval])) * 100)";
+            legendFormat = "CPU";
+          }
+          {
+            refId = "C";
+            expr = "100 * (1 - node_memory_MemAvailable_bytes{host=\"radon\"} / node_memory_MemTotal_bytes{host=\"radon\"})";
+            legendFormat = "Memory";
+          }
+        ];
+        options.tooltip.mode = "multi";
+        fieldConfig = {
+          defaults = {
+            unit = "percent";
+            min = 0;
+            max = 100;
+          };
+          overrides = [
+            {
+              matcher = {
+                id = "byFrameRefID";
+                options = "A";
+              };
+              properties = [
+                # A different unit gives this series its own 0-1 y-scale, so the
+                # bars fill the full panel height regardless of the 0-100 scale.
+                {
+                  id = "unit";
+                  value = "none";
+                }
+                {
+                  id = "min";
+                  value = 0;
+                }
+                {
+                  id = "max";
+                  value = 1;
+                }
+                {
+                  id = "color";
+                  value = {
+                    mode = "shades";
+                    fixedColor = "orange";
+                  };
+                }
+                {
+                  id = "custom.drawStyle";
+                  value = "bars";
+                }
+                {
+                  id = "custom.barWidthFactor";
+                  value = 1;
+                }
+                {
+                  id = "custom.fillOpacity";
+                  value = 25;
+                }
+                {
+                  id = "custom.lineWidth";
+                  value = 0;
+                }
+                {
+                  id = "custom.axisPlacement";
+                  value = "hidden";
+                }
+              ];
+            }
+            {
+              matcher = {
+                id = "byFrameRefID";
+                options = "B";
+              };
+              properties = [
+                {
+                  id = "color";
+                  value = {
+                    mode = "fixed";
+                    fixedColor = "blue";
+                  };
+                }
+              ];
+            }
+            {
+              matcher = {
+                id = "byFrameRefID";
+                options = "C";
+              };
+              properties = [
+                {
+                  id = "color";
+                  value = {
+                    mode = "fixed";
+                    fixedColor = "purple";
+                  };
+                }
+              ];
+            }
+          ];
+        };
+      }
+      {
+        id = 14;
+        title = "Xenon load during local LLM activity";
+        description = "Xenon CPU, memory, GPU utilization, and GPU VRAM usage. Shaded regions mark when llama-cpp was active.";
+        type = "timeseries";
+        interval = "5s";
+        gridPos = {
+          x = 0;
+          y = 55;
+          w = 24;
+          h = 9;
+        };
+        datasource = {
+          type = "prometheus";
+          uid = "victoriametrics";
+        };
+        targets = [
+          {
+            refId = "A";
+            expr = "max_over_time(llama_cpp_info{host=\"xenon\",job=\"llm-metrics\"}[$__interval])";
+            legendFormat = "llama-cpp ({{model}})";
+          }
+          {
+            refId = "B";
+            expr = "100 - (avg(rate(node_cpu_seconds_total{host=\"xenon\",mode=\"idle\"}[$__rate_interval])) * 100)";
+            legendFormat = "CPU";
+          }
+          {
+            refId = "C";
+            expr = "100 * (1 - node_memory_MemAvailable_bytes{host=\"xenon\"} / node_memory_MemTotal_bytes{host=\"xenon\"})";
+            legendFormat = "Memory";
+          }
+          {
+            refId = "D";
+            expr = "max_over_time(amdgpu_gpu_busy_percent{host=\"xenon\",job=\"llm-metrics\"}[$__interval])";
+            legendFormat = "GPU";
+          }
+          {
+            refId = "E";
+            expr = "100 * max_over_time(amdgpu_vram_used_bytes{host=\"xenon\",job=\"llm-metrics\"}[$__interval]) / max_over_time(amdgpu_vram_total_bytes{host=\"xenon\",job=\"llm-metrics\"}[$__interval])";
+            legendFormat = "GPU VRAM";
+          }
+        ];
+        options.tooltip.mode = "multi";
+        fieldConfig = {
+          defaults = {
+            unit = "percent";
+            min = 0;
+            max = 100;
+          };
+          overrides = [
+            {
+              matcher = {
+                id = "byFrameRefID";
+                options = "A";
+              };
+              properties = [
+                {
+                  id = "unit";
+                  value = "none";
+                }
+                {
+                  id = "min";
+                  value = 0;
+                }
+                {
+                  id = "max";
+                  value = 1;
+                }
+                {
+                  id = "color";
+                  value = {
+                    mode = "shades";
+                    fixedColor = "orange";
+                  };
+                }
+                {
+                  id = "custom.drawStyle";
+                  value = "bars";
+                }
+                {
+                  id = "custom.barWidthFactor";
+                  value = 1;
+                }
+                {
+                  id = "custom.fillOpacity";
+                  value = 25;
+                }
+                {
+                  id = "custom.lineWidth";
+                  value = 0;
+                }
+                {
+                  id = "custom.axisPlacement";
+                  value = "hidden";
+                }
+              ];
+            }
+            {
+              matcher = {
+                id = "byFrameRefID";
+                options = "B";
+              };
+              properties = [
+                {
+                  id = "color";
+                  value = {
+                    mode = "fixed";
+                    fixedColor = "blue";
+                  };
+                }
+              ];
+            }
+            {
+              matcher = {
+                id = "byFrameRefID";
+                options = "C";
+              };
+              properties = [
+                {
+                  id = "color";
+                  value = {
+                    mode = "fixed";
+                    fixedColor = "purple";
+                  };
+                }
+              ];
+            }
+            {
+              matcher = {
+                id = "byFrameRefID";
+                options = "D";
+              };
+              properties = [
+                {
+                  id = "color";
+                  value = {
+                    mode = "fixed";
+                    fixedColor = "green";
+                  };
+                }
+              ];
+            }
+            {
+              matcher = {
+                id = "byFrameRefID";
+                options = "E";
+              };
+              properties = [
+                {
+                  id = "color";
+                  value = {
+                    mode = "fixed";
+                    fixedColor = "yellow";
+                  };
+                }
+              ];
             }
           ];
         };
@@ -464,6 +782,32 @@ in {
         {
           job_name = "nodes";
           static_configs = scrapeTargets;
+        }
+        {
+          job_name = "ci-jobs";
+          scrape_interval = "5s";
+          params."collect[]" = ["textfile"];
+          static_configs = ciJobScrapeTargets;
+          metric_relabel_configs = [
+            {
+              source_labels = ["__name__"];
+              regex = "gitlab_runner_.*";
+              action = "keep";
+            }
+          ];
+        }
+        {
+          job_name = "llm-metrics";
+          scrape_interval = "5s";
+          params."collect[]" = ["textfile"];
+          static_configs = llmScrapeTargets;
+          metric_relabel_configs = [
+            {
+              source_labels = ["__name__"];
+              regex = "(llama_cpp_.*|amdgpu_.*)";
+              action = "keep";
+            }
+          ];
         }
       ];
     };
@@ -524,7 +868,7 @@ in {
           {
             name = "Homelab";
             disableDeletion = true;
-            editable = false;
+            editable = true;
             options.path = dashboard;
           }
         ];

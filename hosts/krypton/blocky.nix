@@ -23,7 +23,7 @@
 
       blocking = {
         denylists.ads = [
-          "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/pro-onlydomains.txt"
+          # "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/pro-onlydomains.txt"
         ];
         clientGroupsBlock.default = ["ads"];
         blockType = "zeroIp";
