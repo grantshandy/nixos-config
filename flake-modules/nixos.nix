@@ -52,7 +52,7 @@
           targetHost = name;
           targetPort = hostMeta.ssh.port;
           targetUser = config.identity.user.name;
-          buildOnTarget = true;
+          buildOnTarget = false;
         };
       })
     ]
