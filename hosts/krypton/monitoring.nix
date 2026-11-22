@@ -117,7 +117,7 @@
         title = "CPU usage";
         type = "timeseries";
         gridPos = {
-          x = 0;
+          x = 12;
           y = 8;
           w = 12;
           h = 8;
@@ -148,7 +148,7 @@
         type = "timeseries";
         gridPos = {
           x = 12;
-          y = 8;
+          y = 16;
           w = 12;
           h = 8;
         };
@@ -178,10 +178,10 @@
         description = "Hottest reported CPU package/core sensor per host; non-CPU thermal sensors are excluded.";
         type = "timeseries";
         gridPos = {
-          x = 0;
-          y = 16;
-          w = 24;
-          h = 7;
+          x = 12;
+          y = 24;
+          w = 12;
+          h = 8;
         };
         datasource = {
           type = "prometheus";
@@ -225,7 +225,7 @@
         type = "timeseries";
         gridPos = {
           x = 0;
-          y = 23;
+          y = 8;
           w = 12;
           h = 8;
         };
@@ -250,8 +250,8 @@
         title = "Network sent";
         type = "timeseries";
         gridPos = {
-          x = 12;
-          y = 23;
+          x = 0;
+          y = 16;
           w = 12;
           h = 8;
         };
@@ -279,9 +279,9 @@
         type = "timeseries";
         gridPos = {
           x = 0;
-          y = 31;
-          w = 24;
-          h = 7;
+          y = 24;
+          w = 12;
+          h = 8;
         };
         datasource = {
           type = "prometheus";
@@ -484,7 +484,7 @@
           x = 0;
           y = 46;
           w = 24;
-          h = 9;
+          h = 8;
         };
         datasource = {
           type = "prometheus";
@@ -562,6 +562,14 @@
                 {
                   id = "custom.axisPlacement";
                   value = "hidden";
+                }
+                {
+                  id = "custom.hideFrom";
+                  value = {
+                    legend = true;
+                    tooltip = false;
+                    viz = false;
+                  };
                 }
               ];
             }
@@ -647,6 +655,7 @@
             unit = "percent";
             min = 0;
             max = 100;
+            custom.spanNulls = true;
           };
           overrides = [
             {

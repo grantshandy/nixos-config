@@ -41,6 +41,11 @@ in {
   networking.firewall.interfaces.enp8s0.allowedTCPPorts = [radonCaddyPort];
 
   nix = {
+    settings = {
+      # keep-outputs = true;
+      # keep-derivations = true;
+    };
+
     gc = {
       automatic = true;
       dates = "weekly";

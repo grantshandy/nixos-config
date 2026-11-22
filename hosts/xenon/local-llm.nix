@@ -49,7 +49,7 @@
     name = "llama-cpp-metrics";
     runtimeInputs = with pkgs; [coreutils curl gawk jq];
     text = ''
-      metrics_url="http://127.0.0.1:${toString config.services.llama-cpp.port}/health"
+      metrics_url="http://127.0.0.1:${toString config.services.llama-cpp.port}/models"
       output="${nodeExporterTextfileDir}/llama-cpp.prom"
       interval=2
 
@@ -65,13 +65,13 @@
       [[ "$finished" =~ ^[0-9]+$ ]] || finished=0
 
       sample_active() {
-        local body status
+        local body
         if ! body="$(curl --silent --fail --max-time 2 "$metrics_url")"; then
           echo 0
           return
         fi
-        status="$(jq -r '.status // empty' <<<"$body" 2>/dev/null || true)"
-        if [[ "$status" == "ok" ]]; then
+        # Active when any model is resident or loading, i.e. not sleeping/unloaded.
+        if jq -e '[.data[]? | .status.value // "unknown"] | any(. != "sleeping" and . != "unloaded")' <<<"$body" >/dev/null 2>&1; then
           echo 1
         else
           echo 0
