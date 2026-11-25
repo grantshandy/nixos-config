@@ -36,9 +36,9 @@ in {
       disk="/dev/$(lsblk -no pkname "$(readlink -f ${backupDevice})")"
       trap 'umount ${backupMountPoint}; hdparm -y "$disk"' EXIT
 
-      rsync -a --delete \
+      rsync -a --delete -i \
         ${lib.concatMapStringsSep " " (p: "--exclude=${p}") backupExcludes} \
-        ${radonMediaRoot}/ ${backupMountPoint}/
+        ${radonMediaRoot}/ ${backupMountPoint}/ | grep -v '^$'
     '';
   };
 
