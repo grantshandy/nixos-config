@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  inputs,
   radonCaddyHost,
   radonMediaRoot,
   radonEndpoints,
@@ -22,7 +23,7 @@
   navidromePort = 4533;
   navidromeBackgroundPort = 4534;
   navidromeBackgroundPath = "${radonEndpoints.Navidrome.path}login-background";
-  wallpaperSourceDir = ../../../modules/nixos/desktop/gnome/wallpapers;
+  wallpaperSourceDir = inputs.wallpapers-images;
   navidromeWallpapers = pkgs.runCommand "navidrome-login-wallpapers" {nativeBuildInputs = [pkgs.imagemagick];} ''
     mkdir -p "$out"
 

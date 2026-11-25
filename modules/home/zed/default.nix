@@ -79,6 +79,11 @@
         # tinymist.binary.path = lib.getExe pkgs.tinymist;
       };
 
+      agent_servers."Claude" = {
+        command = lib.getExe pkgs.claude-agent-acp;
+        type = "custom";
+      };
+
       language_models."llama.cpp" = {
         api_url = "http://xenon:8081";
         auto_discover = false;

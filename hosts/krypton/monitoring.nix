@@ -24,6 +24,25 @@
   ciJobScrapeTargets = lib.filter (target: target.labels.host == "radon") scrapeTargets;
   llmScrapeTargets = lib.filter (target: target.labels.host == "xenon") scrapeTargets;
 
+  hostColorPalette = ["green" "blue" "orange" "purple" "red" "yellow" "light-blue" "light-red"];
+  hostColorOverrides =
+    lib.imap0 (i: host: {
+      matcher = {
+        id = "byRegexp";
+        options = "^${host} (tx|rx)$";
+      };
+      properties = [
+        {
+          id = "color";
+          value = {
+            mode = "fixed";
+            fixedColor = builtins.elemAt hostColorPalette (lib.mod i (builtins.length hostColorPalette));
+          };
+        }
+      ];
+    })
+    monitoredHosts;
+
   dashboard = pkgs.writeTextDir "homelab-overview.json" (builtins.toJSON {
     uid = "homelab-overview";
     title = "Homelab Overview";
@@ -221,13 +240,14 @@
       }
       {
         id = 4;
-        title = "Network received";
+        title = "Network traffic";
+        description = "Received above the axis, sent mirrored below it";
         type = "timeseries";
         gridPos = {
           x = 0;
           y = 8;
           w = 12;
-          h = 8;
+          h = 16;
         };
         datasource = {
           type = "prometheus";
@@ -237,41 +257,19 @@
           {
             refId = "A";
             expr = "sum by (host) (rate(node_network_receive_bytes_total{device!~\"lo|tailscale0\"}[$__rate_interval]))";
-            legendFormat = "{{host}}";
+            legendFormat = "{{host}} rx";
           }
-        ];
-        fieldConfig = {
-          defaults.unit = "Bps";
-          overrides = [];
-        };
-      }
-      {
-        id = 5;
-        title = "Network sent";
-        type = "timeseries";
-        gridPos = {
-          x = 0;
-          y = 16;
-          w = 12;
-          h = 8;
-        };
-        datasource = {
-          type = "prometheus";
-          uid = "victoriametrics";
-        };
-        targets = [
           {
-            refId = "A";
-            expr = "sum by (host) (rate(node_network_transmit_bytes_total{device!~\"lo|tailscale0\"}[$__rate_interval]))";
-            legendFormat = "{{host}}";
+            refId = "B";
+            expr = "-sum by (host) (rate(node_network_transmit_bytes_total{device!~\"lo|tailscale0\"}[$__rate_interval]))";
+            legendFormat = "{{host}} tx";
           }
         ];
         fieldConfig = {
           defaults.unit = "Bps";
-          overrides = [];
+          overrides = hostColorOverrides;
         };
       }
-
       {
         id = 11;
         title = "Aggregate tailnet throughput";

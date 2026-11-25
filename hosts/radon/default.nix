@@ -24,6 +24,7 @@ in {
     ./hardware-configuration.nix
     ../../modules/nixos/bootloader-systemd.nix
     ./gitlab-runner.nix
+    ./media-backup.nix
     ./endpoints/cockpit.nix
     ./endpoints/music.nix
     ./endpoints/photos.nix

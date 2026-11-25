@@ -29,6 +29,11 @@
     };
 
     nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
+
+    wallpapers-images = {
+      url = "path:/home/grant/Documents/nixos-config/modules/nixos/desktop/gnome/wallpapers/images";
+      flake = false;
+    };
   };
 
   outputs = inputs @ {flake-parts, ...}:

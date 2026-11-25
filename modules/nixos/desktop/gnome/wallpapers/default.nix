@@ -1,10 +1,11 @@
 {
   pkgs,
   lib,
+  inputs,
   ...
 }: let
   interval = "20m";
-  wallpaperDir = ./.;
+  wallpaperDir = inputs.wallpapers-images;
 
   gsettingsSchemas = "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}/glib-2.0/schemas";
 
