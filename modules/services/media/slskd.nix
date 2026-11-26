@@ -619,7 +619,7 @@ in {
         }
         {
           refId = "G";
-          expr = "100 * last_over_time(slskd_upload_bytes_total{host=\"${media.host}\"}[10m]) / last_over_time(slskd_library_bytes{host=\"${media.host}\"}[10m])";
+          expr = "100 * max by (host) (last_over_time(slskd_upload_bytes_total{host=\"${media.host}\"}[10m])) / max by (host) (last_over_time(slskd_library_bytes{host=\"${media.host}\"}[10m])";
           legendFormat = "Share percentage";
           instant = true;
         }
