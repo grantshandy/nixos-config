@@ -76,4 +76,114 @@ in {
       };
     };
   };
+
+  fleet.monitoring.panels.slskd = {
+    title = "slskd uploads";
+    description = "Completed uploads since monitoring was enabled.";
+    height = 8;
+    order = 1;
+    panel = {
+      type = "stat";
+      datasource = {
+        type = "prometheus";
+        uid = "victoriametrics";
+      };
+      targets = [
+        {
+          refId = "A";
+          expr = "increase(slskd_upload_files_total[24h])";
+          legendFormat = "24h files";
+          instant = true;
+        }
+        {
+          refId = "B";
+          expr = "increase(slskd_upload_bytes_total[24h])";
+          legendFormat = "24h transferred";
+          instant = true;
+        }
+        {
+          refId = "C";
+          expr = "increase(slskd_upload_files_total[7d])";
+          legendFormat = "7d files";
+          instant = true;
+        }
+        {
+          refId = "D";
+          expr = "increase(slskd_upload_bytes_total[7d])";
+          legendFormat = "7d transferred";
+          instant = true;
+        }
+        {
+          refId = "E";
+          expr = "slskd_upload_files_total";
+          legendFormat = "All time files";
+          instant = true;
+        }
+        {
+          refId = "F";
+          expr = "slskd_upload_bytes_total";
+          legendFormat = "All time transferred";
+          instant = true;
+        }
+      ];
+      options = {
+        colorMode = "none";
+        graphMode = "none";
+        justifyMode = "center";
+        orientation = "horizontal";
+        textMode = "value_and_name";
+        wideLayout = true;
+        text = {
+          titleSize = 16;
+          valueSize = 24;
+        };
+        reduceOptions = {
+          calcs = ["lastNotNull"];
+          fields = "";
+          values = false;
+        };
+      };
+      fieldConfig = {
+        defaults.decimals = 0;
+        overrides = [
+          {
+            matcher = {
+              id = "byFrameRefID";
+              options = "B";
+            };
+            properties = [
+              {
+                id = "unit";
+                value = "bytes";
+              }
+            ];
+          }
+          {
+            matcher = {
+              id = "byFrameRefID";
+              options = "D";
+            };
+            properties = [
+              {
+                id = "unit";
+                value = "bytes";
+              }
+            ];
+          }
+          {
+            matcher = {
+              id = "byFrameRefID";
+              options = "F";
+            };
+            properties = [
+              {
+                id = "unit";
+                value = "bytes";
+              }
+            ];
+          }
+        ];
+      };
+    };
+  };
 }

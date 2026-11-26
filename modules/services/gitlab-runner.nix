@@ -794,4 +794,134 @@
     mediaRoot = config.fleet.media.root;
     nodeExporterTextfileDir = config.fleet.monitoring.textfileDir;
   };
+
+  fleet.monitoring.panels.gitlab-runner = {
+    title = "Radon load during GitLab jobs";
+    description = "Radon CPU and memory usage. Shaded regions mark when GitLab Runner was executing a job.";
+    height = 8;
+    order = 2;
+    panel = {
+      type = "timeseries";
+      interval = "5s";
+      datasource = {
+        type = "prometheus";
+        uid = "victoriametrics";
+      };
+      # The shading query is first (refId A) so it is drawn behind the lines.
+      targets = [
+        {
+          refId = "A";
+          expr = "max_over_time(gitlab_runner_job_info{host=\"radon\",job=\"ci-jobs\"}[$__interval])";
+          legendFormat = "{{job_name}} #{{job_id}}";
+        }
+        {
+          refId = "B";
+          expr = "100 - (avg(rate(node_cpu_seconds_total{host=\"radon\",mode=\"idle\"}[$__rate_interval])) * 100)";
+          legendFormat = "CPU";
+        }
+        {
+          refId = "C";
+          expr = "100 * (1 - node_memory_MemAvailable_bytes{host=\"radon\"} / node_memory_MemTotal_bytes{host=\"radon\"})";
+          legendFormat = "Memory";
+        }
+      ];
+      options.tooltip.mode = "multi";
+      fieldConfig = {
+        defaults = {
+          unit = "percent";
+          min = 0;
+          max = 100;
+        };
+        overrides = [
+          {
+            matcher = {
+              id = "byFrameRefID";
+              options = "A";
+            };
+            properties = [
+              # A different unit gives this series its own 0-1 y-scale, so the
+              # bars fill the full panel height regardless of the 0-100 scale.
+              {
+                id = "unit";
+                value = "none";
+              }
+              {
+                id = "min";
+                value = 0;
+              }
+              {
+                id = "max";
+                value = 1;
+              }
+              {
+                id = "color";
+                value = {
+                  mode = "shades";
+                  fixedColor = "orange";
+                };
+              }
+              {
+                id = "custom.drawStyle";
+                value = "bars";
+              }
+              {
+                id = "custom.barWidthFactor";
+                value = 1;
+              }
+              {
+                id = "custom.fillOpacity";
+                value = 25;
+              }
+              {
+                id = "custom.lineWidth";
+                value = 0;
+              }
+              {
+                id = "custom.axisPlacement";
+                value = "hidden";
+              }
+              {
+                id = "custom.hideFrom";
+                value = {
+                  legend = true;
+                  tooltip = false;
+                  viz = false;
+                };
+              }
+            ];
+          }
+          {
+            matcher = {
+              id = "byFrameRefID";
+              options = "B";
+            };
+            properties = [
+              {
+                id = "color";
+                value = {
+                  mode = "fixed";
+                  fixedColor = "blue";
+                };
+              }
+            ];
+          }
+          {
+            matcher = {
+              id = "byFrameRefID";
+              options = "C";
+            };
+            properties = [
+              {
+                id = "color";
+                value = {
+                  mode = "fixed";
+                  fixedColor = "purple";
+                };
+              }
+            ];
+          }
+        ];
+      };
+    };
+  };
 }

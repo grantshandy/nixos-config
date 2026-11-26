@@ -333,8 +333,6 @@ in {
       nodeExporterTextfileDir = config.fleet.monitoring.textfileDir;
     };
 
-  # Merge the client into the existing Zed aspect, so it follows Zed without a
-  # separate enrollment rule. Tailscale remains an explicit per-host gate.
   flake.modules.homeManager.zed = {
     config,
     lib,
@@ -369,6 +367,166 @@ in {
           enabled = true;
           threshold = "90%";
         };
+      };
+    };
+  };
+
+  fleet.monitoring.panels.local-llm = {
+    title = "Xenon load during local LLM activity";
+    description = "Xenon CPU, memory, GPU utilization, and GPU VRAM usage. Shaded regions mark when llama-cpp was active.";
+    height = 9;
+    order = 3;
+    panel = {
+      type = "timeseries";
+      interval = "5s";
+      datasource = {
+        type = "prometheus";
+        uid = "victoriametrics";
+      };
+      targets = [
+        {
+          refId = "A";
+          expr = "max_over_time(llama_cpp_info{host=\"xenon\",job=\"llm-metrics\"}[$__interval])";
+          legendFormat = "llama-cpp ({{model}})";
+        }
+        {
+          refId = "B";
+          expr = "100 - (avg(rate(node_cpu_seconds_total{host=\"xenon\",mode=\"idle\"}[$__rate_interval])) * 100)";
+          legendFormat = "CPU";
+        }
+        {
+          refId = "C";
+          expr = "100 * (1 - node_memory_MemAvailable_bytes{host=\"xenon\"} / node_memory_MemTotal_bytes{host=\"xenon\"})";
+          legendFormat = "Memory";
+        }
+        {
+          refId = "D";
+          expr = "max_over_time(amdgpu_gpu_busy_percent{host=\"xenon\",job=\"llm-metrics\"}[$__interval])";
+          legendFormat = "GPU";
+        }
+        {
+          refId = "E";
+          expr = "100 * max_over_time(amdgpu_vram_used_bytes{host=\"xenon\",job=\"llm-metrics\"}[$__interval]) / max_over_time(amdgpu_vram_total_bytes{host=\"xenon\",job=\"llm-metrics\"}[$__interval])";
+          legendFormat = "GPU VRAM";
+        }
+      ];
+      options.tooltip.mode = "multi";
+      fieldConfig = {
+        defaults = {
+          unit = "percent";
+          min = 0;
+          max = 100;
+          custom.spanNulls = true;
+        };
+        overrides = [
+          {
+            matcher = {
+              id = "byFrameRefID";
+              options = "A";
+            };
+            properties = [
+              {
+                id = "unit";
+                value = "none";
+              }
+              {
+                id = "min";
+                value = 0;
+              }
+              {
+                id = "max";
+                value = 1;
+              }
+              {
+                id = "color";
+                value = {
+                  mode = "shades";
+                  fixedColor = "orange";
+                };
+              }
+              {
+                id = "custom.drawStyle";
+                value = "bars";
+              }
+              {
+                id = "custom.barWidthFactor";
+                value = 1;
+              }
+              {
+                id = "custom.fillOpacity";
+                value = 25;
+              }
+              {
+                id = "custom.lineWidth";
+                value = 0;
+              }
+              {
+                id = "custom.axisPlacement";
+                value = "hidden";
+              }
+            ];
+          }
+          {
+            matcher = {
+              id = "byFrameRefID";
+              options = "B";
+            };
+            properties = [
+              {
+                id = "color";
+                value = {
+                  mode = "fixed";
+                  fixedColor = "blue";
+                };
+              }
+            ];
+          }
+          {
+            matcher = {
+              id = "byFrameRefID";
+              options = "C";
+            };
+            properties = [
+              {
+                id = "color";
+                value = {
+                  mode = "fixed";
+                  fixedColor = "purple";
+                };
+              }
+            ];
+          }
+          {
+            matcher = {
+              id = "byFrameRefID";
+              options = "D";
+            };
+            properties = [
+              {
+                id = "color";
+                value = {
+                  mode = "fixed";
+                  fixedColor = "green";
+                };
+              }
+            ];
+          }
+          {
+            matcher = {
+              id = "byFrameRefID";
+              options = "E";
+            };
+            properties = [
+              {
+                id = "color";
+                value = {
+                  mode = "fixed";
+                  fixedColor = "yellow";
+                };
+              }
+            ];
+          }
+        ];
       };
     };
   };

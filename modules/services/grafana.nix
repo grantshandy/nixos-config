@@ -3,8 +3,59 @@
 # Which machines are scraped, and which of them count as CI or LLM hosts, all
 # come from the registry's tags rather than from host names spelled out in the
 # dashboard definition.
-{config, ...}: {
-  fleet.services.Grafana = {
+#
+# Services that publish their own metrics contribute a dashboard panel
+# through `fleet.monitoring.panels` instead of editing this file, so the
+# metrics model, publishing, and visualization live together in one module.
+# Custom panels are stacked full-width below the core panels, ordered by their
+# `order` field (ties break alphabetically by attribute name).
+{
+  config,
+  lib,
+  ...
+}: {
+  options.fleet.monitoring.panels = lib.mkOption {
+    type = lib.types.attrsOf (lib.types.submodule ({name, ...}: {
+      options = {
+        name = lib.mkOption {
+          type = lib.types.str;
+          internal = true;
+          default = name;
+        };
+        title = lib.mkOption {
+          type = lib.types.str;
+          description = "Panel title.";
+        };
+        description = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = null;
+          description = "Panel description shown on hover.";
+        };
+        height = lib.mkOption {
+          type = lib.types.ints.positive;
+          default = 8;
+          description = "Panel height in grid rows.";
+        };
+        order = lib.mkOption {
+          type = lib.types.int;
+          default = 0;
+          description = "Stacking priority among custom panels, lowest first. Ties break alphabetically by attribute name.";
+        };
+        panel = lib.mkOption {
+          type = lib.types.attrs;
+          description = ''
+            Raw Grafana panel attrs (type, interval, datasource, targets,
+            options, fieldConfig, ...). Do not set id, title, description, or
+            gridPos here; the dashboard assigns those.
+          '';
+        };
+      };
+    }));
+    default = {};
+    description = "Custom metrics panels contributed by service modules, appended full-width to the bottom of the homelab dashboard.";
+  };
+
+  config.fleet.services.Grafana = {
     host = config.fleet.edgeHost;
     description = "Homelab monitoring";
     subdomain = "monitor";
@@ -14,10 +65,11 @@
     localProxy.port = 3000;
   };
 
-  flake.modules.nixos.Grafana =
+  config.flake.modules.nixos.Grafana =
     ({
       hosts,
       grafanaService,
+      customPanels,
     }: {
       config,
       lib,
@@ -64,6 +116,37 @@
         })
         monitoredHosts;
 
+      customPanelsSorted =
+        lib.attrValues customPanels
+        |> lib.sort (a: b: a.order < b.order || (a.order == b.order && a.name < b.name));
+
+      customPanelsResolved =
+        lib.foldl' (acc: cfg: {
+          nextId = acc.nextId + 1;
+          y = acc.y + cfg.height;
+          panels =
+            acc.panels
+            ++ [
+              (cfg.panel
+                // {
+                  inherit (cfg) title;
+                  id = acc.nextId;
+                  gridPos = {
+                    x = 0;
+                    y = acc.y;
+                    w = 24;
+                    h = cfg.height;
+                  };
+                }
+                // lib.optionalAttrs (cfg.description != null) {inherit (cfg) description;})
+            ];
+        }) {
+          nextId = 100;
+          y = 46;
+          panels = [];
+        }
+        customPanelsSorted;
+
       dashboard = pkgs.writeTextDir "homelab-overview.json" (builtins.toJSON {
         uid = "homelab-overview";
         title = "Homelab Overview";
@@ -78,716 +161,312 @@
         };
         templating.list = [];
         annotations.list = [];
-        panels = [
-          {
-            id = 1;
-            title = "Online";
-            type = "stat";
-            gridPos = {
-              x = 0;
-              y = 0;
-              w = 12;
-              h = 8;
-            };
-            datasource = {
-              type = "prometheus";
-              uid = "victoriametrics";
-            };
-            targets = [
-              {
-                refId = "A";
-                expr = "up{job=\"nodes\"}";
-                legendFormat = "{{host}}";
-                instant = true;
-              }
-            ];
-            options = {
-              colorMode = "background";
-              graphMode = "none";
-              justifyMode = "auto";
-              orientation = "horizontal";
-              reduceOptions = {
-                calcs = ["lastNotNull"];
-                fields = "";
-                values = false;
+        panels =
+          [
+            {
+              id = 1;
+              title = "Online";
+              type = "stat";
+              gridPos = {
+                x = 0;
+                y = 0;
+                w = 12;
+                h = 8;
               };
-              textMode = "value_and_name";
-              wideLayout = true;
-              text = {
-                titleSize = 20;
-                valueSize = 28;
+              datasource = {
+                type = "prometheus";
+                uid = "victoriametrics";
               };
-            };
-            fieldConfig = {
-              defaults = {
-                mappings = [
-                  {
-                    type = "value";
-                    options = {
-                      "0" = {
-                        text = "Offline";
+              targets = [
+                {
+                  refId = "A";
+                  expr = "up{job=\"nodes\"}";
+                  legendFormat = "{{host}}";
+                  instant = true;
+                }
+              ];
+              options = {
+                colorMode = "background";
+                graphMode = "none";
+                justifyMode = "auto";
+                orientation = "horizontal";
+                reduceOptions = {
+                  calcs = ["lastNotNull"];
+                  fields = "";
+                  values = false;
+                };
+                textMode = "value_and_name";
+                wideLayout = true;
+                text = {
+                  titleSize = 20;
+                  valueSize = 28;
+                };
+              };
+              fieldConfig = {
+                defaults = {
+                  mappings = [
+                    {
+                      type = "value";
+                      options = {
+                        "0" = {
+                          text = "Offline";
+                          color = "red";
+                        };
+                        "1" = {
+                          text = "Online";
+                          color = "green";
+                        };
+                      };
+                    }
+                  ];
+                  thresholds = {
+                    mode = "absolute";
+                    steps = [
+                      {
                         color = "red";
-                      };
-                      "1" = {
-                        text = "Online";
+                        value = null;
+                      }
+                      {
                         color = "green";
-                      };
-                    };
-                  }
-                ];
-                thresholds = {
-                  mode = "absolute";
-                  steps = [
-                    {
-                      color = "red";
-                      value = null;
-                    }
-                    {
-                      color = "green";
-                      value = 1;
-                    }
-                  ];
+                        value = 1;
+                      }
+                    ];
+                  };
                 };
+                overrides = [];
               };
-              overrides = [];
-            };
-          }
-          {
-            id = 2;
-            title = "CPU usage";
-            type = "timeseries";
-            gridPos = {
-              x = 12;
-              y = 8;
-              w = 12;
-              h = 8;
-            };
-            datasource = {
-              type = "prometheus";
-              uid = "victoriametrics";
-            };
-            targets = [
-              {
-                refId = "A";
-                expr = "100 - (avg by (host) (rate(node_cpu_seconds_total{mode=\"idle\"}[$__rate_interval])) * 100)";
-                legendFormat = "{{host}}";
-              }
-            ];
-            fieldConfig = {
-              defaults = {
-                unit = "percent";
-                min = 0;
-                max = 100;
+            }
+            {
+              id = 2;
+              title = "CPU usage";
+              type = "timeseries";
+              gridPos = {
+                x = 12;
+                y = 8;
+                w = 12;
+                h = 8;
               };
-              overrides = [];
-            };
-          }
-          {
-            id = 3;
-            title = "Memory usage";
-            type = "timeseries";
-            gridPos = {
-              x = 12;
-              y = 16;
-              w = 12;
-              h = 8;
-            };
-            datasource = {
-              type = "prometheus";
-              uid = "victoriametrics";
-            };
-            targets = [
-              {
-                refId = "A";
-                expr = "100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)";
-                legendFormat = "{{host}}";
-              }
-            ];
-            fieldConfig = {
-              defaults = {
-                unit = "percent";
-                min = 0;
-                max = 100;
+              datasource = {
+                type = "prometheus";
+                uid = "victoriametrics";
               };
-              overrides = [];
-            };
-          }
-          {
-            id = 12;
-            title = "CPU temperature";
-            description = "Hottest reported CPU package/core sensor per host; non-CPU thermal sensors are excluded.";
-            type = "timeseries";
-            gridPos = {
-              x = 12;
-              y = 24;
-              w = 12;
-              h = 8;
-            };
-            datasource = {
-              type = "prometheus";
-              uid = "victoriametrics";
-            };
-            targets = [
-              {
-                refId = "A";
-                expr = "max by (host) (node_hwmon_temp_celsius{chip=~\"platform_coretemp_0|pci0000:00_0000:00:18_3\"})";
-                legendFormat = "{{host}}";
-              }
-            ];
-            fieldConfig = {
-              defaults = {
-                unit = "celsius";
-                min = 0;
-                thresholds = {
-                  mode = "absolute";
-                  steps = [
-                    {
-                      color = "green";
-                      value = null;
-                    }
-                    {
-                      color = "orange";
-                      value = 70;
-                    }
-                    {
-                      color = "red";
-                      value = 85;
-                    }
-                  ];
+              targets = [
+                {
+                  refId = "A";
+                  expr = "100 - (avg by (host) (rate(node_cpu_seconds_total{mode=\"idle\"}[$__rate_interval])) * 100)";
+                  legendFormat = "{{host}}";
+                }
+              ];
+              fieldConfig = {
+                defaults = {
+                  unit = "percent";
+                  min = 0;
+                  max = 100;
                 };
+                overrides = [];
               };
-              overrides = [];
-            };
-          }
-          {
-            id = 4;
-            title = "Network traffic";
-            description = "Received above the axis, sent mirrored below it";
-            type = "timeseries";
-            gridPos = {
-              x = 0;
-              y = 8;
-              w = 12;
-              h = 16;
-            };
-            datasource = {
-              type = "prometheus";
-              uid = "victoriametrics";
-            };
-            targets = [
-              {
-                refId = "A";
-                expr = "sum by (host) (rate(node_network_receive_bytes_total{device!~\"lo|tailscale0\"}[$__rate_interval]))";
-                legendFormat = "{{host}} rx";
-              }
-              {
-                refId = "B";
-                expr = "-sum by (host) (rate(node_network_transmit_bytes_total{device!~\"lo|tailscale0\"}[$__rate_interval]))";
-                legendFormat = "{{host}} tx";
-              }
-            ];
-            fieldConfig = {
-              defaults.unit = "Bps";
-              overrides = hostColorOverrides;
-            };
-          }
-          {
-            id = 11;
-            title = "Aggregate tailnet throughput";
-            description = "Sum of tailscale0 transmit rates. Counting only the sending side avoids double-counting traffic received by another monitored host.";
-            type = "timeseries";
-            gridPos = {
-              x = 0;
-              y = 24;
-              w = 12;
-              h = 8;
-            };
-            datasource = {
-              type = "prometheus";
-              uid = "victoriametrics";
-            };
-            targets = [
-              {
-                refId = "A";
-                expr = "sum(rate(node_network_transmit_bytes_total{device=\"tailscale0\"}[$__rate_interval]))";
-                legendFormat = "tailnet throughput";
-              }
-            ];
-            fieldConfig = {
-              defaults = {
-                unit = "Bps";
-                min = 0;
+            }
+            {
+              id = 3;
+              title = "Memory usage";
+              type = "timeseries";
+              gridPos = {
+                x = 12;
+                y = 16;
+                w = 12;
+                h = 8;
               };
-              overrides = [];
-            };
-          }
-          {
-            id = 6;
-            title = "Filesystem usage";
-            type = "timeseries";
-            gridPos = {
-              x = 0;
-              y = 38;
-              w = 12;
-              h = 8;
-            };
-            datasource = {
-              type = "prometheus";
-              uid = "victoriametrics";
-            };
-            targets = [
-              {
-                refId = "A";
-                expr = "100 * (1 - node_filesystem_avail_bytes{mountpoint=~\"/|/mnt/media\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{mountpoint=~\"/|/mnt/media\",fstype!~\"tmpfs|overlay\"})";
-                legendFormat = "{{host}}: {{mountpoint}}";
-              }
-            ];
-            fieldConfig = {
-              defaults = {
-                unit = "percent";
-                min = 0;
-                max = 100;
-                custom.spanNulls = true;
+              datasource = {
+                type = "prometheus";
+                uid = "victoriametrics";
               };
-              overrides = [];
-            };
-          }
-          {
-            id = 7;
-            title = "Nix store size";
-            type = "timeseries";
-            gridPos = {
-              x = 12;
-              y = 38;
-              w = 12;
-              h = 8;
-            };
-            datasource = {
-              type = "prometheus";
-              uid = "victoriametrics";
-            };
-            targets = [
-              {
-                refId = "A";
-                expr = "nix_store_disk_bytes";
-                legendFormat = "{{host}}";
-              }
-            ];
-            fieldConfig = {
-              defaults = {
-                unit = "bytes";
-                custom.spanNulls = true;
-              };
-              overrides = [];
-            };
-          }
-          {
-            id = 8;
-            title = "slskd uploads";
-            description = "Completed uploads since monitoring was enabled.";
-            type = "stat";
-            gridPos = {
-              x = 12;
-              y = 0;
-              w = 12;
-              h = 8;
-            };
-            datasource = {
-              type = "prometheus";
-              uid = "victoriametrics";
-            };
-            targets = [
-              {
-                refId = "A";
-                expr = "increase(slskd_upload_files_total[24h])";
-                legendFormat = "24h files";
-                instant = true;
-              }
-              {
-                refId = "B";
-                expr = "increase(slskd_upload_bytes_total[24h])";
-                legendFormat = "24h transferred";
-                instant = true;
-              }
-              {
-                refId = "C";
-                expr = "increase(slskd_upload_files_total[7d])";
-                legendFormat = "7d files";
-                instant = true;
-              }
-              {
-                refId = "D";
-                expr = "increase(slskd_upload_bytes_total[7d])";
-                legendFormat = "7d transferred";
-                instant = true;
-              }
-              {
-                refId = "E";
-                expr = "slskd_upload_files_total";
-                legendFormat = "All time files";
-                instant = true;
-              }
-              {
-                refId = "F";
-                expr = "slskd_upload_bytes_total";
-                legendFormat = "All time transferred";
-                instant = true;
-              }
-            ];
-            options = {
-              colorMode = "none";
-              graphMode = "none";
-              justifyMode = "center";
-              orientation = "horizontal";
-              textMode = "value_and_name";
-              wideLayout = true;
-              text = {
-                titleSize = 16;
-                valueSize = 24;
-              };
-              reduceOptions = {
-                calcs = ["lastNotNull"];
-                fields = "";
-                values = false;
-              };
-            };
-            fieldConfig = {
-              defaults.decimals = 0;
-              overrides = [
+              targets = [
                 {
-                  matcher = {
-                    id = "byFrameRefID";
-                    options = "B";
-                  };
-                  properties = [
-                    {
-                      id = "unit";
-                      value = "bytes";
-                    }
-                  ];
-                }
-                {
-                  matcher = {
-                    id = "byFrameRefID";
-                    options = "D";
-                  };
-                  properties = [
-                    {
-                      id = "unit";
-                      value = "bytes";
-                    }
-                  ];
-                }
-                {
-                  matcher = {
-                    id = "byFrameRefID";
-                    options = "F";
-                  };
-                  properties = [
-                    {
-                      id = "unit";
-                      value = "bytes";
-                    }
-                  ];
+                  refId = "A";
+                  expr = "100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)";
+                  legendFormat = "{{host}}";
                 }
               ];
-            };
-          }
-          {
-            id = 13;
-            title = "Radon load during GitLab jobs";
-            description = "Radon CPU and memory usage. Shaded regions mark when GitLab Runner was executing a job.";
-            type = "timeseries";
-            interval = "5s";
-            gridPos = {
-              x = 0;
-              y = 46;
-              w = 24;
-              h = 8;
-            };
-            datasource = {
-              type = "prometheus";
-              uid = "victoriametrics";
-            };
-            # The shading query is first (refId A) so it is drawn behind the lines.
-            targets = [
-              {
-                refId = "A";
-                expr = "max_over_time(gitlab_runner_job_info{host=\"radon\",job=\"ci-jobs\"}[$__interval])";
-                legendFormat = "{{job_name}} #{{job_id}}";
-              }
-              {
-                refId = "B";
-                expr = "100 - (avg(rate(node_cpu_seconds_total{host=\"radon\",mode=\"idle\"}[$__rate_interval])) * 100)";
-                legendFormat = "CPU";
-              }
-              {
-                refId = "C";
-                expr = "100 * (1 - node_memory_MemAvailable_bytes{host=\"radon\"} / node_memory_MemTotal_bytes{host=\"radon\"})";
-                legendFormat = "Memory";
-              }
-            ];
-            options.tooltip.mode = "multi";
-            fieldConfig = {
-              defaults = {
-                unit = "percent";
-                min = 0;
-                max = 100;
+              fieldConfig = {
+                defaults = {
+                  unit = "percent";
+                  min = 0;
+                  max = 100;
+                };
+                overrides = [];
               };
-              overrides = [
+            }
+            {
+              id = 12;
+              title = "CPU temperature";
+              description = "Hottest reported CPU package/core sensor per host; non-CPU thermal sensors are excluded.";
+              type = "timeseries";
+              gridPos = {
+                x = 12;
+                y = 24;
+                w = 12;
+                h = 8;
+              };
+              datasource = {
+                type = "prometheus";
+                uid = "victoriametrics";
+              };
+              targets = [
                 {
-                  matcher = {
-                    id = "byFrameRefID";
-                    options = "A";
-                  };
-                  properties = [
-                    # A different unit gives this series its own 0-1 y-scale, so the
-                    # bars fill the full panel height regardless of the 0-100 scale.
-                    {
-                      id = "unit";
-                      value = "none";
-                    }
-                    {
-                      id = "min";
-                      value = 0;
-                    }
-                    {
-                      id = "max";
-                      value = 1;
-                    }
-                    {
-                      id = "color";
-                      value = {
-                        mode = "shades";
-                        fixedColor = "orange";
-                      };
-                    }
-                    {
-                      id = "custom.drawStyle";
-                      value = "bars";
-                    }
-                    {
-                      id = "custom.barWidthFactor";
-                      value = 1;
-                    }
-                    {
-                      id = "custom.fillOpacity";
-                      value = 25;
-                    }
-                    {
-                      id = "custom.lineWidth";
-                      value = 0;
-                    }
-                    {
-                      id = "custom.axisPlacement";
-                      value = "hidden";
-                    }
-                    {
-                      id = "custom.hideFrom";
-                      value = {
-                        legend = true;
-                        tooltip = false;
-                        viz = false;
-                      };
-                    }
-                  ];
-                }
-                {
-                  matcher = {
-                    id = "byFrameRefID";
-                    options = "B";
-                  };
-                  properties = [
-                    {
-                      id = "color";
-                      value = {
-                        mode = "fixed";
-                        fixedColor = "blue";
-                      };
-                    }
-                  ];
-                }
-                {
-                  matcher = {
-                    id = "byFrameRefID";
-                    options = "C";
-                  };
-                  properties = [
-                    {
-                      id = "color";
-                      value = {
-                        mode = "fixed";
-                        fixedColor = "purple";
-                      };
-                    }
-                  ];
+                  refId = "A";
+                  expr = "max by (host) (node_hwmon_temp_celsius{chip=~\"platform_coretemp_0|pci0000:00_0000:00:18_3\"})";
+                  legendFormat = "{{host}}";
                 }
               ];
-            };
-          }
-          {
-            id = 14;
-            title = "Xenon load during local LLM activity";
-            description = "Xenon CPU, memory, GPU utilization, and GPU VRAM usage. Shaded regions mark when llama-cpp was active.";
-            type = "timeseries";
-            interval = "5s";
-            gridPos = {
-              x = 0;
-              y = 55;
-              w = 24;
-              h = 9;
-            };
-            datasource = {
-              type = "prometheus";
-              uid = "victoriametrics";
-            };
-            targets = [
-              {
-                refId = "A";
-                expr = "max_over_time(llama_cpp_info{host=\"xenon\",job=\"llm-metrics\"}[$__interval])";
-                legendFormat = "llama-cpp ({{model}})";
-              }
-              {
-                refId = "B";
-                expr = "100 - (avg(rate(node_cpu_seconds_total{host=\"xenon\",mode=\"idle\"}[$__rate_interval])) * 100)";
-                legendFormat = "CPU";
-              }
-              {
-                refId = "C";
-                expr = "100 * (1 - node_memory_MemAvailable_bytes{host=\"xenon\"} / node_memory_MemTotal_bytes{host=\"xenon\"})";
-                legendFormat = "Memory";
-              }
-              {
-                refId = "D";
-                expr = "max_over_time(amdgpu_gpu_busy_percent{host=\"xenon\",job=\"llm-metrics\"}[$__interval])";
-                legendFormat = "GPU";
-              }
-              {
-                refId = "E";
-                expr = "100 * max_over_time(amdgpu_vram_used_bytes{host=\"xenon\",job=\"llm-metrics\"}[$__interval]) / max_over_time(amdgpu_vram_total_bytes{host=\"xenon\",job=\"llm-metrics\"}[$__interval])";
-                legendFormat = "GPU VRAM";
-              }
-            ];
-            options.tooltip.mode = "multi";
-            fieldConfig = {
-              defaults = {
-                unit = "percent";
-                min = 0;
-                max = 100;
-                custom.spanNulls = true;
+              fieldConfig = {
+                defaults = {
+                  unit = "celsius";
+                  min = 0;
+                  thresholds = {
+                    mode = "absolute";
+                    steps = [
+                      {
+                        color = "green";
+                        value = null;
+                      }
+                      {
+                        color = "orange";
+                        value = 70;
+                      }
+                      {
+                        color = "red";
+                        value = 85;
+                      }
+                    ];
+                  };
+                };
+                overrides = [];
               };
-              overrides = [
+            }
+            {
+              id = 4;
+              title = "Network traffic";
+              description = "Received above the axis, sent mirrored below it";
+              type = "timeseries";
+              gridPos = {
+                x = 0;
+                y = 8;
+                w = 12;
+                h = 16;
+              };
+              datasource = {
+                type = "prometheus";
+                uid = "victoriametrics";
+              };
+              targets = [
                 {
-                  matcher = {
-                    id = "byFrameRefID";
-                    options = "A";
-                  };
-                  properties = [
-                    {
-                      id = "unit";
-                      value = "none";
-                    }
-                    {
-                      id = "min";
-                      value = 0;
-                    }
-                    {
-                      id = "max";
-                      value = 1;
-                    }
-                    {
-                      id = "color";
-                      value = {
-                        mode = "shades";
-                        fixedColor = "orange";
-                      };
-                    }
-                    {
-                      id = "custom.drawStyle";
-                      value = "bars";
-                    }
-                    {
-                      id = "custom.barWidthFactor";
-                      value = 1;
-                    }
-                    {
-                      id = "custom.fillOpacity";
-                      value = 25;
-                    }
-                    {
-                      id = "custom.lineWidth";
-                      value = 0;
-                    }
-                    {
-                      id = "custom.axisPlacement";
-                      value = "hidden";
-                    }
-                  ];
+                  refId = "A";
+                  expr = "sum by (host) (rate(node_network_receive_bytes_total{device!~\"lo|tailscale0\"}[$__rate_interval]))";
+                  legendFormat = "{{host}} rx";
                 }
                 {
-                  matcher = {
-                    id = "byFrameRefID";
-                    options = "B";
-                  };
-                  properties = [
-                    {
-                      id = "color";
-                      value = {
-                        mode = "fixed";
-                        fixedColor = "blue";
-                      };
-                    }
-                  ];
-                }
-                {
-                  matcher = {
-                    id = "byFrameRefID";
-                    options = "C";
-                  };
-                  properties = [
-                    {
-                      id = "color";
-                      value = {
-                        mode = "fixed";
-                        fixedColor = "purple";
-                      };
-                    }
-                  ];
-                }
-                {
-                  matcher = {
-                    id = "byFrameRefID";
-                    options = "D";
-                  };
-                  properties = [
-                    {
-                      id = "color";
-                      value = {
-                        mode = "fixed";
-                        fixedColor = "green";
-                      };
-                    }
-                  ];
-                }
-                {
-                  matcher = {
-                    id = "byFrameRefID";
-                    options = "E";
-                  };
-                  properties = [
-                    {
-                      id = "color";
-                      value = {
-                        mode = "fixed";
-                        fixedColor = "yellow";
-                      };
-                    }
-                  ];
+                  refId = "B";
+                  expr = "-sum by (host) (rate(node_network_transmit_bytes_total{device!~\"lo|tailscale0\"}[$__rate_interval]))";
+                  legendFormat = "{{host}} tx";
                 }
               ];
-            };
-          }
-        ];
+              fieldConfig = {
+                defaults.unit = "Bps";
+                overrides = hostColorOverrides;
+              };
+            }
+            {
+              id = 11;
+              title = "Aggregate tailnet throughput";
+              description = "Sum of tailscale0 transmit rates. Counting only the sending side avoids double-counting traffic received by another monitored host.";
+              type = "timeseries";
+              gridPos = {
+                x = 0;
+                y = 24;
+                w = 12;
+                h = 8;
+              };
+              datasource = {
+                type = "prometheus";
+                uid = "victoriametrics";
+              };
+              targets = [
+                {
+                  refId = "A";
+                  expr = "sum(rate(node_network_transmit_bytes_total{device=\"tailscale0\"}[$__rate_interval]))";
+                  legendFormat = "tailnet throughput";
+                }
+              ];
+              fieldConfig = {
+                defaults = {
+                  unit = "Bps";
+                  min = 0;
+                };
+                overrides = [];
+              };
+            }
+            {
+              id = 6;
+              title = "Filesystem usage";
+              type = "timeseries";
+              gridPos = {
+                x = 0;
+                y = 38;
+                w = 12;
+                h = 8;
+              };
+              datasource = {
+                type = "prometheus";
+                uid = "victoriametrics";
+              };
+              targets = [
+                {
+                  refId = "A";
+                  expr = "100 * (1 - node_filesystem_avail_bytes{mountpoint=~\"/|/mnt/media\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{mountpoint=~\"/|/mnt/media\",fstype!~\"tmpfs|overlay\"})";
+                  legendFormat = "{{host}}: {{mountpoint}}";
+                }
+              ];
+              fieldConfig = {
+                defaults = {
+                  unit = "percent";
+                  min = 0;
+                  max = 100;
+                  custom.spanNulls = true;
+                };
+                overrides = [];
+              };
+            }
+            {
+              id = 7;
+              title = "Nix store size";
+              type = "timeseries";
+              gridPos = {
+                x = 12;
+                y = 38;
+                w = 12;
+                h = 16;
+              };
+              datasource = {
+                type = "prometheus";
+                uid = "victoriametrics";
+              };
+              targets = [
+                {
+                  refId = "A";
+                  expr = "nix_store_disk_bytes";
+                  legendFormat = "{{host}}";
+                }
+              ];
+              fieldConfig = {
+                defaults = {
+                  unit = "bytes";
+                  custom.spanNulls = true;
+                };
+                overrides = [];
+              };
+            }
+          ]
+          ++ customPanelsResolved.panels;
       });
     in {
       age.secrets.grafana-secret-key = {
@@ -915,5 +594,6 @@
     }) {
       hosts = config.fleet.hosts;
       grafanaService = config.fleet.services.Grafana;
+      customPanels = config.fleet.monitoring.panels;
     };
 }
