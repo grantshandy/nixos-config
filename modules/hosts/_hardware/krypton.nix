@@ -1,5 +1,5 @@
 # Generated from the Dell Wyse 5070 netboot environment before installation.
-{
+{extraStorageRoot}: {
   config,
   lib,
   modulesPath,
@@ -23,6 +23,14 @@
     device = "/dev/disk/by-label/BOOT";
     fsType = "vfat";
     options = ["fmask=0077" "dmask=0077"];
+  };
+
+  # General-purpose external storage (currently backs VictoriaMetrics; see
+  # grafana.nix). Not dedicated to any one service.
+  fileSystems.${extraStorageRoot} = {
+    device = "/dev/disk/by-label/extra-usb";
+    fsType = "ext4";
+    options = ["nofail" "noatime" "x-systemd.device-timeout=10"];
   };
 
   swapDevices = [];

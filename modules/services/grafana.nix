@@ -13,7 +13,21 @@
   config,
   lib,
   ...
-}: {
+}: let
+  victoriaMetricsPort = 8428;
+in {
+  options.fleet.monitoring.victoriaMetricsUrl = lib.mkOption {
+    type = lib.types.str;
+    readOnly = true;
+    description = ''
+      Tailnet URL for VictoriaMetrics' import endpoints. Services that want an
+      event to show up immediately, rather than waiting for the next scrape,
+      push samples here directly (e.g. with `curl .../api/v1/import/prometheus`).
+    '';
+  };
+
+  config.fleet.monitoring.victoriaMetricsUrl = "http://${config.fleet.services.Grafana.host}.ts.${config.fleet.identity.homelab.dns}:${toString victoriaMetricsPort}";
+
   options.fleet.monitoring.panels = lib.mkOption {
     type = lib.types.attrsOf (lib.types.submodule ({name, ...}: {
       options = {
@@ -49,6 +63,11 @@
             gridPos here; the dashboard assigns those.
           '';
         };
+        annotations = lib.mkOption {
+          type = lib.types.listOf lib.types.attrs;
+          default = [];
+          description = "Raw Grafana dashboard annotation queries (e.g. event markers) contributed alongside this panel.";
+        };
       };
     }));
     default = {};
@@ -70,15 +89,25 @@
       hosts,
       grafanaService,
       customPanels,
+      victoriaMetricsPort,
+      extraStorageRoot,
     }: {
       config,
       lib,
       pkgs,
+      utils,
       ...
     }: let
       dns = config.identity.homelab.dns;
       grafanaPort = 3000;
-      victoriaMetricsPort = 8428;
+      extraUsbMountUnit = "${utils.escapeSystemdPath extraStorageRoot}.mount";
+      # DynamicUser + StateDirectory backs "/var/lib/victoriametrics" with a
+      # private bind mount from "/var/lib/private/victoriametrics" (only
+      # visible inside the service's own mount namespace), so that's the real
+      # path to redirect onto the external drive.
+      victoriaMetricsStatePath = "/var/lib/private/victoriametrics";
+      victoriaMetricsDataMountUnit = "${utils.escapeSystemdPath victoriaMetricsStatePath}.mount";
+      victoriaMetricsDataDir = "${extraStorageRoot}/victoriametrics";
 
       grafanaHost = grafanaService.fqdn;
       monitoredHosts =
@@ -120,17 +149,22 @@
         lib.attrValues customPanels
         |> lib.sort (a: b: a.order < b.order || (a.order == b.order && a.name < b.name));
 
+      # Each panel's annotations are scoped to its own panel id (via `filter`)
+      # so e.g. upload-event markers only show up on the upload-events panel,
+      # not on every panel in the dashboard.
       customPanelsResolved =
-        lib.foldl' (acc: cfg: {
-          nextId = acc.nextId + 1;
+        lib.foldl' (acc: cfg: let
+          id = acc.nextId;
+        in {
+          nextId = id + 1;
           y = acc.y + cfg.height;
           panels =
             acc.panels
             ++ [
               (cfg.panel
                 // {
+                  inherit id;
                   inherit (cfg) title;
-                  id = acc.nextId;
                   gridPos = {
                     x = 0;
                     y = acc.y;
@@ -140,12 +174,26 @@
                 }
                 // lib.optionalAttrs (cfg.description != null) {inherit (cfg) description;})
             ];
+          annotations =
+            acc.annotations
+            ++ map (anno:
+              anno
+              // {
+                filter = {
+                  exclude = false;
+                  ids = [id];
+                };
+              })
+            cfg.annotations;
         }) {
           nextId = 100;
           y = 46;
           panels = [];
+          annotations = [];
         }
         customPanelsSorted;
+
+      customAnnotations = customPanelsResolved.annotations;
 
       dashboard = pkgs.writeTextDir "homelab-overview.json" (builtins.toJSON {
         uid = "homelab-overview";
@@ -160,7 +208,7 @@
           to = "now";
         };
         templating.list = [];
-        annotations.list = [];
+        annotations.list = customAnnotations;
         panels =
           [
             {
@@ -475,16 +523,45 @@
         group = "grafana";
       };
 
+      assertions = [
+        {
+          assertion = extraStorageRoot != null;
+          message = "Grafana's host (${grafanaService.host}) needs fleet.hosts.${grafanaService.host}.extraStorageRoot set, since VictoriaMetrics' data directory is bind-mounted onto it.";
+        }
+      ];
+
+      # Store VictoriaMetrics' data on the external USB drive rather than the
+      # SD card, by bind-mounting its data directory onto the drive. The
+      # subdirectory has to exist before the bind mount runs, which is why it
+      # waits on tmpfiles (which itself waits on extraStorageRoot, since
+      # systemd-tmpfiles-setup.service runs After=local-fs.target).
+      systemd.tmpfiles.rules = [
+        "d ${victoriaMetricsDataDir} 0700 root root - -"
+      ];
+
+      fileSystems.${victoriaMetricsStatePath} = {
+        device = victoriaMetricsDataDir;
+        fsType = "none";
+        options = ["bind" "x-systemd.after=systemd-tmpfiles-setup.service"];
+      };
+
+      systemd.services.victoriametrics = {
+        bindsTo = [extraUsbMountUnit victoriaMetricsDataMountUnit];
+        after = [extraUsbMountUnit victoriaMetricsDataMountUnit];
+        unitConfig.RequiresMountsFor = [extraStorageRoot victoriaMetricsStatePath];
+      };
+
       services.victoriametrics = {
         enable = true;
-        listenAddress = "127.0.0.1:${toString victoriaMetricsPort}";
+        # Bound to all interfaces (not just loopback) so hosts on the tailnet
+        # can push samples directly into `fleet.monitoring.victoriaMetricsUrl`
+        # instead of waiting for the next scrape. The firewall below is what
+        # actually restricts this to the tailnet, same trust boundary as the
+        # unauthenticated node-exporter/9100 scrape target.
+        listenAddress = "0.0.0.0:${toString victoriaMetricsPort}";
         retentionPeriod = "7d";
-        extraOptions = [
-          "-memory.allowedBytes=512MiB"
-          "-storage.minFreeDiskSpaceBytes=512MiB"
-        ];
         prometheusConfig = {
-          global.scrape_interval = "30s";
+          global.scrape_interval = "15s";
           scrape_configs = [
             {
               job_name = "nodes";
@@ -519,6 +596,8 @@
           ];
         };
       };
+
+      networking.firewall.interfaces.tailscale0.allowedTCPPorts = [victoriaMetricsPort];
 
       services.grafana = {
         enable = true;
@@ -595,5 +674,7 @@
       hosts = config.fleet.hosts;
       grafanaService = config.fleet.services.Grafana;
       customPanels = config.fleet.monitoring.panels;
+      inherit victoriaMetricsPort;
+      extraStorageRoot = config.fleet.hosts.${config.fleet.services.Grafana.host}.extraStorageRoot;
     };
 }

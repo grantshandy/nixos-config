@@ -799,7 +799,7 @@
     title = "Radon load during GitLab jobs";
     description = "Radon CPU and memory usage. Shaded regions mark when GitLab Runner was executing a job.";
     height = 8;
-    order = 2;
+    order = 3;
     panel = {
       type = "timeseries";
       interval = "5s";

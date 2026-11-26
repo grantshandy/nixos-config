@@ -56,6 +56,16 @@ in {
             '';
           };
 
+          extraStorageRoot = mkOption {
+            type = types.nullOr types.path;
+            default = null;
+            description = ''
+              Mount point of this host's general-purpose extra storage (e.g. a
+              USB drive), not dedicated to any one service. Services that want
+              a slice of it derive their own subdirectory from this.
+            '';
+          };
+
           homeManager.enable = mkOption {
             type = types.bool;
             default = true;

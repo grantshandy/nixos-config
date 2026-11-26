@@ -35,7 +35,7 @@
       };
 
       userSettings = {
-        vim_mode = true;
+        # vim_mode = true;
         relative_line_numbers = "enabled";
         git.inline_blame.enabled = false;
         notification_panel.button = false;

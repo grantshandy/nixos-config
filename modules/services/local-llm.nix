@@ -375,7 +375,7 @@ in {
     title = "Xenon load during local LLM activity";
     description = "Xenon CPU, memory, GPU utilization, and GPU VRAM usage. Shaded regions mark when llama-cpp was active.";
     height = 9;
-    order = 3;
+    order = 4;
     panel = {
       type = "timeseries";
       interval = "5s";

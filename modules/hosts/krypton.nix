@@ -1,6 +1,8 @@
 # The edge. Terminates TLS, authorizes every public request, and serves tailnet
 # DNS -- which is why it deploys last.
-{
+let
+  extraStorageRoot = "/mnt/extra-usb";
+in {
   fleet.hosts.krypton = {
     system = "x86_64-linux";
     tags = ["server" "edge" "tailnet-dns" "minimal"];
@@ -21,12 +23,14 @@
       providers = ["radon"];
       localJobs = 0;
     };
+
+    inherit extraStorageRoot;
   };
 
   flake.modules.nixos.krypton = {modulesPath, ...}: {
     imports = [
       (modulesPath + "/profiles/minimal.nix")
-      ./_hardware/krypton.nix
+      (import ./_hardware/krypton.nix {inherit extraStorageRoot;})
     ];
 
     networking.useDHCP = true;
