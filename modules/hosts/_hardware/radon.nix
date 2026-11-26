@@ -1,0 +1,64 @@
+{mediaRoot}: {
+  config,
+  lib,
+  modulesPath,
+  pkgs,
+  ...
+}: {
+  imports = [
+    (modulesPath + "/installer/scan/not-detected.nix")
+  ];
+
+  boot.initrd.availableKernelModules = ["nvme" "xhci_pci" "ahci" "usbhid" "usb_storage" "uas" "sd_mod"];
+  boot.initrd.kernelModules = [];
+  boot.kernelModules = ["kvm-amd"];
+  boot.extraModulePackages = [];
+
+  boot.kernelPackages = pkgs.linuxPackages_6_12;
+  boot.kernelParams = ["processor.max_cstate=1" "idle=poll"];
+
+  boot.kernel.sysctl = {
+    "kernel.softlockup_panic" = 1;
+    "kernel.panic" = 30;
+  };
+
+  fileSystems."/" = {
+    device = "/dev/disk/by-label/nixos";
+    fsType = "ext4";
+  };
+
+  fileSystems."/boot" = {
+    device = "/dev/disk/by-label/boot";
+    fsType = "vfat";
+    options = ["fmask=0077" "dmask=0077"];
+  };
+
+  fileSystems.${mediaRoot} = {
+    device = "/dev/disk/by-label/media";
+    fsType = "ext4";
+    options = [
+      "noatime"
+      "nofail"
+      "x-systemd.device-timeout=10"
+    ];
+  };
+
+  # Keep ownership stable for files stored on the persistent media drive.
+  users.groups.media.gid = 998;
+  users.users.${config.identity.user.name}.extraGroups = ["media"];
+  systemd.tmpfiles.rules = [
+    "z ${mediaRoot} 2775 root media -"
+  ];
+
+  swapDevices = [
+    {
+      device = "/var/lib/swapfile";
+      size = 8192;
+    }
+  ];
+
+  networking.useDHCP = lib.mkDefault true;
+
+  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+  hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+}

@@ -3,4 +3,3 @@ result
 secrets/*.txt
 secrets/*.swp
 hosts/*/*-token.txt
-modules/nixos/desktop/gnome/wallpapers/images/

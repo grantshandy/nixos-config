@@ -1,0 +1,94 @@
+{
+  fleet.aspects.zed.tags = ["desktop"];
+
+  flake.modules.homeManager.zed = {
+    lib,
+    pkgs,
+    pkgs-unstable,
+    ...
+  }: {
+    desktop.favoriteApps = lib.mkOrder 300 ["dev.zed.Zed.desktop"];
+
+    programs.zed-editor = {
+      enable = true;
+      package = pkgs-unstable.zed-editor;
+      extraPackages = with pkgs; [clang-tools tinymist package-version-server ruff nodejs];
+
+      extensions = [
+        "nix"
+        "env"
+
+        "html"
+        "html-snippets"
+        "svelte"
+
+        "toml"
+        "make"
+        "typst"
+      ];
+
+      themes.adwaita = ./adwaita.json;
+      userSettings.theme = {
+        mode = "system";
+        light = "Adwaita Pastel Light 48";
+        dark = "Adwaita Pastel Dark 48";
+      };
+
+      userSettings = {
+        vim_mode = true;
+        relative_line_numbers = "enabled";
+        git.inline_blame.enabled = false;
+        notification_panel.button = false;
+        collaboration_panel.button = true;
+
+        node = {
+          path = lib.getExe pkgs.nodejs;
+          npm_path = "${pkgs.nodejs}/bin/npm";
+        };
+
+        title_bar = {
+          show_sign_in = false;
+          show_user_picture = false;
+          show_onboarding_banner = false;
+          show_branch_icon = true;
+        };
+
+        language_overrides = {
+          c.lsp = "clangd";
+          cpp.lsp = "clangd";
+        };
+
+        languages.Nix = {
+          language_servers = ["nixd"];
+          formatter.external = {
+            command = lib.getExe pkgs.alejandra;
+            arguments = ["--quiet" "--"];
+          };
+        };
+
+        lsp.nixd.binary.path = lib.getExe pkgs.nixd;
+
+        lsp = {
+          rust-analyzer = {
+            binary.path = lib.getExe pkgs-unstable.rust-analyzer;
+            initialization_options = {
+              check.command = "clippy";
+              command = "clippy";
+              rust.analyzerTargetDir = true;
+            };
+          };
+
+          # package-version-server.binary.path = lib.getExe pkgs.package-version-server;
+          # tinymist.binary.path = lib.getExe pkgs.tinymist;
+        };
+
+        agent_servers."Claude" = {
+          command = lib.getExe pkgs.claude-agent-acp;
+          type = "custom";
+        };
+
+        dap.CodeLLDB.binary = "${pkgs.vscode-extensions.vadimcn.vscode-lldb}/share/vscode/extensions/vadimcn.vscode-lldb/adapter/codelldb";
+      };
+    };
+  };
+}

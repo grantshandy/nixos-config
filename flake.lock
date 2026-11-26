@@ -142,6 +142,21 @@
         "type": "github"
       }
     },
+    "import-tree": {
+      "locked": {
+        "lastModified": 1788467110,
+        "narHash": "sha256-ljEMTXP/rH0tOvDzc9gzwww6KcHRPRnEHzd9lK48V7s=",
+        "owner": "vic",
+        "repo": "import-tree",
+        "rev": "eb1b52eaecc57f7c136d07ae8a93e724dfecac46",
+        "type": "github"
+      },
+      "original": {
+        "owner": "vic",
+        "repo": "import-tree",
+        "type": "github"
+      }
+    },
     "nix-flatpak": {
       "locked": {
         "lastModified": 1790428548,
@@ -233,10 +248,10 @@
         "firefox-addons": "firefox-addons",
         "flake-parts": "flake-parts",
         "home-manager": "home-manager",
+        "import-tree": "import-tree",
         "nix-flatpak": "nix-flatpak",
         "nixpkgs": "nixpkgs",
-        "nixpkgs-unstable": "nixpkgs-unstable",
-        "wallpapers-images": "wallpapers-images"
+        "nixpkgs-unstable": "nixpkgs-unstable"
       }
     },
     "systems": {
@@ -252,19 +267,6 @@
         "owner": "nix-systems",
         "repo": "default",
         "type": "github"
-      }
-    },
-    "wallpapers-images": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1795488773,
-        "narHash": "sha256-1M98XuW9A//kFJan7Ae00YYD97s9ZOz/458hhNE4vyk=",
-        "path": "/home/grant/Documents/nixos-config/modules/nixos/desktop/gnome/wallpapers/images",
-        "type": "path"
-      },
-      "original": {
-        "path": "/home/grant/Documents/nixos-config/modules/nixos/desktop/gnome/wallpapers/images",
-        "type": "path"
       }
     }
   },
