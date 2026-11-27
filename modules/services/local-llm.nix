@@ -60,6 +60,29 @@ in {
       modelDirectory = "/var/lib/llama-models";
       modelPath = "${modelDirectory}/${model.fileName}";
 
+      # llama-server binds loopback only; `llama.port` is served by the
+      # socket-activating proxy so the first request starts the model.
+      backendPort = llama.port + 1;
+
+      waitForBackend = pkgs.writeShellApplication {
+        name = "wait-for-llama-backend";
+        runtimeInputs = [pkgs.coreutils pkgs.curl];
+        text = ''
+          # Any HTTP status means the listener is up; only a refused
+          # connection is a failure, so --fail is deliberately omitted.
+          for _ in $(seq 1 120); do
+            if curl --silent --output /dev/null --max-time 2 \
+              "http://127.0.0.1:${toString backendPort}/v1/health"; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "llama-server did not bind 127.0.0.1:${toString backendPort} in time" >&2
+          exit 1
+        '';
+      };
+
       provisionModel = pkgs.writeShellApplication {
         name = "provision-llama-model";
         runtimeInputs = [pkgs.coreutils pkgs.curl];
@@ -215,7 +238,7 @@ in {
         environment = {
           ENABLE_OLLAMA_API = "False";
           ENABLE_OPENAI_API = "True";
-          OPENAI_API_BASE_URLS = "http://127.0.0.1:${toString config.services.llama-cpp.port}/v1";
+          OPENAI_API_BASE_URLS = "http://127.0.0.1:${toString llama.port}/v1";
           OPENAI_API_KEYS = "none";
           WEBUI_URL = webui.url;
           # No-login mode shares one account with everyone who can reach the UI.
@@ -233,11 +256,13 @@ in {
 
       networking.firewall.interfaces.tailscale0.allowedTCPPorts = [
         webui.port
-        config.services.llama-cpp.port
+        llama.port
       ];
+      # Depend on the socket, not the service: the chat UI starting at boot must
+      # not drag the model in with it. Its first completion request does that.
       systemd.services.open-webui = {
-        wants = ["llama-cpp.service"];
-        after = ["llama-cpp.service"];
+        wants = ["llama-cpp-proxy.socket"];
+        after = ["llama-cpp-proxy.socket"];
       };
 
       services.llama-cpp = {
@@ -247,15 +272,21 @@ in {
           model = modelPath;
           load-on-startup = false;
         };
-        host = "0.0.0.0";
-        port = llama.port;
+        host = "127.0.0.1";
+        port = backendPort;
         openFirewall = false;
         extraFlags = [
           "--no-mmproj"
           "--n-gpu-layers"
           "99"
+          # The GPU also drives the desktop, so the split is chosen to leave a
+          # gigabyte of VRAM spare rather than to fill it. Measured peak on an
+          # RX 6600 at this context and batch size is 7072 MiB of 8176 MiB,
+          # reached during prompt processing rather than at load. Throughput is
+          # flat from 29 upwards (20.8-22.1 tok/s), so the headroom is free;
+          # 28 and below fail to allocate and reset the display driver.
           "--n-cpu-moe"
-          "31"
+          "36"
           # Prevent llama.cpp's automatic fitter from silently overriding the
           # benchmarked CPU/GPU tensor placement.
           "--fit"
@@ -271,18 +302,36 @@ in {
           "q8_0"
           "--cache-type-v"
           "q8_0"
+          # A 1024-token physical batch prefills at 453 tok/s against 317 tok/s
+          # at 512, which is the single largest reduction in CPU time per
+          # request. Larger batches exhaust VRAM and reset the display driver.
+          "--batch-size"
+          "2048"
+          "--ubatch-size"
+          "1024"
+          # Generation throughput plateaus at 8 threads (21.5 tok/s against
+          # 22.4 at 12), so the remaining cores stay idle and the package runs
+          # cooler. Prompt processing peaks at 8 threads outright.
           "--threads"
-          "10"
+          "8"
           "--threads-batch"
-          "16"
+          "8"
+          # Spin-waiting between graph nodes burns cores while the GPU works
+          # without buying any throughput here (pp 316 against 319 tok/s).
+          "--poll"
+          "0"
           "--parallel"
           "1"
           "--n-predict"
           (toString model.maxOutputTokens)
           "--reasoning"
           "off"
+          # Keep evicted prompt caches in host RAM. Re-prefilling an agent
+          # conversation is the longest CPU burn in this workload, so paying
+          # 8 GiB of the 48 GiB installed to avoid it is the cheapest win here.
           "--cache-ram"
-          "0"
+          "8192"
+          "--kv-unified"
           "--jinja"
         ];
       };
@@ -306,12 +355,45 @@ in {
         requires = ["llama-model-provision.service"];
         after = ["llama-model-provision.service"];
 
+        # Reached only through llama-cpp-proxy.socket, so boot and
+        # `nixos-rebuild switch` never start it or interrupt a loaded model.
+        wantedBy = lib.mkForce [];
+        restartIfChanged = false;
+        stopIfChanged = false;
+
         # The RX 6600 is gfx1032, which ROCm can run using its supported gfx1030 target.
         serviceConfig = {
           Environment = ["HSA_OVERRIDE_GFX_VERSION=10.3.0"];
           SupplementaryGroups = ["render" "video"];
           DevicePolicy = lib.mkForce "auto";
           DeviceAllow = lib.mkForce [];
+          # Hold off the proxy until llama-server accepts connections,
+          # otherwise it relays the waking request into a refused socket.
+          ExecStartPost = lib.getExe waitForBackend;
+        };
+      };
+
+      # Start llama-server on the first request to the tailnet port instead of
+      # at activation. The model itself is still loaded lazily and released
+      # again after `idleTimeoutSeconds`.
+      systemd.sockets.llama-cpp-proxy = {
+        description = "Socket activation for the LLaMA C++ server";
+        wantedBy = ["sockets.target"];
+        socketConfig.ListenStream = "0.0.0.0:${toString llama.port}";
+      };
+
+      systemd.services.llama-cpp-proxy = {
+        description = "Socket-activating proxy for the LLaMA C++ server";
+        requires = ["llama-cpp.service" "llama-cpp-proxy.socket"];
+        after = ["llama-cpp.service" "llama-cpp-proxy.socket"];
+        serviceConfig = {
+          ExecStart = "${pkgs.systemd}/lib/systemd/systemd-socket-proxyd 127.0.0.1:${toString backendPort}";
+          DynamicUser = true;
+          PrivateDevices = true;
+          ProtectSystem = "strict";
+          ProtectHome = true;
+          NoNewPrivileges = true;
+          RestrictAddressFamilies = ["AF_INET" "AF_INET6" "AF_UNIX"];
         };
       };
 
@@ -337,10 +419,18 @@ in {
     config,
     lib,
     osConfig,
+    pkgs,
     ...
   }: let
     host = fleet.hosts.${osConfig.networking.hostName};
   in {
+    home.file.".agents/skills/caveman/SKILL.md" = lib.mkIf config.programs.zed-editor.enable {
+      source = pkgs.fetchurl {
+        url = "https://raw.githubusercontent.com/JuliusBrussee/caveman/e74a11ccdb38b98d15c9f9545787c907dd15f0ab/skills/caveman/SKILL.md";
+        hash = "sha256-QV1DUY8rGpSYwVpEXUZXEXsSnuXoGxlFTONIQ5zGZys=";
+      };
+    };
+
     programs.zed-editor.userSettings = lib.mkIf (host.tailscale.enable && config.programs.zed-editor.enable) {
       language_models."llama.cpp" = {
         api_url = llama.tailnetUrl;
@@ -352,8 +442,9 @@ in {
             max_tokens = model.contextLength;
             max_output_tokens = model.maxOutputTokens;
             supports_tools = true;
+            # The server runs with `--no-mmproj` and `--reasoning off`.
             supports_images = false;
-            supports_thinking = true;
+            supports_thinking = false;
           }
         ];
       };
