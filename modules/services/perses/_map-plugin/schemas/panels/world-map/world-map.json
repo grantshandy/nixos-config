@@ -1,0 +1,9 @@
+{
+  "kind": "WorldMap",
+  "spec": {
+    "points": [
+      { "latitude": 40.7128, "longitude": -74.006, "label": "New York" },
+      { "latitude": 35.6762, "longitude": 139.6503, "label": "Tokyo", "color": "#00bcd4" }
+    ]
+  }
+}

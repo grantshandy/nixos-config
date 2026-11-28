@@ -24,6 +24,12 @@
   ntfyTopic = "slskd-uploads";
   ntfyUrl = "http://${media.host}.ts.${config.fleet.identity.homelab.dns}:${toString ntfyPort}";
   notifyIdleSeconds = 45;
+
+  peerNamespace = "slskd";
+  peerHostInterface = "veth-slskd";
+  peerNamespaceInterface = "eth0";
+  peerHostAddress = "10.204.0.1";
+  peerAddress = "10.204.0.2";
 in {
   fleet.services.slskd = {
     host = media.host;
@@ -47,6 +53,72 @@ in {
     pkgs,
     ...
   }: let
+    ipLocationDatabaseDir = "/var/lib/ip-location-db";
+    ipLocationDatabase = "${ipLocationDatabaseDir}/geolite2-city-ipv4.sqlite";
+    peerObserverStateDir = "/var/lib/slskd-peer-observer";
+    peerObserverState = "${peerObserverStateDir}/state.json";
+    peerObserverMetrics = "${nodeExporterTextfileDir}/slskd-peer-observer.prom";
+    ipLocationUrl = "https://github.com/sapics/ip-location-db/releases/download/latest/geolite2-city-ipv4.csv.gz";
+    ipLocationChecksumUrl = "https://github.com/sapics/ip-location-db/releases/download/checksum/geolite2-city-ipv4.csv.gz.sha256";
+
+    pythonProgram = name: source:
+      pkgs.writeTextFile {
+        inherit name;
+        destination = "/bin/${name}";
+        executable = true;
+        text =
+          lib.replaceStrings
+          ["#!/usr/bin/env python3"]
+          ["#!${lib.getExe pkgs.python3}"]
+          (builtins.readFile source);
+      };
+    ipLocationUpdater = pythonProgram "update-ip-location-db" ./ip-location-db-update.py;
+    peerObserver = pythonProgram "peer-observer" ./peer-observer.py;
+
+    namespaceSetup = pkgs.writeShellApplication {
+      name = "slskd-netns";
+      runtimeInputs = with pkgs; [coreutils gnugrep iproute2 nftables];
+      text = ''
+        case "''${1:-}" in
+          start)
+            if ip netns list | grep -q '^${peerNamespace}\b'; then
+              ip netns delete ${peerNamespace}
+            fi
+            ip link delete ${peerHostInterface} 2>/dev/null || true
+            nft delete table ip slskd_netns 2>/dev/null || true
+
+            ip netns add ${peerNamespace}
+            ip link add ${peerHostInterface} type veth peer name ${peerNamespaceInterface}
+            ip link set ${peerNamespaceInterface} netns ${peerNamespace}
+            ip address add ${peerHostAddress}/30 dev ${peerHostInterface}
+            ip link set ${peerHostInterface} up
+            ip -n ${peerNamespace} link set lo up
+            ip -n ${peerNamespace} address add ${peerAddress}/30 dev ${peerNamespaceInterface}
+            ip -n ${peerNamespace} link set ${peerNamespaceInterface} up
+            ip -n ${peerNamespace} route add default via ${peerHostAddress}
+
+            nft -f - <<'EOF'
+        table ip slskd_netns {
+          chain postrouting {
+            type nat hook postrouting priority srcnat; policy accept;
+            ip saddr ${peerAddress} oifname != "${peerHostInterface}" masquerade
+          }
+        }
+        EOF
+            ;;
+          stop)
+            nft delete table ip slskd_netns 2>/dev/null || true
+            ip netns delete ${peerNamespace} 2>/dev/null || true
+            ip link delete ${peerHostInterface} 2>/dev/null || true
+            ;;
+          *)
+            echo "Usage: slskd-netns {start|stop}" >&2
+            exit 2
+            ;;
+        esac
+      '';
+    };
+
     collectLibrarySize = pkgs.writeShellApplication {
       name = "collect-slskd-library-size";
       runtimeInputs = [pkgs.coreutils];
@@ -68,6 +140,56 @@ in {
     users.users.slskd = {
       extraGroups = ["media"];
       home = "/var/lib/slskd";
+    };
+
+    boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
+    networking.firewall = {
+      trustedInterfaces = [peerHostInterface];
+      allowedTCPPorts = [listenPort];
+    };
+
+    systemd.services.slskd-netns = {
+      description = "Network namespace for observable slskd traffic";
+      wantedBy = ["multi-user.target"];
+      before = ["slskd.service" "slskd-web-proxy.service" "slskd-peer-proxy.service"];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = "${lib.getExe namespaceSetup} start";
+        ExecStop = "${lib.getExe namespaceSetup} stop";
+      };
+    };
+
+    systemd.sockets.slskd-web-proxy = {
+      description = "Host-side socket for the slskd web interface";
+      wantedBy = ["sockets.target"];
+      socketConfig.ListenStream = "127.0.0.1:${toString webPort}";
+    };
+
+    systemd.services.slskd-web-proxy = {
+      description = "Proxy the slskd web interface into its network namespace";
+      requires = ["slskd-netns.service" "slskd.service" "slskd-web-proxy.socket"];
+      after = ["slskd-netns.service" "slskd.service" "slskd-web-proxy.socket"];
+      serviceConfig = {
+        ExecStart = "${pkgs.systemd}/lib/systemd/systemd-socket-proxyd ${peerAddress}:${toString webPort}";
+        DynamicUser = true;
+      };
+    };
+
+    systemd.sockets.slskd-peer-proxy = {
+      description = "Public Soulseek listener for slskd";
+      wantedBy = ["sockets.target"];
+      socketConfig.ListenStream = "0.0.0.0:${toString listenPort}";
+    };
+
+    systemd.services.slskd-peer-proxy = {
+      description = "Proxy inbound Soulseek connections into the slskd namespace";
+      requires = ["slskd-netns.service" "slskd.service" "slskd-peer-proxy.socket"];
+      after = ["slskd-netns.service" "slskd.service" "slskd-peer-proxy.socket"];
+      serviceConfig = {
+        ExecStart = "${pkgs.systemd}/lib/systemd/systemd-socket-proxyd ${peerAddress}:${toString listenPort}";
+        DynamicUser = true;
+      };
     };
 
     systemd.services.collect-slskd-library-size = {
@@ -105,20 +227,25 @@ in {
       # Stop slskd if the removable media drive disappears and restart it when
       # the drive is connected again.
       wantedBy = [config.mediaPool.deviceUnit];
-      after = [config.mediaPool.mountUnit];
-      bindsTo = [config.mediaPool.mountUnit];
+      requires = ["slskd-netns.service"];
+      after = [config.mediaPool.mountUnit "slskd-netns.service"];
+      bindsTo = [config.mediaPool.mountUnit "slskd-netns.service"];
       unitConfig.RequiresMountsFor = [
         media.library
         media.downloads
         media.incomplete
       ];
-      serviceConfig.UMask = "0002";
+      serviceConfig = {
+        UMask = "0002";
+        NetworkNamespacePath = "/run/netns/${peerNamespace}";
+        BindReadOnlyPaths = ["/etc/resolv.conf"];
+      };
     };
 
     services.slskd = {
       enable = true;
       environmentFile = config.age.secrets.slskd-environment.path;
-      openFirewall = true;
+      openFirewall = false;
       settings = {
         directories = {
           downloads = media.downloads;
@@ -140,12 +267,58 @@ in {
         };
         soulseek.listen_port = listenPort;
         web = {
-          ip_address = "127.0.0.1";
+          ip_address = "0.0.0.0";
           port = webPort;
           url_base = service.basePath;
           # The edge is the only entry point and requires an Authelia session.
           authentication.disabled = true;
         };
+      };
+    };
+
+    systemd.services.ip-location-db-update = {
+      description = "Refresh the GeoLite2 city database from sapics/ip-location-db";
+      wantedBy = ["multi-user.target"];
+      wants = ["network-online.target"];
+      after = ["network-online.target"];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${lib.getExe ipLocationUpdater} --database ${ipLocationDatabase} --url ${ipLocationUrl} --checksum-url ${ipLocationChecksumUrl}";
+        StateDirectory = "ip-location-db";
+        StateDirectoryMode = "0755";
+        UMask = "0022";
+        PrivateTmp = true;
+        TimeoutStartSec = "30min";
+      };
+    };
+
+    systemd.timers.ip-location-db-update = {
+      description = "Refresh the IP geolocation database weekly";
+      wantedBy = ["timers.target"];
+      timerConfig = {
+        OnCalendar = "weekly";
+        RandomizedDelaySec = "6h";
+        Persistent = true;
+      };
+    };
+
+    systemd.services.slskd-peer-observer = {
+      description = "Export geographic cells for outbound slskd connections";
+      wantedBy = ["multi-user.target"];
+      requires = ["slskd-netns.service"];
+      after = ["slskd-netns.service" "ip-location-db-update.service"];
+      path = [pkgs.conntrack-tools];
+      serviceConfig = {
+        ExecStart = "${lib.getExe peerObserver} --source ${peerAddress} --service slskd --database ${ipLocationDatabase} --state ${peerObserverState} --metrics ${peerObserverMetrics}";
+        DynamicUser = true;
+        StateDirectory = "slskd-peer-observer";
+        SupplementaryGroups = ["node-exporter"];
+        ReadOnlyPaths = [ipLocationDatabase];
+        ReadWritePaths = [nodeExporterTextfileDir];
+        AmbientCapabilities = ["CAP_NET_ADMIN"];
+        CapabilityBoundingSet = ["CAP_NET_ADMIN"];
+        Restart = "always";
+        RestartSec = "5s";
       };
     };
   };
@@ -568,6 +741,18 @@ in {
         min = 0;
       };
 
+      peer_map = perses.panel {
+        kind = "WorldMap";
+        name = "Peer locations";
+        description = "Outbound Soulseek connections observed during the selected time range. Locations are approximate GeoLite2 city centroids supplied by sapics/ip-location-db.";
+        queries = [
+          (query {
+            expr = "service_peer_geo_last_seen_seconds{${node},service=\"slskd\"}";
+          })
+        ];
+        spec.valueMode = "timestamp";
+      };
+
       upload_volume = timeSeries {
         name = "Uploaded bytes";
         description = ''
@@ -638,6 +823,17 @@ in {
             panel = "share";
             width = 6;
             height = 5;
+          }
+        ];
+      })
+
+      (group {
+        title = "Peer geography";
+        items = [
+          {
+            panel = "peer_map";
+            width = 24;
+            height = 14;
           }
         ];
       })

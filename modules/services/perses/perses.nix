@@ -174,25 +174,16 @@ in {
       ...
     }: let
       dns = config.identity.homelab.dns;
-      # A storage root need not be its own filesystem -- on a host without a
-      # spare drive it is a directory on /, and systemd generates no `.mount`
-      # for it. Depend on one only when it exists; the `RequiresMountsFor` below
-      # orders against the real mount either way.
       extraStorageMountUnits =
         lib.optional (config.fileSystems ? ${extraStorageRoot})
         "${utils.escapeSystemdPath extraStorageRoot}.mount";
-      # DynamicUser + StateDirectory backs "/var/lib/victoriametrics" with a
-      # private bind mount from "/var/lib/private/victoriametrics" (only
-      # visible inside the service's own mount namespace), so that's the real
-      # path to redirect onto the external drive.
       victoriaMetricsStatePath = "/var/lib/private/victoriametrics";
       victoriaMetricsDataMountUnit = "${utils.escapeSystemdPath victoriaMetricsStatePath}.mount";
       victoriaMetricsDataDir = "${extraStorageRoot}/victoriametrics";
 
-      mapPanel = pkgs.callPackage ../../../perses-map-panel {};
       pluginArchive = pkgs.symlinkJoin {
         name = "perses-plugin-archive-with-map";
-        paths = [pkgs.perses.pluginsArchive mapPanel];
+        paths = [pkgs.perses.pluginsArchive (pkgs.callPackage ./_map-plugin {})];
       };
 
       monitoredHosts =
@@ -336,15 +327,15 @@ in {
         port = persesPort;
         listenAddress = "127.0.0.1";
         settings = {
-          # Perses re-reads the folders on this interval, so an edited-in-place
-          # dashboard reverts rather than drifting away from this repo.
           provisioning = {
             folders = [project datasource] ++ dashboardFiles;
             interval = "1h";
           };
-          # The edge is the only way in, and it authenticates every request;
-          # Perses itself has no users.
-          security.enable_auth = false;
+          security.enable_auth = false; # auth handled by authelia
+          plugin = {
+            archive_path = pluginArchive;
+            path = "/run/perses/plugins";
+          };
         };
       };
 
