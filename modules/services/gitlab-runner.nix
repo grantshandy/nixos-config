@@ -1,6 +1,32 @@
 # The GitLab CI runner, which stages builds on the media pool's spare capacity.
-{config, ...}: {
-  fleet.aspects.gitlab-runner.tags = ["ci"];
+{
+  config,
+  lib,
+  ...
+}: let
+  runnerTag = "ci";
+
+  # The machines the aspect below enrols, which is also what to scrape and what
+  # the dashboard describes -- so none of the three can drift from the others.
+  runnerHosts =
+    config.fleet.hosts
+    |> lib.filterAttrs (_: host: lib.elem runnerTag host.tags)
+    |> lib.attrNames;
+
+  # Named here rather than in the metrics store, because it is this file's
+  # queries that select on it.
+  scrapeJob = "ci-jobs";
+in {
+  fleet.aspects.gitlab-runner.tags = [runnerTag];
+
+  # Job state has to be sampled far more often than the fleet-wide scrape, or a
+  # short build never shows up at all.
+  fleet.monitoring.scrapeJobs.${scrapeJob} = {
+    hosts = runnerHosts;
+    interval = "5s";
+    collectors = ["textfile"];
+    keepMetrics = ["gitlab_runner_.*"];
+  };
 
   flake.modules.nixos.gitlab-runner = ({
     mediaRoot,
@@ -795,133 +821,192 @@
     nodeExporterTextfileDir = config.fleet.monitoring.textfileDir;
   };
 
-  fleet.monitoring.panels.gitlab-runner = {
-    title = "Radon load during GitLab jobs";
-    description = "Radon CPU and memory usage. Shaded regions mark when GitLab Runner was executing a job.";
-    height = 8;
-    order = 3;
-    panel = {
-      type = "timeseries";
-      interval = "5s";
-      datasource = {
-        type = "prometheus";
-        uid = "victoriametrics";
+  fleet.monitoring.dashboards.gitlab-runner = let
+    perses = import ./perses/_lib.nix {inherit lib;};
+    inherit (perses) query timeSeries stat colors mapValue group;
+
+    hosts = "host=~\"${lib.concatStringsSep "|" runnerHosts}\"";
+    jobs = "${hosts},job=\"${scrapeJob}\"";
+
+    # Scaled to the panel's 0-100 axis and drawn as a translucent filled area,
+    # which is how a Perses chart says "a job was running here" -- it has no
+    # equivalent of Grafana's per-series axis overrides.
+    jobShading = query {
+      expr = "100 * max_over_time(gitlab_runner_job_running{${jobs}}[$__rate_interval])";
+      legend = "job running";
+    };
+    shadingStyle = {
+      queryIndex = 0;
+      colorMode = "fixed";
+      colorValue = colors.orange;
+      areaOpacity = 0.3;
+      stack = false;
+    };
+  in {
+    title = "GitLab Runner";
+    duration = "3h";
+
+    panels = {
+      state = stat {
+        name = "Runner";
+        queries = [
+          (query {
+            expr = "gitlab_runner_job_running{${jobs}}";
+            legend = "{{host}}";
+          })
+        ];
+        colorMode = "background_solid";
+        mappings = [
+          (mapValue 0 "Idle" colors.grey)
+          (mapValue 1 "Running a job" colors.orange)
+        ];
       };
-      # The shading query is first (refId A) so it is drawn behind the lines.
-      targets = [
-        {
-          refId = "A";
-          expr = "max_over_time(gitlab_runner_job_info{host=\"radon\",job=\"ci-jobs\"}[$__interval])";
-          legendFormat = "{{job_name}} #{{job_id}}";
-        }
-        {
-          refId = "B";
-          expr = "100 - (avg(rate(node_cpu_seconds_total{host=\"radon\",mode=\"idle\"}[$__rate_interval])) * 100)";
-          legendFormat = "CPU";
-        }
-        {
-          refId = "C";
-          expr = "100 * (1 - node_memory_MemAvailable_bytes{host=\"radon\"} / node_memory_MemTotal_bytes{host=\"radon\"})";
-          legendFormat = "Memory";
-        }
-      ];
-      options.tooltip.mode = "multi";
-      fieldConfig = {
-        defaults = {
-          unit = "percent";
-          min = 0;
-          max = 100;
-        };
-        overrides = [
+
+      since_last_job = stat {
+        name = "Since last job";
+        description = "Time since the most recent job finished.";
+        queries = [
+          (query {
+            expr = "time() - gitlab_runner_job_last_finished_timestamp_seconds{${jobs}} > 0";
+            legend = "{{host}}";
+          })
+        ];
+        unit = "seconds";
+        decimals = 0;
+      };
+
+      last_job_duration = stat {
+        name = "Last job duration";
+        queries = [
+          (query {
+            expr = "gitlab_runner_job_last_finished_timestamp_seconds{${jobs}} - gitlab_runner_job_last_started_timestamp_seconds{${jobs}} > 0";
+            legend = "{{host}}";
+          })
+        ];
+        unit = "seconds";
+        decimals = 0;
+      };
+
+      load = timeSeries {
+        name = "Load during jobs";
+        description = "CPU and memory usage of the runner's host. The shaded band marks when GitLab Runner was executing a job.";
+        queries = [
+          jobShading
+          (query {
+            expr = "100 - (avg by (host) (rate(node_cpu_seconds_total{${hosts},mode=\"idle\"}[$__rate_interval])) * 100)";
+            legend = "CPU";
+          })
+          (query {
+            expr = "100 * (1 - node_memory_MemAvailable_bytes{${hosts}} / node_memory_MemTotal_bytes{${hosts}})";
+            legend = "Memory";
+          })
+        ];
+        unit = "percent";
+        decimals = 0;
+        min = 0;
+        max = 100;
+        querySettings = [
+          shadingStyle
           {
-            matcher = {
-              id = "byFrameRefID";
-              options = "A";
-            };
-            properties = [
-              # A different unit gives this series its own 0-1 y-scale, so the
-              # bars fill the full panel height regardless of the 0-100 scale.
-              {
-                id = "unit";
-                value = "none";
-              }
-              {
-                id = "min";
-                value = 0;
-              }
-              {
-                id = "max";
-                value = 1;
-              }
-              {
-                id = "color";
-                value = {
-                  mode = "shades";
-                  fixedColor = "orange";
-                };
-              }
-              {
-                id = "custom.drawStyle";
-                value = "bars";
-              }
-              {
-                id = "custom.barWidthFactor";
-                value = 1;
-              }
-              {
-                id = "custom.fillOpacity";
-                value = 25;
-              }
-              {
-                id = "custom.lineWidth";
-                value = 0;
-              }
-              {
-                id = "custom.axisPlacement";
-                value = "hidden";
-              }
-              {
-                id = "custom.hideFrom";
-                value = {
-                  legend = true;
-                  tooltip = false;
-                  viz = false;
-                };
-              }
-            ];
+            queryIndex = 1;
+            colorMode = "fixed";
+            colorValue = colors.blue;
           }
           {
-            matcher = {
-              id = "byFrameRefID";
-              options = "B";
-            };
-            properties = [
-              {
-                id = "color";
-                value = {
-                  mode = "fixed";
-                  fixedColor = "blue";
-                };
-              }
-            ];
+            queryIndex = 2;
+            colorMode = "fixed";
+            colorValue = colors.purple;
           }
+        ];
+      };
+
+      build_io = timeSeries {
+        name = "Build I/O";
+        description = "Disk reads above the axis, writes mirrored below it. Builds are mostly write-heavy, into the media pool's build directory.";
+        queries = [
+          (query {
+            expr = "sum by (host) (rate(node_disk_read_bytes_total{${hosts}}[$__rate_interval]))";
+            legend = "{{host}} read";
+          })
+          (query {
+            expr = "sum by (host) (rate(node_disk_written_bytes_total{${hosts}}[$__rate_interval]))";
+            legend = "{{host}} write";
+          })
+        ];
+        unit = "bytes/sec";
+        querySettings = [
+          {queryIndex = 0;}
           {
-            matcher = {
-              id = "byFrameRefID";
-              options = "C";
-            };
-            properties = [
-              {
-                id = "color";
-                value = {
-                  mode = "fixed";
-                  fixedColor = "purple";
-                };
-              }
-            ];
+            queryIndex = 1;
+            negativeY = true;
+          }
+        ];
+      };
+
+      job_rate = timeSeries {
+        name = "Jobs started";
+        description = "Counts transitions of the runner into the busy state, so a tall bar is a burst of pipeline jobs.";
+        queries = [
+          (query {
+            expr = "sum by (host) (changes(gitlab_runner_job_last_started_timestamp_seconds{${jobs}}[$__rate_interval]))";
+            legend = "{{host}}";
+          })
+        ];
+        unit = "decimal";
+        min = 0;
+        visual.display = "bar";
+        querySettings = [
+          {
+            queryIndex = 0;
+            colorMode = "fixed";
+            colorValue = colors.orange;
           }
         ];
       };
     };
+
+    layouts = [
+      (group {
+        title = "Runner";
+        items = [
+          {
+            panel = "state";
+            width = 8;
+            height = 5;
+          }
+          {
+            panel = "since_last_job";
+            width = 8;
+            height = 5;
+          }
+          {
+            panel = "last_job_duration";
+            width = 8;
+            height = 5;
+          }
+          {
+            panel = "load";
+            width = 24;
+            height = 10;
+          }
+        ];
+      })
+
+      (group {
+        title = "Job activity";
+        items = [
+          {
+            panel = "build_io";
+            width = 12;
+            height = 9;
+          }
+          {
+            panel = "job_rate";
+            width = 12;
+            height = 9;
+          }
+        ];
+      })
+    ];
   };
 }

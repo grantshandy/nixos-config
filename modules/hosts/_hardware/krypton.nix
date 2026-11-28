@@ -25,8 +25,7 @@
     options = ["fmask=0077" "dmask=0077"];
   };
 
-  # General-purpose external storage (currently backs VictoriaMetrics; see
-  # grafana.nix). Not dedicated to any one service.
+  # General-purpose external storage
   fileSystems.${extraStorageRoot} = {
     device = "/dev/disk/by-label/extra-usb";
     fsType = "ext4";

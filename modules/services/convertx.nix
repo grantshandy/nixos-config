@@ -57,7 +57,6 @@ in {
       outputHashMode = "recursive";
     };
 
-
     convertxRuntimeTools = with pkgs; [
       ffmpeg-headless
       graphicsmagick

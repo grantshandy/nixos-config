@@ -6,7 +6,11 @@
 # with it and re-points every subscriber. The server and client are separate
 # aspects enrolled by `hosts`/`tags`, which is why neither module contains any
 # "am I the right host?" guard -- it is only ever evaluated where it belongs.
-{config, ...}: let
+{
+  config,
+  lib,
+  ...
+}: let
   webPort = 5030;
   listenPort = 55125;
   media = config.fleet.media;
@@ -465,321 +469,194 @@ in {
     };
   };
 
-  fleet.monitoring.panels.slskd = {
-    title = "slskd uploads";
-    description = "Completed uploads and the all-time uploaded share of the Soulseek library.";
-    height = 8;
-    order = 1;
-    panel = let
-      canvasText = {
-        name,
-        value,
-        top,
-        left,
-        width,
-        align ? "left",
-      }: {
-        inherit name;
-        type = "text";
-        config = {
-          inherit align;
-          valign = "middle";
-          size = 20;
-          text = {
-            fixed = value;
-            mode = "fixed";
-          };
-        };
-        constraint = {
-          horizontal = "left";
-          vertical = "top";
-        };
-        placement = {
-          inherit top left width;
-          height = 38;
-        };
+  fleet.monitoring.dashboards.slskd = let
+    perses = import ../perses/_lib.nix {inherit lib;};
+    inherit (perses) query timeSeries gauge stat thresholds colors group;
+
+    node = "host=\"${media.host}\"";
+
+    # `last_over_time` rather than a bare selector, so these still resolve when
+    # the dashboard is queried between upload events and the heartbeat's last
+    # push happens to fall outside the default lookback.
+    latest = metric: "max(last_over_time(${metric}{${node}}[10m]))";
+    window = metric: range: "max(increase(${metric}{${node}}[${range}]))";
+
+    uploaded = range:
+      stat {
+        name = "Uploaded (${range})";
+        queries = [(query {expr = window "slskd_upload_bytes_total" range;})];
+        unit = "bytes";
+        decimals = 1;
       };
-      canvasMetric = {
-        name,
-        field,
-        top,
-        left,
-        width,
-        align ? "right",
-      }: {
-        inherit name;
-        type = "metric-value";
-        config = {
-          inherit align;
-          valign = "middle";
-          size = 20;
-          text = {
-            inherit field;
-            fixed = "";
-            mode = "field";
-          };
-        };
-        constraint = {
-          horizontal = "left";
-          vertical = "top";
-        };
-        placement = {
-          inherit top left width;
-          height = 38;
-        };
+    files = range:
+      stat {
+        name = "Files (${range})";
+        queries = [(query {expr = window "slskd_upload_files_total" range;})];
+        unit = "decimal";
+        decimals = 0;
       };
-      uploadRow = {
-        prefix,
-        bytesField,
-        filesField,
-        top,
-      }: [
-        (canvasText {
-          name = "${prefix} label";
-          value = "${prefix}:";
-          inherit top;
-          left = 20;
-          width = 90;
-          align = "right";
-        })
-        (canvasMetric {
-          name = "${prefix} bytes";
-          field = bytesField;
-          inherit top;
-          left = 120;
-          width = 120;
-        })
-        (canvasText {
-          name = "${prefix} opening parenthesis";
-          value = "(";
-          inherit top;
-          left = 250;
-          width = 10;
-        })
-        (canvasMetric {
-          name = "${prefix} files";
-          field = filesField;
-          inherit top;
-          left = 260;
-          width = 50;
-        })
-        (canvasText {
-          name = "${prefix} files suffix";
-          value = " Files)";
-          inherit top;
-          left = 310;
-          width = 65;
-        })
-      ];
-    in {
-      type = "canvas";
-      datasource = {
-        type = "prometheus";
-        uid = "victoriametrics";
+  in {
+    title = "Soulseek";
+
+    panels = {
+      uploaded_24h = uploaded "24h";
+      files_24h = files "24h";
+      uploaded_7d = uploaded "7d";
+      files_7d = files "7d";
+
+      uploaded_total = stat {
+        name = "Uploaded (all time)";
+        queries = [(query {expr = latest "slskd_upload_bytes_total";})];
+        unit = "bytes";
+        decimals = 1;
       };
-      targets = [
-        {
-          refId = "A";
-          expr = "increase(slskd_upload_files_total{host=\"${media.host}\"}[24h])";
-          legendFormat = "24h files";
-          instant = true;
-        }
-        {
-          refId = "B";
-          expr = "increase(slskd_upload_bytes_total{host=\"${media.host}\"}[24h])";
-          legendFormat = "24h transferred";
-          instant = true;
-        }
-        {
-          refId = "C";
-          expr = "increase(slskd_upload_files_total{host=\"${media.host}\"}[7d])";
-          legendFormat = "7d files";
-          instant = true;
-        }
-        {
-          refId = "D";
-          expr = "increase(slskd_upload_bytes_total{host=\"${media.host}\"}[7d])";
-          legendFormat = "7d transferred";
-          instant = true;
-        }
-        {
-          # last_over_time rather than a bare instant selector, so this still
-          # resolves if the dashboard is queried between upload events and the
-          # heartbeat's last push happens to fall outside the default lookback.
-          refId = "E";
-          expr = "last_over_time(slskd_upload_files_total{host=\"${media.host}\"}[10m])";
-          legendFormat = "All time files";
-          instant = true;
-        }
-        {
-          refId = "F";
-          expr = "last_over_time(slskd_upload_bytes_total{host=\"${media.host}\"}[10m])";
-          legendFormat = "All time transferred";
-          instant = true;
-        }
-        {
-          refId = "G";
-          expr = "100 * max by (host) (last_over_time(slskd_upload_bytes_total{host=\"${media.host}\"}[10m])) / max by (host) (last_over_time(slskd_library_bytes{host=\"${media.host}\"}[10m])";
-          legendFormat = "Share percentage";
-          instant = true;
-        }
-      ];
-      options = {
-        inlineEditing = false;
-        panZoom = false;
-        showAdvancedTypes = false;
-        zoomToContent = false;
-        tooltip = {
-          mode = "single";
-          disableForOneClick = true;
-        };
-        root = {
-          name = "Upload summary";
-          type = "frame";
-          elements =
-            uploadRow {
-              prefix = "24h";
-              bytesField = "24h transferred";
-              filesField = "24h files";
-              top = 0;
-            }
-            ++ uploadRow {
-              prefix = "7d";
-              bytesField = "7d transferred";
-              filesField = "7d files";
-              top = 42;
-            }
-            ++ uploadRow {
-              prefix = "all time";
-              bytesField = "All time transferred";
-              filesField = "All time files";
-              top = 84;
-            }
-            ++ [
-              (canvasText {
-                name = "Share percentage label";
-                value = "share percentage:";
-                top = 134;
-                left = 20;
-                width = 180;
-                align = "right";
-              })
-              (canvasMetric {
-                name = "Share percentage";
-                field = "Share percentage";
-                top = 134;
-                left = 210;
-                width = 100;
-                align = "left";
-              })
-            ];
-        };
+
+      files_total = stat {
+        name = "Files (all time)";
+        queries = [(query {expr = latest "slskd_upload_files_total";})];
+        unit = "decimal";
+        decimals = 0;
       };
-      fieldConfig = {
-        defaults.decimals = 0;
-        overrides = [
+
+      library_size = stat {
+        name = "Library size";
+        queries = [(query {expr = latest "slskd_library_bytes";})];
+        unit = "bytes";
+        decimals = 1;
+      };
+
+      share = gauge {
+        name = "Uploaded share";
+        description = "All-time uploaded bytes as a share of the shared library's size, i.e. how much of the library has been sent out at least once over. The gauge caps at 100%; the figure itself can exceed it.";
+        queries = [
+          (query {
+            expr = "100 * ${latest "slskd_upload_bytes_total"} / ${latest "slskd_library_bytes"}";
+          })
+        ];
+        unit = "percent";
+        decimals = 1;
+        max = 100;
+        thresholds = thresholds [
           {
-            matcher = {
-              id = "byFrameRefID";
-              options = "B";
-            };
-            properties = [
-              {
-                id = "unit";
-                value = "bytes";
-              }
-            ];
+            value = 0;
+            color = colors.blue;
           }
           {
-            matcher = {
-              id = "byFrameRefID";
-              options = "D";
-            };
-            properties = [
-              {
-                id = "unit";
-                value = "bytes";
-              }
-            ];
+            value = 50;
+            color = colors.green;
           }
+        ];
+      };
+
+      upload_rate = timeSeries {
+        name = "Upload throughput";
+        description = ''
+          Outbound traffic on ${media.host}'s physical interface. Scraped
+          continuously (unlike the event-driven `slskd_upload_bytes_total`
+          push), so the line keeps moving between uploads instead of going
+          stale. Excludes tailscale0 the same way the fleet overview's network
+          panel does, since slskd's Soulseek peers aren't reached over the
+          tailnet.
+        '';
+        queries = [
+          (query {
+            expr = "sum(rate(node_network_transmit_bytes_total{${node},device!~\"lo|tailscale0\"}[$__rate_interval]))";
+            legend = "${media.host} tx";
+          })
+        ];
+        unit = "bytes/sec";
+        min = 0;
+      };
+
+      upload_volume = timeSeries {
+        name = "Uploaded bytes";
+        description = ''
+          How much slskd finished sending, as a bar per time bucket rather than
+          a rate: an upload completes at an instant, so dividing it by a window
+          would report a throughput that was never actually sustained. Zooming
+          out widens the buckets, which merges nearby uploads into one bar.
+        '';
+        queries = [
+          (query {
+            expr = "increase(slskd_upload_bytes_total{${node}}[$__rate_interval])";
+            legend = "uploaded";
+          })
+        ];
+        unit = "bytes";
+        min = 0;
+        visual.display = "bar";
+        querySettings = [
           {
-            matcher = {
-              id = "byFrameRefID";
-              options = "F";
-            };
-            properties = [
-              {
-                id = "unit";
-                value = "bytes";
-              }
-            ];
-          }
-          {
-            matcher = {
-              id = "byFrameRefID";
-              options = "G";
-            };
-            properties = [
-              {
-                id = "unit";
-                value = "percent";
-              }
-              {
-                id = "decimals";
-                value = 1;
-              }
-            ];
+            queryIndex = 0;
+            colorMode = "fixed";
+            colorValue = colors.orange;
           }
         ];
       };
     };
-  };
 
-  fleet.monitoring.panels.slskd-upload-events = {
-    title = "slskd upload events";
-    description = "Outbound traffic on ${media.host}'s physical interface, with a vertical line at each completed slskd upload.";
-    height = 8;
-    order = 2;
-    panel = {
-      type = "timeseries";
-      datasource = {
-        type = "prometheus";
-        uid = "victoriametrics";
-      };
-      targets = [
-        {
-          # Scraped continuously (unlike the event-driven slskd_upload_bytes_total
-          # push), so the line keeps moving between uploads instead of going
-          # stale. Excludes tailscale0 the same way the "Network traffic" panel
-          # does, since slskd's Soulseek peers aren't reached over the tailnet.
-          refId = "A";
-          expr = "sum(rate(node_network_transmit_bytes_total{host=\"${media.host}\",device!~\"lo|tailscale0\"}[$__rate_interval]))";
-          legendFormat = "${media.host} tx";
-        }
-      ];
-      fieldConfig = {
-        defaults = {
-          unit = "Bps";
-          min = 0;
-        };
-        overrides = [];
-      };
-    };
-    annotations = [
-      {
-        datasource = {
-          type = "prometheus";
-          uid = "victoriametrics";
-        };
-        enable = true;
-        iconColor = "orange";
-        name = "slskd upload events";
-        target = {
-          expr = "changes(slskd_upload_files_total{host=\"${media.host}\"}[1m]) > 0";
-          refId = "Anno";
-        };
-        titleFormat = "Upload completed";
-      }
+    layouts = [
+      (group {
+        title = "Uploads";
+        items = [
+          {
+            panel = "uploaded_24h";
+            width = 6;
+            height = 5;
+          }
+          {
+            panel = "files_24h";
+            width = 6;
+            height = 5;
+          }
+          {
+            panel = "uploaded_7d";
+            width = 6;
+            height = 5;
+          }
+          {
+            panel = "files_7d";
+            width = 6;
+            height = 5;
+          }
+          {
+            panel = "uploaded_total";
+            width = 6;
+            height = 5;
+          }
+          {
+            panel = "files_total";
+            width = 6;
+            height = 5;
+          }
+          {
+            panel = "library_size";
+            width = 6;
+            height = 5;
+          }
+          {
+            panel = "share";
+            width = 6;
+            height = 5;
+          }
+        ];
+      })
+
+      (group {
+        title = "Upload activity";
+        items = [
+          {
+            panel = "upload_rate";
+            width = 12;
+            height = 9;
+          }
+          {
+            panel = "upload_volume";
+            width = 12;
+            height = 9;
+          }
+        ];
+      })
     ];
   };
 }

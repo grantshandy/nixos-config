@@ -11,8 +11,15 @@ in {
     description = "Directory node_exporter scrapes for textfile-collector metrics.";
   };
 
+  options.fleet.monitoring.exporterPort = lib.mkOption {
+    type = lib.types.port;
+    readOnly = true;
+    description = "Port every host's node_exporter listens on, i.e. what the metrics store scrapes.";
+  };
+
   config = {
     fleet.monitoring.textfileDir = textfileDir;
+    fleet.monitoring.exporterPort = exporterPort;
     fleet.aspects.node-exporter.default = true;
 
     flake.modules.nixos.node-exporter = {pkgs, ...}: let

@@ -6,9 +6,15 @@
 }: let
   fleet = config.fleet;
 
+  llmTag = "llm";
+
+  # Named here rather than in the metrics store, because it is this file's
+  # queries that select on it.
+  scrapeJob = "llm-metrics";
+
   llmHosts =
     fleet.hosts
-    |> lib.filterAttrs (_: host: lib.elem "llm" host.tags)
+    |> lib.filterAttrs (_: host: lib.elem llmTag host.tags)
     |> lib.attrNames;
 
   llmHost =
@@ -44,7 +50,16 @@ in {
     public = false;
   };
 
-  fleet.aspects.local-llm.tags = ["llm"];
+  fleet.aspects.local-llm.tags = [llmTag];
+
+  # The metrics writer samples the GPU every two seconds; scraping at the
+  # fleet-wide interval would throw most of that away.
+  fleet.monitoring.scrapeJobs.${scrapeJob} = {
+    hosts = [llmHost];
+    interval = "5s";
+    collectors = ["textfile"];
+    keepMetrics = ["llama_cpp_.*" "amdgpu_.*"];
+  };
 
   flake.modules.nixos.local-llm =
     ({
@@ -462,163 +477,232 @@ in {
     };
   };
 
-  fleet.monitoring.panels.local-llm = {
-    title = "Xenon load during local LLM activity";
-    description = "Xenon CPU, memory, GPU utilization, and GPU VRAM usage. Shaded regions mark when llama-cpp was active.";
-    height = 9;
-    order = 4;
-    panel = {
-      type = "timeseries";
-      interval = "5s";
-      datasource = {
-        type = "prometheus";
-        uid = "victoriametrics";
+  fleet.monitoring.dashboards.local-llm = let
+    perses = import ./perses/_lib.nix {inherit lib;};
+    inherit (perses) query timeSeries gauge stat thresholds colors mapValue group;
+
+    node = "host=\"${llmHost}\"";
+    llm = "${node},job=\"${scrapeJob}\"";
+
+    # Scaled to the panel's 0-100 axis and drawn as a translucent filled area,
+    # which is how a Perses chart says "the model was resident here" -- it has
+    # no equivalent of Grafana's per-series axis overrides.
+    activityShading = query {
+      expr = "100 * max_over_time(llama_cpp_info{${llm}}[$__rate_interval])";
+      legend = "llama-cpp ({{model}})";
+    };
+  in {
+    title = "Local LLM";
+    duration = "3h";
+
+    panels = {
+      state = stat {
+        name = "Model";
+        description = "Active while llama.cpp holds ${model.displayName} in memory; idle once it sleeps or unloads.";
+        queries = [(query {expr = "llama_cpp_active{${llm}}";})];
+        colorMode = "background_solid";
+        mappings = [
+          (mapValue 0 "Sleeping" colors.grey)
+          (mapValue 1 "Resident" colors.green)
+        ];
       };
-      targets = [
-        {
-          refId = "A";
-          expr = "max_over_time(llama_cpp_info{host=\"xenon\",job=\"llm-metrics\"}[$__interval])";
-          legendFormat = "llama-cpp ({{model}})";
-        }
-        {
-          refId = "B";
-          expr = "100 - (avg(rate(node_cpu_seconds_total{host=\"xenon\",mode=\"idle\"}[$__rate_interval])) * 100)";
-          legendFormat = "CPU";
-        }
-        {
-          refId = "C";
-          expr = "100 * (1 - node_memory_MemAvailable_bytes{host=\"xenon\"} / node_memory_MemTotal_bytes{host=\"xenon\"})";
-          legendFormat = "Memory";
-        }
-        {
-          refId = "D";
-          expr = "max_over_time(amdgpu_gpu_busy_percent{host=\"xenon\",job=\"llm-metrics\"}[$__interval])";
-          legendFormat = "GPU";
-        }
-        {
-          refId = "E";
-          expr = "100 * max_over_time(amdgpu_vram_used_bytes{host=\"xenon\",job=\"llm-metrics\"}[$__interval]) / max_over_time(amdgpu_vram_total_bytes{host=\"xenon\",job=\"llm-metrics\"}[$__interval])";
-          legendFormat = "GPU VRAM";
-        }
-      ];
-      options.tooltip.mode = "multi";
-      fieldConfig = {
-        defaults = {
-          unit = "percent";
-          min = 0;
-          max = 100;
-          custom.spanNulls = true;
-        };
-        overrides = [
+
+      since_last_active = stat {
+        name = "Since last active";
+        queries = [(query {expr = "time() - llama_cpp_last_finished_timestamp_seconds{${llm}} > 0";})];
+        unit = "seconds";
+        decimals = 0;
+      };
+
+      gpu_busy_now = gauge {
+        name = "GPU busy";
+        queries = [(query {expr = "amdgpu_gpu_busy_percent{${llm}}";})];
+        unit = "percent";
+        decimals = 0;
+        max = 100;
+        thresholds = thresholds [
           {
-            matcher = {
-              id = "byFrameRefID";
-              options = "A";
-            };
-            properties = [
-              {
-                id = "unit";
-                value = "none";
-              }
-              {
-                id = "min";
-                value = 0;
-              }
-              {
-                id = "max";
-                value = 1;
-              }
-              {
-                id = "color";
-                value = {
-                  mode = "shades";
-                  fixedColor = "orange";
-                };
-              }
-              {
-                id = "custom.drawStyle";
-                value = "bars";
-              }
-              {
-                id = "custom.barWidthFactor";
-                value = 1;
-              }
-              {
-                id = "custom.fillOpacity";
-                value = 25;
-              }
-              {
-                id = "custom.lineWidth";
-                value = 0;
-              }
-              {
-                id = "custom.axisPlacement";
-                value = "hidden";
-              }
-            ];
+            value = 0;
+            color = colors.green;
           }
           {
-            matcher = {
-              id = "byFrameRefID";
-              options = "B";
-            };
-            properties = [
-              {
-                id = "color";
-                value = {
-                  mode = "fixed";
-                  fixedColor = "blue";
-                };
-              }
-            ];
+            value = 80;
+            color = colors.orange;
+          }
+        ];
+      };
+
+      vram_used_now = gauge {
+        name = "VRAM used";
+        queries = [(query {expr = "100 * amdgpu_vram_used_bytes{${llm}} / amdgpu_vram_total_bytes{${llm}}";})];
+        unit = "percent";
+        decimals = 0;
+        max = 100;
+        thresholds = thresholds [
+          {
+            value = 0;
+            color = colors.green;
           }
           {
-            matcher = {
-              id = "byFrameRefID";
-              options = "C";
-            };
-            properties = [
-              {
-                id = "color";
-                value = {
-                  mode = "fixed";
-                  fixedColor = "purple";
-                };
-              }
-            ];
+            value = 90;
+            color = colors.orange;
+          }
+        ];
+      };
+
+      load = timeSeries {
+        name = "Load during inference";
+        description = "${llmHost}'s CPU, memory, GPU utilization and GPU VRAM usage. The shaded band marks when llama-cpp was active.";
+        queries = [
+          activityShading
+          (query {
+            expr = "100 - (avg by (host) (rate(node_cpu_seconds_total{${node},mode=\"idle\"}[$__rate_interval])) * 100)";
+            legend = "CPU";
+          })
+          (query {
+            expr = "100 * (1 - node_memory_MemAvailable_bytes{${node}} / node_memory_MemTotal_bytes{${node}})";
+            legend = "Memory";
+          })
+          (query {
+            expr = "amdgpu_gpu_busy_percent{${llm}}";
+            legend = "GPU";
+          })
+          (query {
+            expr = "100 * amdgpu_vram_used_bytes{${llm}} / amdgpu_vram_total_bytes{${llm}}";
+            legend = "GPU VRAM";
+          })
+        ];
+        unit = "percent";
+        decimals = 0;
+        min = 0;
+        max = 100;
+        visual.connectNulls = true;
+        querySettings = [
+          {
+            queryIndex = 0;
+            colorMode = "fixed";
+            colorValue = colors.orange;
+            areaOpacity = 0.3;
+            stack = false;
           }
           {
-            matcher = {
-              id = "byFrameRefID";
-              options = "D";
-            };
-            properties = [
-              {
-                id = "color";
-                value = {
-                  mode = "fixed";
-                  fixedColor = "green";
-                };
-              }
-            ];
+            queryIndex = 1;
+            colorMode = "fixed";
+            colorValue = colors.blue;
           }
           {
-            matcher = {
-              id = "byFrameRefID";
-              options = "E";
-            };
-            properties = [
-              {
-                id = "color";
-                value = {
-                  mode = "fixed";
-                  fixedColor = "yellow";
-                };
-              }
-            ];
+            queryIndex = 2;
+            colorMode = "fixed";
+            colorValue = colors.purple;
+          }
+          {
+            queryIndex = 3;
+            colorMode = "fixed";
+            colorValue = colors.green;
+          }
+          {
+            queryIndex = 4;
+            colorMode = "fixed";
+            colorValue = colors.yellow;
+          }
+        ];
+      };
+
+      vram = timeSeries {
+        name = "VRAM";
+        description = "Absolute VRAM figures, so a model that no longer fits is obvious.";
+        queries = [
+          (query {
+            expr = "amdgpu_vram_used_bytes{${llm}}";
+            legend = "used";
+          })
+          (query {
+            expr = "amdgpu_vram_total_bytes{${llm}}";
+            legend = "total";
+          })
+        ];
+        unit = "bytes";
+        min = 0;
+        visual.connectNulls = true;
+        querySettings = [
+          {
+            queryIndex = 1;
+            colorMode = "fixed";
+            colorValue = colors.grey;
+            lineStyle = "dashed";
+          }
+        ];
+      };
+
+      sessions = timeSeries {
+        name = "Model wake-ups";
+        description = "Counts transitions into the resident state, which is one request arriving after an idle period.";
+        queries = [
+          (query {
+            expr = "changes(llama_cpp_last_started_timestamp_seconds{${llm}}[$__rate_interval])";
+            legend = "wake-ups";
+          })
+        ];
+        unit = "decimal";
+        min = 0;
+        visual.display = "bar";
+        querySettings = [
+          {
+            queryIndex = 0;
+            colorMode = "fixed";
+            colorValue = colors.orange;
           }
         ];
       };
     };
+
+    layouts = [
+      (group {
+        title = "Model";
+        items = [
+          {
+            panel = "state";
+            width = 6;
+            height = 5;
+          }
+          {
+            panel = "since_last_active";
+            width = 6;
+            height = 5;
+          }
+          {
+            panel = "gpu_busy_now";
+            width = 6;
+            height = 5;
+          }
+          {
+            panel = "vram_used_now";
+            width = 6;
+            height = 5;
+          }
+          {
+            panel = "load";
+            width = 24;
+            height = 11;
+          }
+        ];
+      })
+
+      (group {
+        title = "GPU and activity";
+        items = [
+          {
+            panel = "vram";
+            width = 12;
+            height = 9;
+          }
+          {
+            panel = "sessions";
+            width = 12;
+            height = 9;
+          }
+        ];
+      })
+    ];
   };
 }
