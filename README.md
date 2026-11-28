@@ -18,9 +18,10 @@ Desktop features:
 
 ## Devices
 
-| Host | Device | Primary role |
-| --- | --- | --- |
-| Helium | Laptop | Personal laptop |
-| Xenon | Desktop PC | Personal desktop workstation |
-| Krypton | Edge server | HTTPS ingress and tailnet control plane |
-| Radon | Home server | Application server, storage, and always-on build worker |
+| Host    | Device          | Primary role                                            | CPU                | RAM   | GPU                        | Storage       |
+| ------- | --------------- | ------------------------------------------------------- | ------------------ | ----- | -------------------------- | ------------- |
+| Helium  | Laptop          | Personal laptop                                         | 8 x Ryzen 7 5700U  | 16 GB | Integrated Radeon Lucienne | 256 GB        |
+| Xenon   | Desktop PC      | Personal desktop workstation                            | 12 x Ryzen 9 5900X | 48 GB | AMD Radeon RX 6600         | 1 TB          |
+| Krypton | Edge server     | HTTPS ingress and tailnet control plane                 | 4 x Celeron J4105  | 4 GB  | Integrated Intel UHD 600   | 15 GB + 64 GB |
+| Neon    | Headless laptop | CI builder and binary cache                             | 8 x Ryzen 7 4700U  | 16 GB | Integrated Radeon Vega     | 512 GB        |
+| Radon   | Home server     | Application server, storage, and always-on build worker | 6 x Ryzen 5 1600   | 8 GB  | NVIDIA GeForce GT 1030     | 128 GB + 2TB  |
