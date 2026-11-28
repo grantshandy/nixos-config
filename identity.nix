@@ -19,6 +19,7 @@
       radon = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEjjPwIi6YaqCNSnBv0GR4x7u66rCgehBUdSMR5DRKPf root@radon";
       xenon = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAeo58eXx9y4YGGJMVGyqqJhWn+NiRz32igHrwfWDLKa root@xenon";
       helium = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAQYJFEU5WI9L1/YHxpai37pINsj6iQHLH6HZc/U/BAi root@helium";
+      neon = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII2Xj3zkcjeTRzxrgOvV3dIPeeyi131qWawF6Pum18C/ root@neon";
     };
   };
 

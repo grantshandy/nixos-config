@@ -8,6 +8,7 @@
 
     ssh = {
       enable = true;
+      targetHost = "192.168.86.27";
       port = 22;
     };
   };

@@ -279,9 +279,10 @@ in {
 
       # Store VictoriaMetrics' data on the external USB drive rather than the
       # SD card, by bind-mounting its data directory onto the drive. The
-      # subdirectory has to exist before the bind mount runs, which is why it
-      # waits on tmpfiles (which itself waits on extraStorageRoot, since
-      # systemd-tmpfiles-setup.service runs After=local-fs.target).
+      # subdirectory has to exist before the bind mount runs, so the mount waits
+      # on tmpfiles. Starting it through multi-user.target keeps it out of the
+      # local-fs.target transaction and avoids an ordering cycle: tmpfiles runs
+      # after local-fs.target.
       systemd.tmpfiles.rules = [
         "d ${victoriaMetricsDataDir} 0700 root root - -"
       ];
@@ -289,7 +290,11 @@ in {
       fileSystems.${victoriaMetricsStatePath} = {
         device = victoriaMetricsDataDir;
         fsType = "none";
-        options = ["bind" "x-systemd.after=systemd-tmpfiles-setup.service"];
+        options = [
+          "bind"
+          "x-systemd.after=systemd-tmpfiles-setup.service"
+          "x-systemd.wanted-by=multi-user.target"
+        ];
       };
 
       systemd.services.victoriametrics = {

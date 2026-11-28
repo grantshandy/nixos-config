@@ -83,6 +83,11 @@ in {
               type = types.bool;
               default = false;
             };
+            targetHost = mkOption {
+              type = types.nullOr types.str;
+              default = null;
+              description = "SSH address used by Colmena; defaults to the fleet host name.";
+            };
             port = mkOption {
               type = types.port;
               default = 22;
