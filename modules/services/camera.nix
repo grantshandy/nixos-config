@@ -17,6 +17,24 @@
   # the same thing the directory page and Authelia do.
   onEdge = service.host == config.fleet.edgeHost;
 
+  # The edge attaches forward-auth only to the services it fronts for *other*
+  # machines, so a virtual host published here has to carry the policy itself.
+  # Without this the registry would claim the feed is authenticated and Authelia
+  # would hold a rule for it, while Caddy never consulted either -- a camera
+  # open to the internet that reads as protected. Keyed off `auth` so the two
+  # cannot drift apart.
+  #
+  # This is the "session" directive; "backend" exists for services whose own API
+  # credentials must survive the authorization subrequest, which go2rtc has none
+  # of.
+  authDirective = lib.optionalString (service.auth != "none") ''
+    forward_auth 127.0.0.1:9091 {
+      uri /api/authz/forward-auth
+      header_up X-Forwarded-Proto https
+      copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
+    }
+  '';
+
   # The AUKEY PC-LM1E registers two /dev/video* nodes and only the first of them
   # can capture, so a udev rule pins the capture node to a stable name rather
   # than trusting the enumeration order that gave it /dev/video0 this boot.
@@ -44,6 +62,12 @@ in {
     description = "Live webcam feed";
     subdomain = "camera";
     localProxy.port = port;
+
+    # go2rtc has no authentication of its own, and a camera pointed at the house
+    # is the last thing that should be reachable by anyone who resolves the
+    # hostname. "session" puts it behind Authelia's two-factor policy; the
+    # browser-only MSE player works fine through forward-auth.
+    auth = "session";
   };
 
   flake.modules.nixos.Camera = {
@@ -112,7 +136,10 @@ in {
     # Only reached when the camera lives on the edge; everywhere else the
     # host-proxy routes to it from `localProxy.port` above.
     services.caddy.virtualHosts = lib.optionalAttrs onEdge {
-      ${service.fqdn}.extraConfig = "reverse_proxy 127.0.0.1:${toString port}";
+      ${service.fqdn}.extraConfig = ''
+        ${authDirective}
+        reverse_proxy 127.0.0.1:${toString port}
+      '';
     };
 
     # go2rtc runs as a DynamicUser; `video` comes from the upstream module for

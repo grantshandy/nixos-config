@@ -46,23 +46,18 @@ in {
             '';
           };
 
-          mediaRoot = mkOption {
-            type = types.nullOr types.path;
-            default = null;
-            description = ''
-              Mount point of this host's bulk media pool. Services that store
-              libraries on it derive their own directories from this, so the
-              pool can be relocated in one place.
-            '';
-          };
-
           extraStorageRoot = mkOption {
-            type = types.nullOr types.path;
-            default = null;
+            type = types.path;
             description = ''
-              Mount point of this host's general-purpose extra storage (e.g. a
-              USB drive), not dedicated to any one service. Services that want
-              a slice of it derive their own subdirectory from this.
+              Where services on this host put data that should not live in
+              /var/lib: bulk libraries, caches, CI build trees. Services that
+              want a slice of it derive their own subdirectory from this, so a
+              service follows its tag onto any machine without naming a path.
+
+              Every host declares one even if nothing currently uses it. It need
+              not be a separate drive -- a plain directory on the root
+              filesystem is a valid answer for a host with no spare spindle, and
+              consumers must not assume there is a mount unit behind it.
             '';
           };
 

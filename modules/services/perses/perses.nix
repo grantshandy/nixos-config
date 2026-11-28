@@ -174,7 +174,13 @@ in {
       ...
     }: let
       dns = config.identity.homelab.dns;
-      extraUsbMountUnit = "${utils.escapeSystemdPath extraStorageRoot}.mount";
+      # A storage root need not be its own filesystem -- on a host without a
+      # spare drive it is a directory on /, and systemd generates no `.mount`
+      # for it. Depend on one only when it exists; the `RequiresMountsFor` below
+      # orders against the real mount either way.
+      extraStorageMountUnits =
+        lib.optional (config.fileSystems ? ${extraStorageRoot})
+        "${utils.escapeSystemdPath extraStorageRoot}.mount";
       # DynamicUser + StateDirectory backs "/var/lib/victoriametrics" with a
       # private bind mount from "/var/lib/private/victoriametrics" (only
       # visible inside the service's own mount namespace), so that's the real
@@ -182,6 +188,12 @@ in {
       victoriaMetricsStatePath = "/var/lib/private/victoriametrics";
       victoriaMetricsDataMountUnit = "${utils.escapeSystemdPath victoriaMetricsStatePath}.mount";
       victoriaMetricsDataDir = "${extraStorageRoot}/victoriametrics";
+
+      mapPanel = pkgs.callPackage ../../../perses-map-panel {};
+      pluginArchive = pkgs.symlinkJoin {
+        name = "perses-plugin-archive-with-map";
+        paths = [pkgs.perses.pluginsArchive mapPanel];
+      };
 
       monitoredHosts =
         hosts
@@ -270,13 +282,6 @@ in {
 
       dashboardFiles = map dashboardFile (lib.attrValues dashboards);
     in {
-      assertions = [
-        {
-          assertion = extraStorageRoot != null;
-          message = "Perses's host (${persesService.host}) needs fleet.hosts.${persesService.host}.extraStorageRoot set, since VictoriaMetrics' data directory is bind-mounted onto it.";
-        }
-      ];
-
       # Store VictoriaMetrics' data on the external USB drive rather than the
       # SD card, by bind-mounting its data directory onto the drive. The
       # subdirectory has to exist before the bind mount runs, so the mount waits
@@ -298,8 +303,8 @@ in {
       };
 
       systemd.services.victoriametrics = {
-        bindsTo = [extraUsbMountUnit victoriaMetricsDataMountUnit];
-        after = [extraUsbMountUnit victoriaMetricsDataMountUnit];
+        bindsTo = extraStorageMountUnits ++ [victoriaMetricsDataMountUnit];
+        after = extraStorageMountUnits ++ [victoriaMetricsDataMountUnit];
         unitConfig.RequiresMountsFor = [extraStorageRoot victoriaMetricsStatePath];
       };
 

@@ -1,4 +1,4 @@
-# The GitLab CI runner, which stages builds on the media pool's spare capacity.
+# The GitLab CI runner, which stages builds on its host's extra storage.
 {
   config,
   lib,
@@ -13,11 +13,17 @@
     |> lib.filterAttrs (_: host: lib.elem runnerTag host.tags)
     |> lib.attrNames;
 
+  runnerHost =
+    if lib.length runnerHosts == 1
+    then lib.head runnerHosts
+    else throw "Exactly one host must be tagged '${runnerTag}' for the desktop VPN helper, found: ${lib.concatStringsSep ", " runnerHosts}.";
+
   # Named here rather than in the metrics store, because it is this file's
   # queries that select on it.
   scrapeJob = "ci-jobs";
 in {
   fleet.aspects.gitlab-runner.tags = [runnerTag];
+  fleet.aspects.vpn-gitlab-runner.tags = ["desktop"];
 
   # Job state has to be sampled far more often than the fleet-wide scrape, or a
   # short build never shows up at all.
@@ -28,8 +34,134 @@ in {
     keepMetrics = ["gitlab_runner_.*"];
   };
 
+  flake.modules.homeManager.vpn-gitlab-runner = {
+    lib,
+    pkgs,
+    ...
+  }: let
+    tokenAvailable = builtins.pathExists ../../secrets/gitlab-runner-token.age;
+    serviceName = "uofu-runner-vpn-monitor";
+    vpnServer = "vpn.utah.edu";
+
+    monitor = pkgs.writeShellApplication {
+      name = serviceName;
+      runtimeInputs = with pkgs; [coreutils libnotify openssh];
+      text = ''
+        state_dir="''${XDG_STATE_HOME:-$HOME/.local/state}/${serviceName}"
+        state_file="$state_dir/status"
+        mkdir -p "$state_dir"
+
+        status=""
+        if ! status="$(ssh \
+          -o BatchMode=yes \
+          -o ConnectTimeout=10 \
+          -o ServerAliveInterval=5 \
+          ${runnerHost} \
+          sudo -n uofu-ci-status 2>/dev/null)"; then
+          status="''${status:-ssh-unreachable}"
+        fi
+        previous="$(cat "$state_file" 2>/dev/null || true)"
+
+        if [ "$status" = active ]; then
+          rm -f "$state_file"
+          exit 0
+        fi
+        if [ "$status" = "$previous" ]; then
+          exit 0
+        fi
+
+        printf '%s\n' "$status" >"$state_file"
+        case "$status" in
+          needs-auth)
+            notify-send \
+              --urgency=critical \
+              --app-name="GitLab Runner" \
+              "${runnerHost} VPN needs authentication" \
+              "Run ‘uofu-runner-vpn renew’ to reconnect the GitLab runner."
+            ;;
+          unreachable)
+            notify-send \
+              --urgency=normal \
+              --app-name="GitLab Runner" \
+              "${runnerHost} GitLab endpoint is unreachable" \
+              "The VPN is connected, but the private GitLab server did not respond."
+            ;;
+          misconfigured)
+            notify-send \
+              --urgency=critical \
+              --app-name="GitLab Runner" \
+              "${runnerHost} GitLab runner is misconfigured" \
+              "CI_SERVER_URL is missing or invalid in the runner credential."
+            ;;
+          ssh-unreachable)
+            notify-send \
+              --urgency=normal \
+              --app-name="GitLab Runner" \
+              "Cannot reach ${runnerHost}’s GitLab runner" \
+              "The status check could not connect to ${runnerHost} over SSH."
+            ;;
+          *)
+            notify-send \
+              --urgency=normal \
+              --app-name="GitLab Runner" \
+              "Cannot check ${runnerHost}’s GitLab runner" \
+              "SSH or the ${runnerHost} status helper is unavailable."
+            ;;
+        esac
+      '';
+    };
+
+    command = pkgs.writeShellApplication {
+      name = "uofu-runner-vpn";
+      runtimeInputs = [pkgs.gp-saml-gui pkgs.openssh];
+      text = ''
+        case "''${1:-}" in
+          renew)
+            echo "Complete the University of Utah login in the local window."
+            auth="$(${lib.getExe pkgs.gp-saml-gui} -g --clientos Windows ${vpnServer})"
+            eval "$auth"
+            : "''${HOST:?Missing VPN host}"
+            : "''${USER:?Missing VPN user}"
+            : "''${COOKIE:?Missing VPN cookie}"
+            : "''${OS:?Missing VPN OS}"
+            printf '%s\n%s\n%s\n%s\n' "$HOST" "$USER" "$COOKIE" "$OS" |
+              ssh ${runnerHost} sudo -n uofu-ci-submit-auth
+            ;;
+          status)
+            exec ssh ${runnerHost} sudo -n uofu-ci-status
+            ;;
+          *)
+            echo "Usage: uofu-runner-vpn {renew|status}" >&2
+            exit 2
+            ;;
+        esac
+      '';
+    };
+  in
+    lib.mkIf tokenAvailable {
+      home.packages = [command];
+
+      systemd.user.services.${serviceName} = {
+        Unit.Description = "Check ${runnerHost}'s University VPN GitLab runner";
+        Service = {
+          Type = "oneshot";
+          ExecStart = lib.getExe monitor;
+        };
+      };
+
+      systemd.user.timers.${serviceName} = {
+        Unit.Description = "Periodically check ${runnerHost}'s University VPN GitLab runner";
+        Timer = {
+          OnBootSec = "2m";
+          OnUnitActiveSec = "5m";
+          Persistent = true;
+        };
+        Install.WantedBy = ["timers.target"];
+      };
+    };
+
   flake.modules.nixos.gitlab-runner = ({
-    mediaRoot,
+    storageRoots,
     nodeExporterTextfileDir,
   }: {
     config,
@@ -42,6 +174,7 @@ in {
     tokenAvailable = builtins.pathExists tokenFile;
 
     namespace = "uofu-ci";
+    hostName = config.networking.hostName;
     hostInterface = "${namespace}-host";
     hostAddress = "10.203.0.1";
     namespaceInterface = "${namespace}-peer";
@@ -49,10 +182,23 @@ in {
     nixCacheProxyPort = 6000;
     runtimeDir = "/run/${namespace}";
     podmanRuntimeDir = "/run/${namespace}-podman";
-    mediaMount = mediaRoot;
-    mediaMountUnit = "${utils.escapeSystemdPath mediaMount}.mount";
-    runnerBuildDir = "${mediaMount}/gitlab-runner-builds";
-    runnerCacheDir = "${mediaMount}/gitlab-runner-cache";
+    # The runner follows the "ci" tag, so its build tree comes from whichever
+    # machine it landed on rather than from the media pool it used to borrow.
+    storageRoot =
+      storageRoots.${hostName}
+      or (throw "CI host '${hostName}' is missing from the fleet storage registry");
+
+    # That root is not necessarily its own filesystem: on a host with no spare
+    # drive it is just a directory on /. Depend on a mount unit only when one
+    # exists, or the units below would wait forever on a `.mount` that systemd
+    # never generates. The `RequiresMountsFor` already on each unit covers both
+    # shapes, resolving to the real mount or to `-.mount`.
+    storageMountUnits =
+      lib.optional (builtins.hasAttr storageRoot config.fileSystems)
+      "${utils.escapeSystemdPath storageRoot}.mount";
+
+    runnerBuildDir = "${storageRoot}/gitlab-runner-builds";
+    runnerCacheDir = "${storageRoot}/gitlab-runner-cache";
     gitlabCacheDir = "${runnerCacheDir}/gitlab";
     podmanDataDir = "${runnerCacheDir}/podman";
     podmanNetworkDir = "${podmanDataDir}/networks";
@@ -193,7 +339,7 @@ in {
       text = ''
         for field in host user cookie os; do
           if [ ! -s "${runtimeDir}/$field" ]; then
-            echo "VPN authentication is missing; run uofu-runner-vpn renew from Xenon" >&2
+            echo "VPN authentication is missing; run uofu-runner-vpn renew from a desktop" >&2
             exit 1
           fi
         done
@@ -531,7 +677,6 @@ in {
 
       networking.nat = {
         enable = true;
-        externalInterface = "enp8s0";
         internalInterfaces = [hostInterface];
       };
 
@@ -610,7 +755,7 @@ in {
           Type = "simple";
           ExecStart = lib.getExe vpnStart;
           NetworkNamespacePath = "/run/netns/${namespace}";
-          # A SAML cookie can expire while Radon is down. Keep a transient
+          # A SAML cookie can expire while the runner is down. Keep a transient
           # authentication failure out of the failed-unit set during boot or
           # activation; submitting fresh authentication restarts this unit
           # immediately rather than waiting for the retry delay.
@@ -636,20 +781,21 @@ in {
       };
 
       systemd.services."${namespace}-podman" = {
-        description = "Media-backed Podman API service for GitLab CI";
+        description = "Storage-backed Podman API service for GitLab CI";
         restartIfChanged = false;
         requires = [
           "${namespace}-netns.service"
           "${namespace}-vpn.service"
           "${namespace}-podman.socket"
         ];
-        after = [
-          "${namespace}-netns.service"
-          "${namespace}-vpn.service"
-          "${namespace}-podman.socket"
-          mediaMountUnit
-        ];
-        bindsTo = ["${namespace}-vpn.service" mediaMountUnit];
+        after =
+          [
+            "${namespace}-netns.service"
+            "${namespace}-vpn.service"
+            "${namespace}-podman.socket"
+          ]
+          ++ storageMountUnits;
+        bindsTo = ["${namespace}-vpn.service"] ++ storageMountUnits;
         unitConfig.RequiresMountsFor = [podmanDataDir];
         path = with pkgs; [iproute2 iptables kmod];
         environment = {
@@ -685,7 +831,7 @@ in {
         restartIfChanged = false;
         requires = ["${namespace}-podman.service"];
         after = ["${namespace}-podman.service"];
-        bindsTo = [mediaMountUnit];
+        bindsTo = storageMountUnits;
         unitConfig.RequiresMountsFor = [containerNixDir];
         serviceConfig = {
           Type = "oneshot";
@@ -701,10 +847,10 @@ in {
         # Loopback inside the CI namespace: reachable by the watcher below, but
         # not by job containers. The same listener also serves /debug/pprof.
         settings.listen_address = "127.0.0.1:${toString runnerMetricsPort}";
-        services.radon-nix = {
+        services."${hostName}-nix" = {
           authenticationTokenConfigFile = config.age.secrets.gitlab-runner-token.path;
           executor = "docker";
-          description = "radon-nix-container";
+          description = "${hostName}-nix-container";
           buildsDir = runnerBuildDir;
           registrationFlags = [
             "--cache-dir ${gitlabCacheDir}"
@@ -714,7 +860,7 @@ in {
           dockerPullPolicy = "if-not-present";
           dockerVolumes = [
             # Preserve the image's /nix profiles while sharing its expensive
-            # store contents and validity database across jobs on /mnt/media.
+            # store contents and validity database across jobs.
             "${containerNixDir}/store:/nix/store"
             "${containerNixDir}/db:/nix/var/nix/db"
             "${gitlabCacheDir}:${gitlabCacheDir}"
@@ -793,14 +939,15 @@ in {
           "${namespace}-podman.service"
           "${namespace}-podman-setup.service"
         ];
-        after = [
-          "${namespace}-netns.service"
-          "${namespace}-vpn.service"
-          "${namespace}-podman.service"
-          "${namespace}-podman-setup.service"
-          mediaMountUnit
-        ];
-        bindsTo = ["${namespace}-vpn.service" "${namespace}-podman.service" mediaMountUnit];
+        after =
+          [
+            "${namespace}-netns.service"
+            "${namespace}-vpn.service"
+            "${namespace}-podman.service"
+            "${namespace}-podman-setup.service"
+          ]
+          ++ storageMountUnits;
+        bindsTo = ["${namespace}-vpn.service" "${namespace}-podman.service"] ++ storageMountUnits;
         unitConfig.RequiresMountsFor = [runnerBuildDir runnerCacheDir];
         serviceConfig = {
           NetworkNamespacePath = "/run/netns/${namespace}";
@@ -817,7 +964,9 @@ in {
         };
       };
     }) {
-    mediaRoot = config.fleet.media.root;
+    # Every host's root, indexed inside the module by hostname: the aspect is
+    # enrolled by tag and must not know which machine it is on.
+    storageRoots = lib.mapAttrs (_: host: host.extraStorageRoot) config.fleet.hosts;
     nodeExporterTextfileDir = config.fleet.monitoring.textfileDir;
   };
 

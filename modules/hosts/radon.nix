@@ -2,7 +2,7 @@
 # builder, and fronts its own services behind a local reverse proxy.
 let
   proxyPort = 8080;
-  mediaRoot = "/mnt/media";
+  extraStorageRoot = "/mnt/media";
 in {
   fleet.hosts.radon = {
     system = "x86_64-linux";
@@ -14,7 +14,7 @@ in {
     };
     tailscale.enable = true;
     inherit proxyPort;
-    inherit mediaRoot;
+    inherit extraStorageRoot;
 
     buildCluster = {
       cache.provide = {
@@ -35,7 +35,7 @@ in {
     pkgs,
     ...
   }: {
-    imports = [(import ./_hardware/radon.nix {inherit mediaRoot;})];
+    imports = [(import ./_hardware/radon.nix {inherit extraStorageRoot;})];
 
     time.timeZone = "America/Denver";
 

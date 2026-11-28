@@ -1,10 +1,7 @@
 {inputs, ...}: {
   fleet.aspects.flatpak.tags = ["desktop"];
 
-  flake.modules.nixos.flatpak = {
-    pkgs,
-    ...
-  }: {
+  flake.modules.nixos.flatpak = {pkgs, ...}: {
     imports = [inputs.nix-flatpak.nixosModules.nix-flatpak];
 
     environment.systemPackages = [

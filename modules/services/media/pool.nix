@@ -1,7 +1,7 @@
 # The bulk storage pool the media services share.
 #
 # The directory layout is derived once at the flake level from the owning host's
-# `mediaRoot`, so each service file names its own directory rather than
+# `extraStorageRoot`, so each service file names its own directory rather than
 # rebuilding the whole tree from an untyped `radonMediaRoot` argument. The mount
 # and device unit names have to come from the host's own `fileSystems`, so those
 # are a small readOnly NixOS option instead.
@@ -22,7 +22,7 @@
     then lib.head mediaHosts
     else throw "Exactly one host must be tagged \"media\", found: ${lib.concatStringsSep ", " mediaHosts}.";
 
-  root = config.fleet.hosts.${host}.mediaRoot;
+  root = config.fleet.hosts.${host}.extraStorageRoot;
   lidarr = "${root}/lidarr";
 in {
   options.fleet.media =

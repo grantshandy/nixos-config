@@ -1,4 +1,4 @@
-{mediaRoot}: {
+{extraStorageRoot}: {
   config,
   lib,
   modulesPath,
@@ -33,7 +33,7 @@
     options = ["fmask=0077" "dmask=0077"];
   };
 
-  fileSystems.${mediaRoot} = {
+  fileSystems.${extraStorageRoot} = {
     device = "/dev/disk/by-label/media";
     fsType = "ext4";
     options = [
@@ -47,7 +47,7 @@
   users.groups.media.gid = 998;
   users.users.${config.identity.user.name}.extraGroups = ["media"];
   systemd.tmpfiles.rules = [
-    "z ${mediaRoot} 2775 root media -"
+    "z ${extraStorageRoot} 2775 root media -"
   ];
 
   swapDevices = [

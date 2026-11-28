@@ -9,7 +9,7 @@
       port = 22;
     };
     tailscale.enable = true;
-
+    extraStorageRoot = "/var/lib/extra-storage";
     buildCluster.cache.provide = {
       enable = true;
       priority = 15;
