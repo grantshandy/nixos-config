@@ -115,6 +115,11 @@ in {
         auto_https disable_redirects
         acme_ca https://acme-v02.api.letsencrypt.org/directory
         email ${config.identity.git.email}
+        # A reload stops the old HTTP servers and waits for their connections to
+        # drain. A live video stream never ends, so without a bound that wait is
+        # forever: it holds the admin API's lock, every `caddy reload` hangs
+        # until systemd kills it, and the new config silently never loads.
+        grace_period 10s
       '';
       virtualHosts =
         subdomainVirtualHosts

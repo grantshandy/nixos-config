@@ -2,7 +2,7 @@
 {
   fleet.hosts.neon = {
     system = "x86_64-linux";
-    tags = ["minimal"];
+    tags = ["lean" "battery"];
 
     ssh = {
       enable = true;
@@ -22,7 +22,25 @@
       ./_hardware/neon.nix
     ];
 
-    hardware.enableRedistributableFirmware = true;
+    # The built-in panel has been physically removed. Disabling only its DRM
+    # connector avoids phantom-display handling while leaving HDMI/DP usable.
+    boot.kernelParams = ["video=eDP-1:d"];
+
+    # Treat the machine as an always-on headless appliance regardless of the
+    # laptop lid sensor or whether external power/display detection changes.
+    services.logind.settings.Login = {
+      HandleLidSwitch = "ignore";
+      HandleLidSwitchExternalPower = "ignore";
+      HandleLidSwitchDocked = "ignore";
+      IdleAction = "ignore";
+    };
+
+    systemd.targets = {
+      sleep.enable = false;
+      suspend.enable = false;
+      hibernate.enable = false;
+      hybrid-sleep.enable = false;
+    };
 
     networking = {
       useDHCP = true;

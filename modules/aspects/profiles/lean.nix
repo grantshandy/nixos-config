@@ -1,7 +1,8 @@
 # Strips documentation, locales, and other bulk off machines that are
 # deliberately minimal.
 {
-  fleet.aspects.lean.tags = ["minimal"];
+  fleet.aspects.lean.tags = ["lean"];
+
   flake.modules.nixos.lean = {lib, ...}: {
     # Krypton is managed remotely with Colmena and does not need local installer,
     # VM-building, or option-inspection tools in its system closure.

@@ -2,7 +2,7 @@
 {
   fleet.hosts.helium = {
     system = "x86_64-linux";
-    tags = ["desktop"];
+    tags = ["desktop" "battery"];
 
     ssh = {
       enable = true;

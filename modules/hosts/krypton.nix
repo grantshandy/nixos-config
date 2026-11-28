@@ -5,7 +5,7 @@ let
 in {
   fleet.hosts.krypton = {
     system = "x86_64-linux";
-    tags = ["edge" "tailnet-dns" "minimal"];
+    tags = ["edge" "tailnet-dns" "lean"];
     homeManager.enable = false;
     remoteDevelopment.enable = false;
 

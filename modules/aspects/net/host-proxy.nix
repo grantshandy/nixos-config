@@ -75,6 +75,9 @@ in {
   flake.modules.nixos.host-proxy = {config, ...}: {
     services.caddy = {
       enable = true;
+      # See the identical note on the edge proxy: an unbounded drain lets one
+      # long-lived stream wedge the admin API and break every future reload.
+      globalConfig = "grace_period 10s";
       virtualHosts = virtualHostsFor config.networking.hostName;
     };
   };

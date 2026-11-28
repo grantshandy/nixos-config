@@ -3,6 +3,7 @@
   config,
   lib,
   modulesPath,
+  pkgs,
   ...
 }: {
   imports = [
@@ -36,4 +37,10 @@
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+
+  # Gemini Lake iGPU (8086:3185)
+  hardware.graphics = {
+    enable = true;
+    extraPackages = [pkgs.intel-media-driver];
+  };
 }
