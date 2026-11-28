@@ -17,8 +17,8 @@
       ];
     in {
       # Mirrors mediaRoot onto an external USB backup drive once a day.
-      # The drive is only mounted for the duration of the sync and otherwise left
-      # alone so its own idle timer can spin it down, to minimize power-on hours.
+      # The drive is mounted only for the sync. A separate guard spins it down
+      # after boot and periodically in case USB enumeration or another probe wakes it.
 
       # The USB backup drive (Seagate BUP Slim) lies about its power state and
       # ignores ATA STANDBY under the UAS driver; force the older usb-storage
@@ -35,6 +35,9 @@
         };
         path = [pkgs.rsync pkgs.util-linux pkgs.hdparm];
         script = ''
+          exec 9>/run/media-backup.lock
+          flock 9
+
           mkdir -p ${backupMountPoint}
           mount -t ext4 -o noatime ${backupDevice} ${backupMountPoint}
           disk="/dev/$(lsblk -no pkname "$(readlink -f ${backupDevice})")"
@@ -52,6 +55,36 @@
         timerConfig = {
           OnCalendar = "03:00";
           Persistent = false;
+        };
+      };
+
+      systemd.services.media-backup-standby = {
+        description = "Keep the unmounted media backup drive in standby";
+        unitConfig.ConditionPathExists = backupDevice;
+        serviceConfig.Type = "oneshot";
+        path = [pkgs.systemd pkgs.util-linux pkgs.hdparm];
+        script = ''
+          exec 9>/run/media-backup.lock
+          flock --nonblock 9 || exit 0
+
+          # Avoid spinning down a manually mounted drive as well.
+          if systemctl is-active --quiet media-backup.service \
+            || findmnt --mountpoint ${backupMountPoint} >/dev/null; then
+            exit 0
+          fi
+
+          disk="/dev/$(lsblk -no pkname "$(readlink -f ${backupDevice})")"
+          hdparm -y "$disk"
+        '';
+      };
+
+      systemd.timers.media-backup-standby = {
+        description = "Periodically spin down the unmounted media backup drive";
+        wantedBy = ["timers.target"];
+        timerConfig = {
+          OnBootSec = "30s";
+          OnUnitInactiveSec = "5m";
+          AccuracySec = "30s";
         };
       };
     }) {

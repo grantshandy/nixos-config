@@ -112,10 +112,7 @@
     [
       ({config, ...}: {
         deployment = {
-          targetHost =
-            if host.ssh.targetHost == null
-            then name
-            else host.ssh.targetHost;
+          targetHost = name;
           targetPort = host.ssh.port;
           targetUser = config.identity.user.name;
           buildOnTarget = false;

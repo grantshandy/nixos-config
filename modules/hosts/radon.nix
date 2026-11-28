@@ -6,7 +6,7 @@ let
 in {
   fleet.hosts.radon = {
     system = "x86_64-linux";
-    tags = ["server" "media" "ci"];
+    tags = ["media" "ci"];
 
     ssh = {
       enable = true;

@@ -114,6 +114,9 @@ in {
       lib.mkIf (self.tailscale.enable && config.gtk.enable)
       (lib.mapAttrsToList (bookmarkFor userName) peers);
 
+    xdg.configFile."gtk-3.0/bookmarks" =
+      lib.mkIf (self.tailscale.enable && config.gtk.enable) {force = true;};
+
     programs.ssh = lib.mkIf self.tailscale.enable {
       enable = true;
       enableDefaultConfig = false;
