@@ -1,4 +1,6 @@
 result
+result-*
+*.iso
 .direnv
 secrets/*.txt
 secrets/*.swp
